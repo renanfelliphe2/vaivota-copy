@@ -1,0 +1,54 @@
+/* Etapa 7 (5.11): impressão do relatório em A4, legível em preto e branco. */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm 14mm;
+  }
+
+  [data-print="ocultar"] {
+    display: none !important;
+  }
+
+  .relatorio {
+    color: black;
+    background: white;
+    font-size: 11pt;
+  }
+
+  .relatorio * {
+    box-shadow: none !important;
+  }
+
+  .relatorio-secao {
+    break-before: page;
+  }
+
+  .relatorio-secao:first-of-type {
+    break-before: auto;
+  }
+
+  .relatorio table,
+  .relatorio figure {
+    break-inside: auto;
+  }
+
+  .relatorio tr,
+  .relatorio li {
+    break-inside: avoid;
+  }
+
+  /* Barras e selos legíveis sem cor: borda e rótulo. */
+  .relatorio .bg-tema-primaria-texto {
+    background: black !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .relatorio details > :not(summary) {
+    display: block;
+  }
+
+  .relatorio summary {
+    display: none;
+  }
+}
