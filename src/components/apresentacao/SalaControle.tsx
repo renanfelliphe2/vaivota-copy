@@ -59,7 +59,7 @@ function usePreCarregamento(urls: string[]) {
   return { total: urls.length, feitas: atual.feitas, falhas: atual.falhas, pronto: atual.feitas >= urls.length };
 }
 
-export function SalaControle({ aoApresentar, preparando, erroEnsaio }: { aoApresentar: () => void; preparando: boolean; erroEnsaio: string | null }) {
+export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
   const ativo = useEventoAtivo()!;
   const { evento, tema, configApresentacao, slug } = ativo;
   const eventoId = evento.id;
@@ -121,7 +121,11 @@ export function SalaControle({ aoApresentar, preparando, erroEnsaio }: { aoApres
       <Alerta variante="informacao" titulo="Antes de apresentar">
         <ul className="list-disc pl-5">
           <li>Recomenda-se estender a tela e deixar a apresentação no monitor do telão. Com a tela espelhada, o público vê esta sala.</li>
-          <li>Abra a apresentação nesta mesma janela. Em outra aba ou depois de atualizar a página, os dados voltam ao início.</li>
+          <li>
+            Apresentar abre o palco numa aba própria: arraste essa janela para o monitor do telão e clique nela uma vez para
+            entrar em tela cheia. Depois, comande tudo pelo controle remoto (canto da tela, em qualquer página do admin), sem
+            tocar no telão. As abas ficam sincronizadas (votos, urna, resultado e a revelação); fechar todas volta os dados ao início.
+          </li>
           <li>
             O QR Code vai apontar para <strong className="break-all">{urlQr}</strong>.{local && " Celulares podem não alcançar este endereço."}
           </li>
@@ -210,11 +214,12 @@ export function SalaControle({ aoApresentar, preparando, erroEnsaio }: { aoApres
           </label>
         )}
         {pre.falhas > 0 && <p className="text-sm text-tema-aviso">{pre.falhas} imagens não carregaram: o palco usa o cartaz padrão.</p>}
-        {erroEnsaio && <Alerta variante="erro">{erroEnsaio}</Alerta>}
-        <Botao tamanho="grande" icone={<MonitorPlay aria-hidden className="size-5" />} disabled={!pre.pronto} carregando={preparando} onClick={aoApresentar}>
-          {preparando ? "Preparando…" : "Apresentar"}
+        <Botao tamanho="grande" icone={<MonitorPlay aria-hidden className="size-5" />} disabled={!pre.pronto} onClick={aoApresentar}>
+          Apresentar
         </Botao>
+        <p className="text-sm text-tema-texto-suave">Abre o palco em outra aba, para o telão. Depois, comande pelo controle remoto, que aparece em todas as telas enquanto o telão estiver aberto.</p>
       </div>
+
 
       <DialogoConfirmacao
         aberto={confirmar}

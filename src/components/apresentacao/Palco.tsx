@@ -1,27 +1,27 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, LogOut, Pause, Play, Siren, SkipForward } from "lucide-react";
-import { useRef, type ReactNode } from "react";
-import { DURACOES } from "@/dominio/apresentacao/duracoes";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ModoAvanco } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 import { TEXTOS_PALCO } from "@/lib/textosPalco";
-import { ALTURA_PALCO, LARGURA_PALCO, useEscalaPalco, useHudVisivel } from "./hooks";
+import { useTelaoPublicado, type ComandoDoPalco } from "@/store/canalTelao";
+import { ALTURA_PALCO, LARGURA_PALCO, useEscalaPalco } from "./hooks";
 import { SeloEnsaio } from "./Pecas";
 
-// Etapa 8 (5.7): canvas lógico 1920×1080 escalado (letterbox), camadas (cena, selo, pausa, HUD, ajuda).
-// Nenhum botão no telão: o HUD aparece ao mover o mouse ou com "?" e fica fora do canvas escalado.
+// Etapa 8 (5.7): canvas lógico 1920×1080 escalado (letterbox), camadas (cena, selo, pausa, ajuda).
+// 08/10/2026: nada de HUD no telão. O palco é comandado pelo controle remoto (ControleRemoto, em qualquer aba do
+// admin) pelos mesmos controles do teclado, e conta ao controle o que está mostrando (canalTelao). Na própria
+// janela do telão, os atalhos de teclado continuam valendo.
 
-export type ControlesHud = {
+export type ControlesPalco = {
   pausado: boolean;
   alternarPausa?: () => void;
   voltar?: () => void;
   avancar?: () => void;
-  pularTrailer?: () => void;
   emergencia?: () => void;
+  reiniciar?: () => void;
   modoAvanco?: ModoAvanco;
   alternarModo?: () => void;
-  sair: () => void;
 };
 
 const ATALHOS: [string, string][] = [
@@ -50,41 +50,71 @@ export function ListaAtalhos({ className }: { className?: string }) {
   );
 }
 
-function BotaoHud({ rotulo, icone, aoClicar, ativo }: { rotulo: string; icone: ReactNode; aoClicar?: () => void; ativo?: boolean }) {
-  if (!aoClicar) return null;
-  return (
-    <button
-      type="button"
-      onClick={aoClicar}
-      aria-pressed={ativo}
-      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-tema-borda bg-tema-fundo px-4 text-sm font-semibold hover:bg-tema-superficie"
-    >
-      {icone}
-      {rotulo}
-    </button>
-  );
-}
-
 export function Palco({
   ensaio,
   nomeCena,
-  mensagemHud,
+  mensagem,
   ajudaVisivel,
   avisoPausa,
   controles,
+  progresso = null,
+  aoDesligar,
   children,
 }: {
   ensaio: boolean;
   nomeCena: string;
-  mensagemHud: string | null;
+  /** Aviso técnico (falha de leitura, auditoria): vai só para o controle remoto, nunca para o telão. */
+  mensagem: string | null;
   ajudaVisivel: boolean;
   avisoPausa: boolean;
-  controles: ControlesHud;
+  controles: ControlesPalco;
+  /** Cena atual (1…) e total, só durante a revelação. */
+  progresso?: { cena: number; total: number } | null;
+  /** "Desligar" do controle remoto. */
+  aoDesligar: () => void;
   children: ReactNode;
 }) {
   const area = useRef<HTMLDivElement>(null);
   const escala = useEscalaPalco(area);
-  const hud = useHudVisivel(DURACOES.hudVisivel, ajudaVisivel || avisoPausa || Boolean(mensagemHud));
+  const [telaCheia, setTelaCheia] = useState(() => Boolean(document.fullscreenElement));
+  useEffect(() => {
+    const aoMudar = () => setTelaCheia(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", aoMudar);
+    return () => document.removeEventListener("fullscreenchange", aoMudar);
+  }, []);
+
+  const acoes: Record<ComandoDoPalco, (() => void) | undefined> = {
+    AVANCAR: controles.avancar,
+    VOLTAR: controles.voltar,
+    ALTERNAR_PAUSA: controles.alternarPausa,
+    ALTERNAR_MODO: controles.modoAvanco ? controles.alternarModo : undefined,
+    EMERGENCIA: controles.emergencia,
+    REINICIAR: controles.reiniciar,
+  };
+  useTelaoPublicado(
+    {
+      situacao: "LIGADO",
+      ensaio,
+      nomeCena,
+      progresso,
+      andamento: !controles.alternarPausa ? "PARADO" : controles.pausado ? "PAUSADO" : "APRESENTANDO",
+      modoAvanco: controles.modoAvanco ?? null,
+      telaCheia,
+      mensagem,
+      pode: {
+        AVANCAR: Boolean(acoes.AVANCAR),
+        VOLTAR: Boolean(acoes.VOLTAR),
+        ALTERNAR_PAUSA: Boolean(acoes.ALTERNAR_PAUSA),
+        ALTERNAR_MODO: Boolean(acoes.ALTERNAR_MODO),
+        EMERGENCIA: Boolean(acoes.EMERGENCIA),
+        REINICIAR: Boolean(acoes.REINICIAR),
+      },
+    },
+    (comando) => {
+      if (comando === "DESLIGAR") aoDesligar();
+      else if (comando !== "LIGAR") acoes[comando]?.();
+    },
+  );
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-tema-fundo text-tema-texto font-tema">
@@ -102,34 +132,9 @@ export function Palco({
           )}
         </div>
       </div>
-      {hud && (
-        <div role="toolbar" aria-label="Controles da apresentação" className="absolute inset-x-2 bottom-2 z-50 flex flex-col gap-2 rounded-2xl border border-tema-borda bg-tema-fundo/95 p-3 shadow-2xl sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2 text-sm font-semibold">{nomeCena}</span>
-            <BotaoHud rotulo="Voltar" icone={<ChevronLeft aria-hidden className="size-4" />} aoClicar={controles.voltar} />
-            <BotaoHud
-              rotulo={controles.pausado ? "Retomar" : "Pausar"}
-              icone={controles.pausado ? <Play aria-hidden className="size-4" /> : <Pause aria-hidden className="size-4" />}
-              aoClicar={controles.alternarPausa}
-            />
-            <BotaoHud rotulo="Avançar" icone={<ChevronRight aria-hidden className="size-4" />} aoClicar={controles.avancar} />
-            <BotaoHud rotulo="Pular trailer" icone={<SkipForward aria-hidden className="size-4" />} aoClicar={controles.pularTrailer} />
-            <BotaoHud rotulo="Emergência" icone={<Siren aria-hidden className="size-4" />} aoClicar={controles.emergencia} />
-            {controles.modoAvanco && (
-              <BotaoHud
-                rotulo={controles.modoAvanco === "AUTOMATICO" ? "Avanço automático" : "Avanço manual"}
-                icone={null}
-                aoClicar={controles.alternarModo}
-              />
-            )}
-            <BotaoHud rotulo="Sair" icone={<LogOut aria-hidden className="size-4" />} aoClicar={controles.sair} />
-          </div>
-          {mensagemHud && (
-            <p role="status" className="px-2 text-sm text-tema-aviso">
-              {mensagemHud}
-            </p>
-          )}
-          {ajudaVisivel && <ListaAtalhos className="px-2" />}
+      {ajudaVisivel && (
+        <div role="note" aria-label="Atalhos do telão" className="absolute bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-tema-borda bg-tema-fundo/95 p-4 shadow-2xl">
+          <ListaAtalhos />
         </div>
       )}
     </div>

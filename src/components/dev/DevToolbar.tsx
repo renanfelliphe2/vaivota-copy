@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import type { EstadoDev, EstadoEvento, EstadoUrna, ModoFalha } from "@/dominio/tipos";
 import { paraMs, formatarDataHora, HORA, MINUTO, SEGUNDO } from "@/lib/tempo";
@@ -104,6 +105,8 @@ export function DevToolbar() {
 function DevToolbarInterna() {
   const dev = useDev();
   const ui = useUi();
+  // A aba do telão (08/10/2026) nunca mostra a toolbar, nem forçada: ela vai para o público. Use as outras abas.
+  const abaDoTelao = usePathname()?.endsWith("/admin/apresentar/palco") ?? false;
 
   // ?toolbar=0 grava OCULTA. Alt+D alterna: visível → OCULTA; oculta → FORCADA. Em AUTO some no palco e no totem.
   const visivel = dev.toolbarModo === "FORCADA" || (dev.toolbarModo === "AUTO" && !ui.palcoAtivo && !ui.totem.quiosqueAtivo);
@@ -122,7 +125,7 @@ function DevToolbarInterna() {
     return () => window.removeEventListener("keydown", aoTeclar);
   }, [visivel]);
 
-  if (!visivel) return null;
+  if (!visivel || abaDoTelao) return null;
 
   if (dev.toolbarRecolhida) {
     return (

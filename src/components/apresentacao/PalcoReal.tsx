@@ -16,7 +16,7 @@ import { formatarDataHora, paraMs } from "@/lib/tempo";
 import { TEXTOS_PALCO } from "@/lib/textosPalco";
 import { useConsulta } from "@/lib/useConsulta";
 import { carregarRevelacao, obterEstadoAoVivo, obterStatusResultado, registrarAcaoApresentacao, type AcaoApresentacao } from "@/servicos/apresentacao";
-import { concluirRevelacao, definirModoAvancoLocal, gravarProgresso, iniciarRevelacao } from "@/store/acoesApresentacao";
+import { concluirRevelacao, definirModoAvancoLocal, gravarProgresso, iniciarRevelacao, refazerRevelacao } from "@/store/acoesApresentacao";
 import { useStore } from "@/store/AppProvider";
 import { usePreferenciasSala, useRevelacao } from "@/store/seletores/apresentacao";
 import { useLerEstado, useDev } from "@/store/seletores/dev";
@@ -25,7 +25,7 @@ import { useAgora } from "@/store/seletores/relogio";
 import { useVersaoResultado } from "@/store/seletores/resultado";
 import { useSituacaoEvento } from "@/store/seletores/situacao";
 import { CenaAtual, nomeDaCena, useCatalogo } from "./CenaAtual";
-import { CenaAoVivo, CenaMensagem, CenaPreVotacao, type SubestadoAoVivo } from "./cenas/CenasFase";
+import { CenaAoVivo, CenaEncerrada, CenaMensagem, CenaPreVotacao, type SubestadoAoVivo } from "./cenas/CenasFase";
 import { CenaFinal } from "./cenas/CenasRevelacao";
 import { usePalcoTeclado, useTelaCheia, useTemporizadorDoPasso } from "./hooks";
 import { Palco } from "./Palco";
@@ -33,7 +33,18 @@ import { Palco } from "./Palco";
 // Etapa 8 (D2 a D7, 5.1): palco real. A fase vem de resolverFasePalco; o resultado só é carregado depois de
 // iniciar a revelação (ou no final estático). Depois de carregado, a cerimônia nunca espera por serviço.
 
-export function PalcoReal({ urlQr, alternarTelaCheia, aoSair }: { urlQr: string; alternarTelaCheia: () => void; aoSair: () => void }) {
+export function PalcoReal({
+  urlQr,
+  alternarTelaCheia,
+  aoSair,
+  aoDesligar,
+}: {
+  urlQr: string;
+  alternarTelaCheia: () => void;
+  aoSair: () => void;
+  /** "Desligar" do controle remoto: a revelação em curso pausa antes da tela apagar. */
+  aoDesligar: () => void;
+}) {
   const ativo = useEventoAtivo()!;
   const { evento, tema, configApresentacao } = ativo;
   const eventoId = evento.id;
@@ -131,6 +142,27 @@ export function PalcoReal({ urlQr, alternarTelaCheia, aoSair }: { urlQr: string;
     }
   }
 
+  /**
+   * 08/10/2026: a tela inicial da revelação é a de votação encerrada (fase de espera). Voltar no começo do trailer
+   * desfaz a revelação e volta a ela; Avançar ali começa de novo pelo trailer.
+   */
+  function voltar() {
+    if (estadoMotor.cena === 0 && estadoMotor.passo === 0) refazerRevelacao(eventoId);
+    else despachar({ tipo: "VOLTAR" });
+  }
+
+  /** Reiniciar (controle remoto): a cerimônia volta à tela de votação encerrada. Auditado, como o "Refazer" da sala. */
+  function reiniciar() {
+    refazerRevelacao(eventoId);
+    const v = dados?.versao ?? status.dados?.versao;
+    if (v) registrarAcaoApresentacao(eventoId, "REVELACAO_REFEITA", { versao: v });
+  }
+
+  function desligar() {
+    if (fasePalco === "REVELACAO" && !estadoMotor.pausado) despachar({ tipo: "PAUSAR" });
+    aoDesligar();
+  }
+
   useTemporizadorDoPasso(estadoMotor, roteiro, despachar, fasePalco === "REVELACAO" && dados !== null);
 
   useTelaCheia(() => {
@@ -144,7 +176,7 @@ export function PalcoReal({ urlQr, alternarTelaCheia, aoSair }: { urlQr: string;
       if (fasePalco === "ENCERRADA_AGUARDANDO" && existe) void iniciar(false);
       else if (fasePalco === "REVELACAO") despachar({ tipo: "AVANCAR" });
     },
-    voltar: () => fasePalco === "REVELACAO" && despachar({ tipo: "VOLTAR" }),
+    voltar: () => fasePalco === "REVELACAO" && voltar(),
     trailer: () => fasePalco === "REVELACAO" && despachar({ tipo: "PULAR_TRAILER" }),
     emergencia: () => {
       if (fasePalco === "REVELACAO") despachar({ tipo: "IR_PARA_FINAL" });
@@ -213,7 +245,7 @@ export function PalcoReal({ urlQr, alternarTelaCheia, aoSair }: { urlQr: string;
   } else if (fasePalco === "SEM_RESULTADO") {
     conteudo = <CenaMensagem nome={nome} logoUrl={tema.logoUrl} texto={TEXTOS_PALCO.semResultado} />;
   } else if (fasePalco === "ENCERRADA_AGUARDANDO" || !dados) {
-    conteudo = <CenaMensagem nome={nome} logoUrl={tema.logoUrl} texto={TEXTOS_PALCO.votacaoEncerrada} />;
+    conteudo = <CenaEncerrada nome={nome} logoUrl={tema.logoUrl} candidatos={candidatos} />;
   } else if (fasePalco === "FINAL_ESTATICO") {
     conteudo = <CenaFinal final={montarFinal(dados.dados)} catalogo={catalogo} config={dados.config} />;
   } else {
@@ -238,22 +270,23 @@ export function PalcoReal({ urlQr, alternarTelaCheia, aoSair }: { urlQr: string;
       <Palco
         ensaio={false}
         nomeCena={revelando ? nomeDaCena(cenaAtual) : anuncio}
-        mensagemHud={mensagemHud ?? (erroLeitura ? `Falha de leitura: ${erroLeitura.mensagem}. Mostrando o último dado.` : null)}
+        progresso={revelando ? { cena: estadoMotor.cena + 1, total: roteiro.length } : null}
+        aoDesligar={desligar}
+        mensagem={mensagemHud ?? (erroLeitura ? `Falha de leitura: ${erroLeitura.mensagem}. Mostrando o último dado.` : null)}
         ajudaVisivel={ajuda}
         avisoPausa={revelando && estadoMotor.pausado && foraDaTelaCheia}
         controles={{
           pausado: estadoMotor.pausado,
           alternarPausa: revelando ? () => despachar({ tipo: estadoMotor.pausado ? "RETOMAR" : "PAUSAR" }) : undefined,
-          voltar: revelando ? () => despachar({ tipo: "VOLTAR" }) : undefined,
+          voltar: revelando ? voltar : undefined,
           avancar: revelando ? () => despachar({ tipo: "AVANCAR" }) : fasePalco === "ENCERRADA_AGUARDANDO" && existe ? () => void iniciar(false) : undefined,
-          pularTrailer: cenaAtual?.tipo === "TRAILER" ? () => despachar({ tipo: "PULAR_TRAILER" }) : undefined,
           emergencia: revelando ? () => despachar({ tipo: "IR_PARA_FINAL" }) : fasePalco === "ENCERRADA_AGUARDANDO" && existe ? () => void iniciar(true) : undefined,
+          reiniciar: revelacao && fase !== "CONCLUIDO" ? reiniciar : undefined,
           modoAvanco,
           alternarModo: () => {
             const modo = modoAvanco === "AUTOMATICO" ? "MANUAL" : "AUTOMATICO";
             if (usuarioId) definirModoAvancoLocal(eventoId, modo);
           },
-          sair: () => (revelando && estadoMotor.situacao === "EM_ANDAMENTO" ? setConfirmarSaida(true) : aoSair()),
         }}
       >
         {conteudo}

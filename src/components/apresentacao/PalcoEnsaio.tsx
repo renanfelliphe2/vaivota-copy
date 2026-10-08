@@ -25,12 +25,18 @@ export function PalcoEnsaio({
   urlQr,
   alternarTelaCheia,
   aoSair,
+  aoDesligar,
+  iniciarPausado = false,
 }: {
   dados: DadosEnsaio;
   modoInicial: ModoAvanco;
   urlQr: string;
   alternarTelaCheia: () => void;
   aoSair: () => void;
+  /** "Desligar" do controle remoto. O ensaio é local: ao religar, recomeça do início. */
+  aoDesligar: () => void;
+  /** "Ligar" do controle remoto: volta pausado. */
+  iniciarPausado?: boolean;
 }) {
   const ativo = useEventoAtivo()!;
   const dev = useDev();
@@ -39,7 +45,10 @@ export function PalcoEnsaio({
     () => montarRoteiro(dados.dados, { classificacaoCompleta: dados.config.classificacaoCompleta, modo: "ENSAIO", candidatosNaDisputa: dados.candidatosNaDisputa }),
     [dados],
   );
-  const [estado, despachar] = useReducer((e: EstadoMotor, a: AcaoMotor) => reduzirMotor(e, a, roteiro), modoInicial, estadoInicialMotor);
+  const [estado, despachar] = useReducer((e: EstadoMotor, a: AcaoMotor) => reduzirMotor(e, a, roteiro), modoInicial, (modo) => ({
+    ...estadoInicialMotor(modo),
+    pausado: iniciarPausado,
+  }));
   const [ajuda, setAjuda] = useState(false);
   const [foraDaTelaCheia, setForaDaTelaCheia] = useState(false);
   const cena = roteiro[estado.cena];
@@ -81,7 +90,9 @@ export function PalcoEnsaio({
     <Palco
       ensaio
       nomeCena={nomeDaCena(cena)}
-      mensagemHud={null}
+      progresso={{ cena: estado.cena + 1, total: roteiro.length }}
+      aoDesligar={aoDesligar}
+      mensagem={null}
       ajudaVisivel={ajuda}
       avisoPausa={estado.pausado && foraDaTelaCheia}
       controles={{
@@ -89,11 +100,10 @@ export function PalcoEnsaio({
         alternarPausa: () => despachar({ tipo: estado.pausado ? "RETOMAR" : "PAUSAR" }),
         voltar: () => despachar({ tipo: "VOLTAR" }),
         avancar: () => despachar({ tipo: "AVANCAR" }),
-        pularTrailer: cena?.tipo === "TRAILER" ? () => despachar({ tipo: "PULAR_TRAILER" }) : undefined,
         emergencia: () => despachar({ tipo: "IR_PARA_FINAL" }),
+        reiniciar: () => despachar({ tipo: "REINICIAR" }),
         modoAvanco: estado.modoAvanco,
         alternarModo: () => despachar({ tipo: "DEFINIR_MODO", modo: estado.modoAvanco === "AUTOMATICO" ? "MANUAL" : "AUTOMATICO" }),
-        sair: aoSair,
       }}
     >
       <CenaAtual
