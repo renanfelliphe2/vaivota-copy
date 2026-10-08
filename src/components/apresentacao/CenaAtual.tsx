@@ -6,7 +6,7 @@ import { interpretarLinkTrailer } from "@/dominio/apresentacao/trailer";
 import type { AcaoMotor, CandidatoPalco, Cena, DadosRevelacao, EstadoMotor } from "@/dominio/apresentacao/tipos";
 import type { Grupo } from "@/dominio/tipos";
 import { lugar, TEXTOS_PALCO } from "@/lib/textosPalco";
-import { CenaMensagem } from "./cenas/CenasFase";
+import { CenaEncerrada } from "./cenas/CenasFase";
 import { CenaRevelacao } from "./cenas/CenasRevelacao";
 import { CenaTrailer } from "./cenas/CenaTrailer";
 
@@ -72,7 +72,8 @@ export function CenaAtual({
   const chave = `${estado.cena}:${estado.passo}`;
 
   if (cena.tipo === "AO_VIVO_ENSAIO") return <>{aoVivoEnsaio}</>;
-  if (cena.tipo === "ENCERRADA_ENSAIO") return <CenaMensagem nome={nome} logoUrl={logoUrl} texto={TEXTOS_PALCO.votacaoEncerrada} />;
+  if (cena.tipo === "ENCERRADA_ENSAIO")
+    return <CenaEncerrada nome={nome} logoUrl={logoUrl} candidatos={dados.candidatos.filter((c) => !dados.dados.desqualificados.includes(c.id))} />;
   if (cena.tipo === "TRAILER") {
     const { config } = dados;
     return (

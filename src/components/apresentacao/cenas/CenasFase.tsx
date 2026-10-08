@@ -1,7 +1,7 @@
 "use client";
 
 import { Hourglass, Timer } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { LogoEvento } from "@/components/evento/LogoEvento";
 import { CANDIDATOS_POR_PAGINA, DURACOES } from "@/dominio/apresentacao/duracoes";
 import type { CandidatoPalco } from "@/dominio/apresentacao/tipos";
@@ -85,6 +85,7 @@ export function CenaAoVivo({
   totalGeral,
   parcial,
   subestado,
+  encerrada = false,
 }: {
   nome: string;
   logoUrl: string | null;
@@ -94,8 +95,29 @@ export function CenaAoVivo({
   totalGeral: number | null;
   parcial: { candidatoId: string; votos: number }[] | null;
   subestado: SubestadoAoVivo;
+  /** 08/10/2026: votação encerrada na própria tela dos candidatos: sem QR nem temporizador; o aviso fica no lugar do QR. */
+  encerrada?: boolean;
 }) {
   const votos = parcial ? new Map(parcial.map((p) => [p.candidatoId, p.votos])) : null;
+  if (encerrada)
+    return (
+      <div className="grid h-full grid-cols-[1fr_520px] gap-12 p-20">
+        <div className="flex min-w-0 flex-col gap-8">
+          <Cabecalho nome={nome} logoUrl={logoUrl} />
+          <Grade candidatos={candidatos} votos={votos} />
+        </div>
+        <aside className="flex flex-col items-center justify-center gap-8 text-center">
+          <p className="palco-entrada rounded-[48px] border-8 border-tema-primaria px-10 py-16 text-[88px] font-black leading-tight text-tema-primaria-texto">
+            {TEXTOS_PALCO.votacaoEncerrada}
+          </p>
+          {totalGeral !== null && (
+            <p className="text-[40px]">
+              <span className="text-[72px] font-black tabular-nums">{formatarNumero(totalGeral)}</span> {TEXTOS_PALCO.totalVotos}
+            </p>
+          )}
+        </aside>
+      </div>
+    );
   return (
     <div className="grid h-full grid-cols-[1fr_520px] gap-12 p-20">
       <div className="flex min-w-0 flex-col gap-8">
@@ -143,6 +165,31 @@ export function CenaMensagem({ nome, logoUrl, texto }: { nome: string; logoUrl: 
       <div className="flex flex-1 items-center justify-center">
         <p className="palco-entrada text-center text-[120px] font-black leading-tight">{texto}</p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Tela inicial da revelação (08/10/2026; substitui a tela só com "Votação encerrada"): os candidatos, sem QR nem
+ * temporizador, com o aviso no lugar do QR. Ao entrar, o aviso aparece grande no meio da tela por alguns segundos.
+ * Fica parada até alguém avançar.
+ */
+export function CenaEncerrada({ nome, logoUrl, candidatos }: { nome: string; logoUrl: string | null; candidatos: CandidatoPalco[] }) {
+  const [aviso, setAviso] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setAviso(false), DURACOES.avisoEncerrada);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div className="relative h-full">
+      <CenaAoVivo nome={nome} logoUrl={logoUrl} candidatos={candidatos} urlQr="" contagem={null} totalGeral={null} parcial={null} subestado={null} encerrada />
+      {aviso && (
+        <div className="absolute inset-0 flex items-center justify-center bg-tema-fundo/80">
+          <p className="palco-entrada rounded-[64px] bg-tema-primaria px-24 py-16 text-[160px] font-black leading-none text-tema-sobre-primaria shadow-2xl">
+            {TEXTOS_PALCO.votacaoEncerrada}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

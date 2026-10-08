@@ -13,7 +13,10 @@ export const DURACOES = {
   mensagemAbertura: 8000,
   paginaCandidatos: 8000,
   ensaioAoVivo: 20000,
-  ensaioEncerrada: 4000,
+  /** Ensaio: a tela de votação encerrada mostra o aviso grande e segura um pouco antes do trailer. */
+  ensaioEncerrada: 8000,
+  /** Aviso grande "Votação encerrada" no meio da tela, ao entrar na tela inicial da revelação. */
+  avisoEncerrada: 4000,
   hudVisivel: 3000,
   ajudaVisivel: 8000,
 } as const;
