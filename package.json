@@ -1,15 +1,20 @@
 {
-  "name": "verefazerfilmes-project",
+  "name": "vaivota",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.21.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "lucide-react": "1.52.0",
     "next": "16.3.5",
+    "qrcode.react": "4.2.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -22,6 +27,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "5.0.3"
   }
 }
