@@ -1,26 +1,112 @@
 @import "tailwindcss";
 
+/*
+ * Tokens do tema do evento (Etapa 0, seção 5.5). Os valores reais são aplicados pelo <TemaEvento>
+ * a partir de lib/tema.ts; os de :root são só um fallback neutro. Sem dark mode automático (D15).
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --tema-primaria: #1f2937;
+  --tema-secundaria: #f59e0b;
+  --tema-fundo: #ffffff;
+  --tema-texto: #111827;
+  --tema-sobre-primaria: #ffffff;
+  --tema-sobre-secundaria: #111827;
+  --tema-primaria-texto: #1f2937;
+  --tema-secundaria-texto: #92400e;
+  --tema-superficie: #f3f4f6;
+  --tema-borda: #d1d5db;
+  --tema-texto-suave: #4b5563;
+  --tema-foco: #1f2937;
+  --tema-fonte: ui-sans-serif, system-ui, sans-serif;
+  --tema-erro: #b91c1c;
+  --tema-sucesso: #15803d;
+  --tema-aviso: #92400e;
+  --tema-info: #1d4ed8;
+
+  /* Placa fixa do QR Code (Etapa 8). Única exceção de cor fixa fora do tema. */
+  --qr-claro: #ffffff;
+  --qr-escuro: #000000;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-tema-primaria: var(--tema-primaria);
+  --color-tema-secundaria: var(--tema-secundaria);
+  --color-tema-fundo: var(--tema-fundo);
+  --color-tema-texto: var(--tema-texto);
+  --color-tema-sobre-primaria: var(--tema-sobre-primaria);
+  --color-tema-sobre-secundaria: var(--tema-sobre-secundaria);
+  --color-tema-primaria-texto: var(--tema-primaria-texto);
+  --color-tema-secundaria-texto: var(--tema-secundaria-texto);
+  --color-tema-superficie: var(--tema-superficie);
+  --color-tema-borda: var(--tema-borda);
+  --color-tema-texto-suave: var(--tema-texto-suave);
+  --color-tema-foco: var(--tema-foco);
+  --color-tema-erro: var(--tema-erro);
+  --color-tema-sucesso: var(--tema-sucesso);
+  --color-tema-aviso: var(--tema-aviso);
+  --color-tema-info: var(--tema-info);
+  --color-qr-claro: var(--qr-claro);
+  --color-qr-escuro: var(--qr-escuro);
+  --font-tema: var(--tema-fonte);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+}
+
+/* Foco visível global com o token do tema. */
+:focus-visible {
+  outline: 3px solid var(--tema-foco);
+  outline-offset: 2px;
+}
+
+/* Diálogo nativo: herda os tokens (sem portal), backdrop discreto. */
+dialog::backdrop {
+  background: color-mix(in srgb, var(--tema-texto) 45%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  [data-print="ocultar"] {
+    display: none !important;
+  }
+}
+
+/*
+ * Etapa 8 (D17): placa fixa do QR Code, independente do tema (QR invertido falha em alguns leitores).
+ * Cores neutras, não de marca: a única exceção de hex fora do tema além do fallback acima.
+ */
+:root {
+  --qr-claro: #ffffff;
+  --qr-escuro: #000000;
+}
+
+/* Etapa 8: animações do palco (desligadas por prefers-reduced-motion acima). */
+@keyframes palco-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.palco-entrada {
+  animation: palco-entrada 600ms ease-out both;
 }
