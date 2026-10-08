@@ -86,8 +86,8 @@ describe("Candidatos", () => {
 describe("Convites", () => {
   it("expirado é derivado e o resumo do seed", () => {
     const { convitesJurado } = criarEstadoInicial().banco;
-    const st = convitesJurado.filter((c) => c.eventoId === "evt-semana-tech");
-    expect(resumirConvites(st, T0)).toEqual({ disponiveis: 1, usados: 9, revogados: 1, expirados: 1 });
+    const fv = convitesJurado.filter((c) => c.eventoId === "evt-ver-e-fazer-filmes");
+    expect(resumirConvites(fv, T0)).toEqual({ disponiveis: 2, usados: 1, revogados: 0, expirados: 0 });
     expect(estadoExibidoConvite({ estado: "DISPONIVEL", validadeAte: "2026-10-20T23:59:00-03:00" }, T0)).toBe("EXPIRADO");
   });
 

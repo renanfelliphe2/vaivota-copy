@@ -53,12 +53,12 @@ describe("interpretarLinkTrailer (5.8)", () => {
 
 describe("assinatura e revelação (D4)", () => {
   const base = criarEstadoInicial();
-  const aplicar = (id: string, estado = base) => CENARIOS.find((c) => c.id === id)!.aplicar(estado, { eventoId: "evt-semana-tech", agoraMs: T0_MS });
+  const aplicar = (id: string, estado = base) => CENARIOS.find((c) => c.id === id)!.aplicar(estado, { eventoId: "evt-ver-e-fazer-filmes", agoraMs: T0_MS });
 
   it("muda com calculadoEm e é estável para o mesmo resultado", () => {
-    const r = resultadoAtual(aplicar("RESULTADO_PADRAO").banco.resultados, "evt-semana-tech")!;
+    const r = resultadoAtual(aplicar("FESTIVAL_ENCERRADO").banco.resultados, "evt-ver-e-fazer-filmes")!;
     expect(assinaturaDoResultado(r)).toBe(assinaturaDoResultado(structuredClone(r)));
-    expect(assinaturaDoResultado({ ...r, calculadoEm: "2026-10-22T14:00:01-03:00" })).not.toBe(assinaturaDoResultado(r));
+    expect(assinaturaDoResultado({ ...r, calculadoEm: "2026-11-28T20:00:01-03:00" })).not.toBe(assinaturaDoResultado(r));
   });
 
   it("lerRevelacao filtra por chave e descarta com o resultado mudado", () => {

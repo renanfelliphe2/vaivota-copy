@@ -3,8 +3,11 @@ import type { Instante } from "@/dominio/tipos";
 // Tempo do protótipo. Formatação sempre em pt-BR e no fuso do evento (timeZone explícito).
 // Date.now() nunca aparece aqui: o "agora" vem do relógio simulado (store/relogio.ts).
 
-/** Instante inicial do relógio simulado (D6). */
-export const T0: Instante = "2026-10-22T14:00:00-03:00";
+/**
+ * Instante inicial do relógio simulado (D6): 30 min antes da janela do Festival (25/11, 10h).
+ * A demonstração começa com a contagem regressiva no telão e a admin abre a urna ao vivo.
+ */
+export const T0: Instante = "2026-11-25T09:30:00-03:00";
 export const T0_MS = Date.parse(T0);
 
 export const SEGUNDO = 1000;

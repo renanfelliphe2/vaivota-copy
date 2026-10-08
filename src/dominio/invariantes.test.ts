@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { criarEstadoInicial } from "@/mocks/criarEstadoInicial";
 import { criarEstadoNucleo } from "@/mocks/criarEstadoNucleo";
+import { T0_MS } from "@/lib/tempo";
+import { aplicarVotoJuri, aplicarVotoPopular } from "./aplicarVoto";
 import { verificarInvariantes } from "./invariantes";
 import type { EstadoApp } from "./tipos";
+
+const FV = "evt-ver-e-fazer-filmes";
 
 function com(alterar: (e: EstadoApp) => void): string[] {
   const estado = criarEstadoInicial();
@@ -32,20 +36,31 @@ describe("estado inicial", () => {
 
   it("cobre os casos de borda do seed", () => {
     const { banco, dev } = criarEstadoInicial();
-    const st = banco.candidatos.filter((c) => c.eventoId === "evt-semana-tech");
-    const fv = banco.candidatos.filter((c) => c.eventoId === "evt-ver-e-fazer-filmes");
-    expect(st.filter((c) => c.publicado && !c.desqualificado)).toHaveLength(8);
+    const fv = banco.candidatos.filter((c) => c.eventoId === FV);
     expect(fv.filter((c) => c.publicado && !c.desqualificado)).toHaveLength(6);
-    expect(st.find((c) => c.id === "cand-st-06")!.titulo.length).toBeGreaterThan(100);
     expect(fv.find((c) => c.id === "cand-fv-05")!.titulo.length).toBeGreaterThan(100);
-    expect(dev.vinculosVoto["usr-eva:evt-semana-tech"]).toBe(1);
+    expect(banco.votos).toEqual([]);
+    expect(banco.participacoes.every((p) => !p.votou)).toBe(true);
+    expect(dev.vinculosVoto).toEqual({});
     expect(dev.slugPadrao).toBe("ver-e-fazer-filmes");
   });
 });
 
+/** Estado com um voto popular (Ana) e um do júri (Bruno), para corromper. */
+function comVotos(): EstadoApp {
+  const popular = aplicarVotoPopular(criarEstadoInicial(), { eventoId: FV, usuarioId: "usr-ana", candidatoId: "cand-fv-01", agoraMs: T0_MS });
+  return aplicarVotoJuri(popular, { eventoId: FV, usuarioId: "usr-bruno", candidatoId: "cand-fv-02", agoraMs: T0_MS });
+}
+
+function comVotosAlterado(alterar: (e: EstadoApp) => void): string[] {
+  const estado = comVotos();
+  alterar(estado);
+  return verificarInvariantes(estado);
+}
+
 describe("cada invariante detecta a violação", () => {
   it("1: slug duplicado e participação duplicada", () => {
-    expect(violaNumero(com((e) => (e.banco.eventos[1].slug = e.banco.eventos[0].slug)), 1)).toBe(true);
+    expect(violaNumero(com((e) => e.banco.eventos.push({ ...e.banco.eventos[0], id: "evt-outro" })), 1)).toBe(true);
     expect(violaNumero(com((e) => e.banco.participacoes.push({ ...e.banco.participacoes[0], id: "dup" })), 1)).toBe(true);
   });
 
@@ -55,42 +70,43 @@ describe("cada invariante detecta a violação", () => {
   });
 
   it("3: voto popular sem participação que votou", () => {
-    expect(violaNumero(com((e) => (e.banco.participacoes.find((p) => p.id === "par-ana-st")!.votou = true)), 3)).toBe(true);
+    expect(verificarInvariantes(comVotos())).toEqual([]);
+    expect(violaNumero(com((e) => (e.banco.participacoes.find((p) => p.id === "par-ana-fv")!.votou = true)), 3)).toBe(true);
   });
 
   it("4: voto do júri sem jurado que votou e sem histórico", () => {
-    expect(violaNumero(com((e) => (e.banco.participacoes.find((p) => p.id === "par-bruno-st")!.votou = true)), 4)).toBe(true);
-    expect(violaNumero(com((e) => (e.banco.historicoVotosJuri = [])), 4)).toBe(true);
+    expect(violaNumero(com((e) => (e.banco.participacoes.find((p) => p.id === "par-bruno-fv")!.votou = true)), 4)).toBe(true);
+    expect(violaNumero(comVotosAlterado((e) => (e.banco.historicoVotosJuri = [])), 4)).toBe(true);
   });
 
   it("5: voto e histórico do júri com candidato de outro evento", () => {
-    expect(violaNumero(com((e) => (e.banco.votos[0].candidatoId = "cand-fv-01")), 5)).toBe(true);
-    expect(violaNumero(com((e) => (e.banco.historicoVotosJuri[0].candidatoNovoId = "cand-fv-01")), 5)).toBe(true);
+    expect(violaNumero(comVotosAlterado((e) => (e.banco.votos[0].candidatoId = "cand-outro-evento")), 5)).toBe(true);
+    expect(violaNumero(comVotosAlterado((e) => (e.banco.historicoVotosJuri[0].candidatoNovoId = "cand-outro-evento")), 5)).toBe(true);
   });
 
   it("6: convite usado sem participação JURADO", () => {
-    expect(violaNumero(com((e) => (e.banco.convitesJurado.find((c) => c.id === "conv-st-1")!.estado = "USADO")), 6)).toBe(true);
+    expect(violaNumero(com((e) => (e.banco.convitesJurado.find((c) => c.id === "conv-fv-1")!.estado = "USADO")), 6)).toBe(true);
   });
 
   it("7: versões de resultado fora de sequência", () => {
     const erros = com((e) =>
       e.banco.resultados.push({
         id: "r1",
-        eventoId: "evt-semana-tech",
+        eventoId: FV,
         versao: 2,
         motivo: "ENCERRAMENTO",
-        pesoPopular: 70,
+        pesoPopular: 50,
         pesoJuri: 30,
-        pesoInfantil: 0,
+        pesoInfantil: 20,
         calculadoPorId: null,
-        calculadoEm: "2026-10-22T17:00:00-03:00",
+        calculadoEm: "2026-11-28T20:00:00-03:00",
         dados: {
           criterioDesempate: "JURI",
           totais: { POPULAR: 0, JURI: 0, INFANTIL: 0 },
           placares: { POPULAR: [], JURI: [], INFANTIL: [] },
           ranking: [],
           desqualificados: [],
-          pesosEfetivos: { POPULAR: 70, JURI: 30, INFANTIL: 0 },
+          pesosEfetivos: { POPULAR: 50, JURI: 30, INFANTIL: 20 },
           categorias: [],
           empates: [],
         },
@@ -100,6 +116,6 @@ describe("cada invariante detecta a violação", () => {
   });
 
   it("8: candidato publicado sem imagem", () => {
-    expect(violaNumero(com((e) => (e.banco.candidatos.find((c) => c.id === "cand-st-09")!.publicado = true)), 8)).toBe(true);
+    expect(violaNumero(com((e) => (e.banco.candidatos.find((c) => c.id === "cand-fv-07")!.publicado = true)), 8)).toBe(true);
   });
 });

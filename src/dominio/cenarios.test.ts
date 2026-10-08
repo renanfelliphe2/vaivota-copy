@@ -8,9 +8,9 @@ import { verificarInvariantes } from "./invariantes";
 import type { EstadoApp } from "./tipos";
 import { montarEntradaChecklist } from "./checklistAtivacao";
 
-// Todo cenário registrado deixa verificarInvariantes vazia nos dois eventos (Etapas 4 e 6).
+// Todo cenário registrado deixa verificarInvariantes vazia (Etapas 4 e 6).
 
-const EVENTOS = ["evt-semana-tech", "evt-ver-e-fazer-filmes"];
+const EVENTOS = ["evt-ver-e-fazer-filmes"];
 
 function aplicar(id: string, eventoId: string, base: EstadoApp = criarEstadoInicial()): EstadoApp {
   const cenario = CENARIOS.find((c) => c.id === id)!;
@@ -46,12 +46,6 @@ describe("Etapa 4", () => {
       for (const c of seed) expect(uma.banco.candidatos.find((x) => x.id === c.id)).toEqual(c);
       expect(uma.banco.candidatos.filter((c) => c.eventoId === eventoId && c.imagemUrl === null)).toHaveLength(1);
     }
-  });
-
-  it("VOTO_PROPRIO_PERMITIDO desliga a flag só no evento ativo", () => {
-    const r = aplicar("VOTO_PROPRIO_PERMITIDO", "evt-semana-tech");
-    expect(doEvento(r, "evt-semana-tech").bloquearVotoProprio).toBe(false);
-    expect(doEvento(r, "evt-ver-e-fazer-filmes").bloquearVotoProprio).toBe(true);
   });
 });
 

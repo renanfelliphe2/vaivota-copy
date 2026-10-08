@@ -1,24 +1,9 @@
 import type { Tema } from "@/dominio/tipos";
-import { ID_FESTIVAL, ID_SEMANA_TECH } from "./eventos";
+import { ID_FESTIVAL } from "./eventos";
 
 // Cores de marca só existem aqui (e em globals.css / components/dev). D15: texto sobre a marca é derivado.
 
 export const seedTemas = [
-  {
-    eventoId: ID_SEMANA_TECH,
-    nomeExibicao: null,
-    logoUrl: null, // sem logo: o nome aparece em texto
-    capaUrl: null,
-    corPrimaria: "#38BDF8",
-    corSecundaria: "#A78BFA",
-    corFundo: "#0F172A",
-    corTexto: "#E2E8F0",
-    fonte: "Space Grotesk",
-    rotuloCandidato: "Projeto",
-    rotuloCandidatos: "Projetos",
-    textosEstado: null, // ausente: testa o fallback padrão
-    atualizadoEm: "2026-10-01T10:00:00-03:00",
-  },
   {
     eventoId: ID_FESTIVAL,
     nomeExibicao: null,
@@ -52,3 +37,12 @@ export const seedTemas = [
     atualizadoEm: "2026-10-01T09:00:00-03:00",
   },
 ] satisfies Tema[];
+
+/** Paleta escura oferecida como predefinição na configuração de tema (era a da Semana Tech). */
+export const PRESET_TEMA_ESCURO = {
+  corPrimaria: "#38BDF8",
+  corSecundaria: "#A78BFA",
+  corFundo: "#0F172A",
+  corTexto: "#E2E8F0",
+  fonte: "Space Grotesk",
+} as const;

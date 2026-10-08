@@ -4,7 +4,7 @@ import { CENARIOS_CONFIGURACAO } from "./cenarios/configuracao";
 import { CENARIOS_FESTIVAL_APRESENTACAO } from "./cenarios/festivalApresentacao";
 import { CENARIOS_RESULTADO } from "./cenarios/resultado";
 import { criarEstadoInicial } from "./criarEstadoInicial";
-import { ID_FESTIVAL, ID_SEMANA_TECH } from "./seed";
+import { ID_FESTIVAL } from "./seed";
 
 // Registro de cenários (Etapa 0, seção 5.8). Cada etapa registra os seus; a Etapa 9 consolida.
 
@@ -36,13 +36,12 @@ function metodoNoEventoAtivo(metodo: MetodoIdentificacao) {
 const META_MUITOS_CANDIDATOS = 24;
 
 function siglaDoEvento(eventoId: string): string {
-  if (eventoId === ID_SEMANA_TECH) return "st";
   if (eventoId === ID_FESTIVAL) return "fv";
   return eventoId.replace(/^evt-/, "");
 }
 
 /**
- * Etapa 4: completa o evento ativo até 24 votáveis com candidatos sintéticos (`cand-st-m01`...), publicados,
+ * Etapa 4: completa o evento ativo até 24 votáveis com candidatos sintéticos (`cand-fv-m01`...), publicados,
  * com imagem e campos extras. Idempotente e sem alterar ids nem fatos do seed.
  */
 function completarCandidatos(atual: EstadoApp, { eventoId }: ContextoCenario): EstadoApp {
@@ -86,7 +85,7 @@ export const CENARIOS: Cenario[] = [
     id: "PADRAO",
     nome: "Padrão",
     grupo: "DADOS",
-    descricao: "Seed inicial dos dois eventos (o mesmo que o F5).",
+    descricao: "Seed inicial do Festival, sem votos (o mesmo que o F5).",
     aplicar: (atual) => {
       const inicial = criarEstadoInicial();
       // Mantém só as preferências da toolbar para ela não "pular" ao aplicar.
@@ -97,6 +96,7 @@ export const CENARIOS: Cenario[] = [
           slugPadrao: atual.dev.slugPadrao,
           toolbarModo: atual.dev.toolbarModo,
           toolbarRecolhida: atual.dev.toolbarRecolhida,
+          toolbarAvancadas: atual.dev.toolbarAvancadas,
         },
       };
     },
@@ -106,7 +106,7 @@ export const CENARIOS: Cenario[] = [
     id: "SEM_ENCERRAMENTO_AUTOMATICO",
     nome: "Sem encerramento automático",
     grupo: "ESTADO",
-    descricao: "encerramentoAutomatico desligado nos dois eventos; com o relógio no fim da janela, aparece \"Tempo esgotado\".",
+    descricao: "encerramentoAutomatico desligado; com o relógio no fim da janela, aparece \"Tempo esgotado\".",
     aplicar: (atual) => alterarEventos(atual, (e) => ({ ...e, encerramentoAutomatico: false })),
   },
   // Etapa 2
@@ -145,14 +145,6 @@ export const CENARIOS: Cenario[] = [
     grupo: "DADOS",
     descricao: "Completa o evento ativo até 24 votáveis com itens sintéticos, todos com imagem. Idempotente.",
     aplicar: completarCandidatos,
-  },
-  {
-    id: "VOTO_PROPRIO_PERMITIDO",
-    nome: "Voto próprio permitido",
-    grupo: "DADOS",
-    descricao: "bloquearVotoProprio = false no evento ativo (Gabi pode votar na própria candidatura).",
-    aplicar: (atual, { eventoId }) =>
-      alterarEventos(atual, (e) => (e.id === eventoId ? { ...e, bloquearVotoProprio: false } : e)),
   },
   // Etapa 6
   ...CENARIOS_CONFIGURACAO,

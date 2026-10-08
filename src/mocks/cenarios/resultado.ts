@@ -2,14 +2,12 @@ import { redistribuirPesos } from "@/dominio/placar";
 import { congelarResultado } from "@/dominio/resultado";
 import type { EstadoApp, Evento, Instante } from "@/dominio/tipos";
 import { hashMock } from "@/lib/hash";
-import { T0 } from "@/lib/tempo";
 import { registrarAuditoria } from "@/store/auditoria";
 import type { Cenario } from "../cenarios";
-import { ID_FESTIVAL, ID_SEMANA_TECH } from "../seed";
+import { ID_FESTIVAL } from "../seed";
 import { DISTRIBUICOES, VOTOS_POR_TOTEM_FESTIVAL, type DistribuicaoAlvo } from "../volume/distribuicoes";
 import { adminDoEvento, gerarVolume, type OpcoesVolume } from "../volume/gerarVolume";
 import { restaurarNucleo } from "../volume/restaurarNucleo";
-import { ABERTURA_SEMANA_TECH, aplicarVolumeSemanaTech } from "../volume/semanaTech";
 
 // Etapa 7 (D11, seção 5.12): cenários de resultado, puros e idempotentes, com evento-alvo fixo.
 // Passos: restaurarNucleo → ajustar o evento → gerarVolume → auditar abertura/encerramento → congelar (v1).
@@ -25,8 +23,6 @@ export type DefinicaoResultado = {
   publicos: number;
   jurados: OpcoesVolume["jurados"];
   infantil: boolean;
-  /** Gera o volume no lugar do gerarVolume padrão (RESULTADO_PADRAO reaproveita o seed do PADRAO). */
-  gerar?: (estado: EstadoApp) => EstadoApp;
   /** Ajuste antes do volume (rascunhos, módulo desligado). */
   preparar?: (estado: EstadoApp) => EstadoApp;
 };
@@ -35,9 +31,8 @@ function alterarEvento(estado: EstadoApp, eventoId: string, mudanca: Partial<Eve
   return { ...estado, banco: { ...estado.banco, eventos: estado.banco.eventos.map((e) => (e.id === eventoId ? { ...e, ...mudanca } : e)) } };
 }
 
-/** Janela dos votos: Semana Tech das 13h a T0; Festival a janela inteira. */
+/** Janela dos votos: a janela inteira do evento. */
 function janelaDe(evento: Evento): { inicio: Instante; fim: Instante } {
-  if (evento.id === ID_SEMANA_TECH) return { inicio: ABERTURA_SEMANA_TECH, fim: T0 };
   return { inicio: evento.janelaInicio!, fim: evento.janelaFim! };
 }
 
@@ -69,7 +64,7 @@ export function montarResultado(atual: EstadoApp, def: DefinicaoResultado, semen
       criadoEm: janela.inicio,
     });
 
-  estado = def.gerar ? def.gerar(estado) : gerarVolume(estado, {
+  estado = gerarVolume(estado, {
     eventoId: def.eventoId,
     distribuicao: def.distribuicao,
     incluirNucleo: def.incluirNucleo,
@@ -99,27 +94,7 @@ export function montarResultado(atual: EstadoApp, def: DefinicaoResultado, semen
   return { ...estado, dev: { ...estado.dev, slugPadrao: def.slug } };
 }
 
-const SEMANA_TECH: Pick<DefinicaoResultado, "eventoId" | "slug" | "infantil"> = { eventoId: ID_SEMANA_TECH, slug: "semana-tech", infantil: false };
 const FESTIVAL: Pick<DefinicaoResultado, "eventoId" | "slug"> = { eventoId: ID_FESTIVAL, slug: "ver-e-fazer-filmes" };
-
-/** Fixtures de empate: popular 350, júri 6, sem os votos do núcleo (3 jurados pendentes). */
-function fixtureSemanaTech(distribuicao: DistribuicaoAlvo): DefinicaoResultado {
-  return { ...SEMANA_TECH, distribuicao, incluirNucleo: false, publicos: 511, jurados: { convidados: 9, convites: "CRIAR" } };
-}
-
-/** Só c01 e c02 continuam publicados. */
-function soDoisCandidatos(estado: EstadoApp): EstadoApp {
-  const manter = new Set(["cand-st-01", "cand-st-02"]);
-  return {
-    ...estado,
-    banco: {
-      ...estado.banco,
-      candidatos: estado.banco.candidatos.map((c) =>
-        c.eventoId === ID_SEMANA_TECH && !manter.has(c.id) ? { ...c, publicado: false } : c,
-      ),
-    },
-  };
-}
 
 /** Desliga o módulo infantil antes do cálculo, redistribuindo os pesos (mesma regra da toolbar). */
 function semInfantil(estado: EstadoApp): EstadoApp {
@@ -144,29 +119,11 @@ export const FESTIVAL_BASE: Omit<DefinicaoResultado, "distribuicao" | "infantil"
   ...FESTIVAL,
   incluirNucleo: false,
   publicos: 260,
-  jurados: { convidados: 2, convites: "REUSAR" },
+  // Bruno (núcleo, pendente) + 2 jurados que votam, pelos dois convites disponíveis do seed.
+  jurados: { convidados: 3, convites: "REUSAR" },
 };
 
 export const DEFINICOES_RESULTADO: Record<string, DefinicaoResultado> = {
-  RESULTADO_PADRAO: {
-    ...SEMANA_TECH,
-    distribuicao: DISTRIBUICOES.PADRAO,
-    incluirNucleo: true,
-    publicos: 511,
-    jurados: { convidados: 9, convites: "CRIAR" },
-    gerar: aplicarVolumeSemanaTech,
-  },
-  RESULTADO_EMPATE_RESOLVIDO: fixtureSemanaTech(DISTRIBUICOES.EMPATE_RESOLVIDO),
-  RESULTADO_EMPATE_PERSISTENTE: fixtureSemanaTech(DISTRIBUICOES.EMPATE_PERSISTENTE),
-  RESULTADO_CO_VENCEDORES: fixtureSemanaTech(DISTRIBUICOES.CO_VENCEDORES),
-  RESULTADO_DOIS_CANDIDATOS: {
-    ...SEMANA_TECH,
-    distribuicao: DISTRIBUICOES.DOIS_CANDIDATOS,
-    incluirNucleo: false,
-    publicos: 511,
-    jurados: { convidados: 9, convites: "CRIAR" },
-    preparar: soDoisCandidatos,
-  },
   FESTIVAL_ENCERRADO: { ...FESTIVAL_BASE, distribuicao: DISTRIBUICOES.FESTIVAL, infantil: true },
   RESULTADO_SEM_INFANTIL: { ...FESTIVAL_BASE, distribuicao: DISTRIBUICOES.FESTIVAL_SEM_INFANTIL, infantil: false, preparar: semInfantil },
 };
@@ -177,19 +134,6 @@ function cenario(id: string, nome: string, descricao: string): Cenario {
 }
 
 export const CENARIOS_RESULTADO: Cenario[] = [
-  cenario("RESULTADO_PADRAO", "Resultado padrão (Semana Tech)", "Volume PADRAO com a urna encerrada em T0 (versão 1, sem empates)."),
-  cenario(
-    "RESULTADO_EMPATE_RESOLVIDO",
-    "Empate resolvido (Semana Tech)",
-    "c02 e c03 empatam em 17,00; o critério do júri dá o 2º lugar a c02.",
-  ),
-  cenario(
-    "RESULTADO_EMPATE_PERSISTENTE",
-    "Empate persistente (Semana Tech)",
-    "c01 e c02 empatam em 28,00 e o critério não separa: 1º compartilhado.",
-  ),
-  cenario("RESULTADO_CO_VENCEDORES", "Co-vencedores (Semana Tech)", "c02 e c03 dividem o 2º lugar e a categoria do júri."),
-  cenario("RESULTADO_DOIS_CANDIDATOS", "Dois na disputa (Semana Tech)", "Só c01 e c02 publicados: 61,32 e 38,68."),
   cenario("FESTIVAL_ENCERRADO", "Festival encerrado", "Volume do Festival com infantil (138 votos em 3 totens), urna encerrada no fim da janela."),
   cenario("RESULTADO_SEM_INFANTIL", "Festival sem infantil", "Mesma distribuição do Festival com o módulo infantil desligado antes do cálculo."),
 ];

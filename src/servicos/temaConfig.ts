@@ -3,7 +3,7 @@ import { exigirAcao } from "@/dominio/travas";
 import type { Tema } from "@/dominio/tipos";
 import { validarTema, type DadosTema } from "@/dominio/validacoesConfig";
 import { FONTES_APROVADAS } from "@/lib/fontes";
-import { seedTemas, ID_SEMANA_TECH } from "@/mocks/seed";
+import { PRESET_TEMA_ESCURO, seedTemas } from "@/mocks/seed";
 import { registrarAuditoria } from "@/store/auditoria";
 import { IP_HASH, exigirAdmin, iniciarServico, instanteDoEvento, lerAmbiente } from "./apoio";
 import { falha, sucesso, type Resultado } from "./resultado";
@@ -21,14 +21,25 @@ export type PresetTema = {
 export async function listarPresetsTema(): Promise<Resultado<PresetTema[]>> {
   const erro = await iniciarServico({ leitura: true });
   if (erro) return erro;
-  return sucesso(
-    seedTemas.map((t) => ({
-      id: t.eventoId === ID_SEMANA_TECH ? "semana-tech" : "festival",
-      nome: t.eventoId === ID_SEMANA_TECH ? "Semana Tech" : "Festival",
+  return sucesso([
+    ...seedTemas.map((t) => ({
+      id: "festival",
+      nome: "Festival",
       paleta: { corPrimaria: t.corPrimaria, corSecundaria: t.corSecundaria, corFundo: t.corFundo, corTexto: t.corTexto },
       fonte: t.fonte,
     })),
-  );
+    {
+      id: "escuro",
+      nome: "Escuro",
+      paleta: {
+        corPrimaria: PRESET_TEMA_ESCURO.corPrimaria,
+        corSecundaria: PRESET_TEMA_ESCURO.corSecundaria,
+        corFundo: PRESET_TEMA_ESCURO.corFundo,
+        corTexto: PRESET_TEMA_ESCURO.corTexto,
+      },
+      fonte: PRESET_TEMA_ESCURO.fonte,
+    },
+  ]);
 }
 
 export type DadosSalvarTema = DadosTema & { logoUrl: string | null };

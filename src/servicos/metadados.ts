@@ -2,16 +2,14 @@ import type { Metadata } from "next";
 import { seedEventos, seedTemas } from "@/mocks/seed";
 
 // D14: metadata de servidor lê o seed (o servidor não conhece o estado do cliente).
-// Slug desconhecido do servidor cai no título genérico. Sem slug: o evento exibido em "/" (dev.slugPadrao inicial).
-
-const SLUG_PADRAO_INICIAL = "ver-e-fazer-filmes";
+// Slug desconhecido do servidor cai no título genérico.
 
 const GENERICO: Metadata = {
   title: "VaiVota",
   description: "Votações em eventos, com a identidade de cada evento.",
 };
 
-export async function obterMetadadosEvento(slug: string = SLUG_PADRAO_INICIAL): Promise<Metadata> {
+export async function obterMetadadosEvento(slug: string): Promise<Metadata> {
   const evento = seedEventos.find((e) => e.slug === slug);
   if (!evento) return GENERICO;
   const tema = seedTemas.find((t) => t.eventoId === evento.id);

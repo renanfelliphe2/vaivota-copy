@@ -14,14 +14,14 @@ import {
 } from "./tempo";
 
 describe("tempo", () => {
-  it("T0 é 22/10/2026 14:00 em São Paulo", () => {
-    expect(T0_MS).toBe(paraMs("2026-10-22T17:00:00Z"));
-    expect(formatarDataHora(T0_MS, "America/Sao_Paulo")).toBe("22/10/2026, 14:00");
+  it("T0 é 25/11/2026 09:30 em São Paulo (30 min antes da janela do Festival)", () => {
+    expect(T0_MS).toBe(paraMs("2026-11-25T12:30:00Z"));
+    expect(formatarDataHora(T0_MS, "America/Sao_Paulo")).toBe("25/11/2026, 09:30");
   });
 
   it("paraInstante devolve ISO com o offset do fuso", () => {
     expect(paraInstante(T0_MS, "America/Sao_Paulo")).toBe(T0);
-    expect(paraInstante(T0_MS, "UTC")).toBe("2026-10-22T17:00:00+00:00");
+    expect(paraInstante(T0_MS, "UTC")).toBe("2026-11-25T12:30:00+00:00");
     expect(paraMs(paraInstante(T0_MS + 1234 * MINUTO))).toBe(T0_MS + 1234 * MINUTO);
   });
 
