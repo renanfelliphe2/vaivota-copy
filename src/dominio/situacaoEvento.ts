@@ -43,6 +43,14 @@ export function resolverSituacaoEvento(
   return "NAO_INICIADA";
 }
 
+/**
+ * Pode haver botão de votar (atalho do cabeçalho, cartões, hero)? Só com o evento ATIVO e a urna ABERTA, inclusive
+ * no tempo esgotado (a urna segue aberta até a organização encerrar). Não olha sessão nem relógio.
+ */
+export function votacaoAberta(evento: Pick<Evento, "estado" | "estadoUrna">): boolean {
+  return evento.estado === "ATIVO" && evento.estadoUrna === "ABERTA";
+}
+
 export type ChamadaSituacao = {
   /** null = sem CTA principal (e sem botão no header). */
   rotulo: "Quero votar" | "Criar conta" | "Em breve" | null;

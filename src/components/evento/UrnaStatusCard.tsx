@@ -1,8 +1,7 @@
 "use client";
 
 import { CalendarClock, CircleCheck, Clock, Flag, Hourglass, Inbox, Lock, PencilRuler, Timer } from "lucide-react";
-import type { SaidaVisao, VarianteEntrada } from "@/dominio/visaoEvento";
-import type { ChaveTextoEstado } from "@/dominio/tipos";
+import { chaveTextoDaVisao, type SaidaVisao, type VarianteEntrada } from "@/dominio/visaoEvento";
 import { Cartao } from "@/components/ui/Cartao";
 import { ContagemRegressiva } from "@/components/ui/ContagemRegressiva";
 import { Selo, type SeloProps } from "@/components/ui/Selo";
@@ -20,12 +19,6 @@ const SELOS: Record<VarianteEntrada, Pick<SeloProps, "variante" | "icone"> & { t
   INDISPONIVEL: { variante: "aviso", icone: PencilRuler, texto: "Indisponível" },
 };
 
-function chaveDoTexto(visao: SaidaVisao): ChaveTextoEstado {
-  if (visao.variante === "ABERTA" && visao.seloVoto === "REGISTRADO") return "JA_VOTOU";
-  if (visao.variante === "ABERTA" && visao.seloVoto === "REGISTRADO_JURADO") return "JURADO_JA_VOTOU";
-  return visao.variante;
-}
-
 /**
  * Painel de estado da urna (Etapa 2, CP4). Título e corpo vêm de textoDoEstado (com override do tema);
  * o estado fica em role="status" e a contagem fora dele.
@@ -35,7 +28,7 @@ export function UrnaStatusCard({ visao, tituloComoH1 = false }: { visao: SaidaVi
   if (!ativo) return null;
   const { evento, tema } = ativo;
   const { variante, situacao } = visao;
-  const texto = textoDoEstado(chaveDoTexto(visao), tema);
+  const texto = textoDoEstado(chaveTextoDaVisao(visao), tema);
   const selo = SELOS[variante];
   const Titulo = tituloComoH1 ? "h1" : "h2";
 

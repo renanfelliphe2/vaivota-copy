@@ -1,20 +1,29 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { ComoFunciona } from "@/components/landing/ComoFunciona";
+import { LandingHero } from "@/components/landing/LandingHero";
+import { SecaoVotacao } from "@/components/votacao/SecaoVotacao";
 import { ehRotaInterna } from "@/dominio/acesso";
 import { useVisaoEvento } from "@/store/seletores/visao";
-import { AcessoEvento } from "./AcessoEvento";
+import { useSessao } from "@/store/seletores/sessao";
+import { AbrirAcessoAutomatico, type IntencaoAcesso } from "./AcessoEvento";
 import { BannerRascunho } from "./BannerRascunho";
-import { EventoHero } from "./EventoHero";
 import { UrnaStatusCard } from "./UrnaStatusCard";
 
 /**
- * Entrada do evento /e/[slug] (Etapa 2). Variante e ação só de resolverVisaoEvento; nunca lista
- * candidatos nem mostra resultado. `?de=` vem da guarda (volta de login).
+ * Página do evento /e/[slug] (Etapa 2; 08/10/2026: absorveu a landing que ficava em "/", que agora é a do VaiVota).
+ * Hero, "Como funciona" e a votação (SecaoVotacao). A faixa de status fica presa no cabeçalho (CabecalhoEvento).
+ * Mesmo desenho para todos, logado ou não (08/10/2026: o da visita); muda só o que cada botão consegue fazer. As
+ * diferenças por papel virão depois. Nunca mostra resultado. `?de=`/`?acesso=` (volta de login) abrem o acesso.
  */
 export function EntradaEvento() {
   const visao = useVisaoEvento();
-  const de = useSearchParams().get("de");
+  const { logado } = useSessao();
+  const busca = useSearchParams();
+  const de = busca.get("de");
+  const acesso = busca.get("acesso");
+  const intencao: IntencaoAcesso | undefined = acesso === "entrar" || acesso === "criar" ? acesso : undefined;
   if (!visao) return null;
   const deInterno = ehRotaInterna(de) ? de : undefined;
 
@@ -30,11 +39,10 @@ export function EntradaEvento() {
   return (
     <>
       {visao.bannerRascunho && <BannerRascunho />}
-      <EventoHero />
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">
-        <UrnaStatusCard visao={visao} />
-        <AcessoEvento visao={visao} de={deInterno} />
-      </div>
+      <LandingHero />
+      {!logado && <AbrirAcessoAutomatico de={deInterno} intencao={intencao} />}
+      <ComoFunciona />
+      <SecaoVotacao />
     </>
   );
 }

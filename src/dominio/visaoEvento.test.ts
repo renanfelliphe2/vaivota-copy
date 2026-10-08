@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolverVisaoEvento, type EntradaVisao } from "./visaoEvento";
+import { chaveTextoDaVisao, resolverVisaoEvento, type EntradaVisao } from "./visaoEvento";
 
 // Matriz 5.4 da Etapa 2 (E13, slug inexistente, é do gate da Etapa 0 e não passa por aqui).
 
@@ -132,5 +132,14 @@ describe("resolverVisaoEvento (matriz E1–E18)", () => {
   it("E18 admin de outro evento é usuário comum (participação PUBLICO aqui)", () => {
     const hugoNaSemanaTech = { logado: true, papel: null, emailVerificado: true, jaVotou: false };
     expect(visao(semanaTech, hugoNaSemanaTech).acao).toBe("VOTAR");
+  });
+});
+
+describe("chaveTextoDaVisao", () => {
+  it("quem já votou na urna aberta tem texto próprio; o resto segue a variante", () => {
+    expect(chaveTextoDaVisao(visao(semanaTech, eva))).toBe("JA_VOTOU");
+    expect(chaveTextoDaVisao(visao(semanaTech, fabio))).toBe("JURADO_JA_VOTOU");
+    expect(chaveTextoDaVisao(visao(semanaTech, ana))).toBe("ABERTA");
+    expect(chaveTextoDaVisao(visao(festival, visitante))).toBe("NAO_INICIADA");
   });
 });

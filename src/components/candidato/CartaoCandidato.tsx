@@ -15,13 +15,13 @@ export type CartaoCandidatoProps = {
   aoVerDetalhes: (candidatoId: string) => void;
   /** Slot do topo (Etapa 5: "Sua escolha", "Seu voto atual"). */
   selo?: ReactNode;
-  /** Slot do rodapé (Etapa 5: "Escolher"). */
+  /** Slot do rodapé ("Votar"). */
   acao?: ReactNode;
 };
 
 /**
- * Cartão da lista de /votar (Etapa 4, seção 5.5). Nunca mostra número de votos. O destaque da escolha
- * vem do `radio` marcado no slot de ação (has-checked), sem prop extra.
+ * Cartão da lista de votação da entrada (Etapa 4, seção 5.5). Nunca mostra número de votos. A escolha aparece no
+ * slot do topo (selo "Sua escolha"); o slot de ação leva o "Votar".
  */
 export function CartaoCandidato({ item, campos, aoVerDetalhes, selo, acao }: CartaoCandidatoProps) {
   const { candidato, bloqueadoVotoProprio } = item;
@@ -32,7 +32,7 @@ export function CartaoCandidato({ item, campos, aoVerDetalhes, selo, acao }: Car
     <article
       aria-labelledby={tituloId}
       aria-describedby={bloqueadoVotoProprio ? dicaId : undefined}
-      className="flex h-full flex-col overflow-hidden rounded-2xl border border-tema-borda bg-tema-superficie transition has-checked:border-tema-primaria has-checked:ring-2 has-checked:ring-tema-primaria"
+      className="flex h-full flex-col overflow-hidden rounded-2xl border border-tema-borda bg-tema-superficie"
     >
       <div className="relative">
         <ImagemCandidato titulo={candidato.titulo} imagemUrl={candidato.imagemUrl} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" />

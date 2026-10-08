@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Gavel, LogIn, LogOut, UserRound } from "lucide-react";
+import { ChevronDown, Gavel, LogIn, LogOut, UserPlus, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
@@ -9,22 +9,24 @@ import { Botao } from "@/components/ui/Botao";
 import { Dialogo } from "@/components/ui/Dialogo";
 import { ROTULO_PAPEL } from "@/lib/rotulos";
 import { sair } from "@/servicos/sessao";
+import { abrirAcesso, fecharAcesso } from "@/store/acoesAcesso";
+import { useUi } from "@/store/seletores/dev";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { useSessao } from "@/store/seletores/sessao";
 import { useVisaoEvento } from "@/store/seletores/visao";
 
 /**
- * Menu do usuário (Etapa 3, assume o provisório da Etapa 2). Deslogado: "Entrar" abre o painel de acesso
- * num diálogo, em qualquer estado do evento (D7). Logado: nome, papel, convite (quando cabe) e "Sair".
+ * Menu do usuário (Etapa 3, assume o provisório da Etapa 2). Deslogado: "Entrar" e "Criar conta" abrem o painel de acesso
+ * num diálogo (`ui.acesso`, 08/10/2026); "Criar conta" só com o evento ATIVO (D7). Logado: nome, papel, convite e "Sair".
  */
 export function MenuUsuario() {
   const ativo = useEventoAtivo();
   const sessao = useSessao();
   const visao = useVisaoEvento();
+  const { acesso } = useUi();
   const router = useRouter();
   const pathname = usePathname();
   const painelId = useId();
-  const [dialogoAberto, setDialogoAberto] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
   const [saindo, setSaindo] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
@@ -53,13 +55,26 @@ export function MenuUsuario() {
   const slug = ativo.slug;
 
   if (!sessao.logado) {
+    // Fora da entrada, volta para a tela atual depois do login.
+    const deAtual = pathname === `/e/${slug}` || pathname === "/" ? undefined : pathname;
+    const podeCriar = ativo.evento.estado === "ATIVO";
     return (
       <>
-        <Botao variante="contorno" tamanho="pequeno" onClick={() => setDialogoAberto(true)} icone={<LogIn aria-hidden className="size-4" />}>
-          Entrar
-        </Botao>
-        <Dialogo aberto={dialogoAberto} aoFechar={() => setDialogoAberto(false)} titulo="Acesso ao evento">
-          <CartaoAcesso de={pathname === `/e/${slug}` ? undefined : pathname} aoConcluir={() => setDialogoAberto(false)} />
+        <div className="flex items-center gap-2">
+          <Botao variante="contorno" tamanho="pequeno" onClick={() => abrirAcesso("entrar", deAtual)} icone={<LogIn aria-hidden className="size-4" />}>
+            Entrar
+          </Botao>
+          {podeCriar && (
+            // No celular só "Entrar" cabe ao lado da logo; o diálogo tem a aba "Criar conta".
+            <span className="hidden sm:block">
+              <Botao tamanho="pequeno" onClick={() => abrirAcesso("criar", deAtual)} icone={<UserPlus aria-hidden className="size-4" />}>
+                Criar conta
+              </Botao>
+            </span>
+          )}
+        </div>
+        <Dialogo aberto={acesso !== null} aoFechar={fecharAcesso} titulo="Acesso ao evento">
+          {acesso && <CartaoAcesso key={acesso.aba} de={acesso.de} abaInicial={acesso.aba} aoConcluir={fecharAcesso} />}
         </Dialogo>
       </>
     );
@@ -89,12 +104,15 @@ export function MenuUsuario() {
         className="inline-flex min-h-11 max-w-[14rem] items-center gap-2 rounded-full border border-tema-borda px-3 text-sm hover:bg-tema-superficie"
       >
         <UserRound aria-hidden className="size-4 shrink-0" />
-        <span className="flex min-w-0 flex-col items-start leading-tight">
+        {/* No celular o cabeçalho fixo divide a linha com os atalhos: só o ícone (o nome segue no painel do menu). */}
+        <span className="hidden min-w-0 flex-col items-start leading-tight sm:flex">
           <span className="max-w-full truncate font-semibold">{usuario.nome}</span>
           <span className="text-xs text-tema-texto-suave">{papel}</span>
         </span>
         <ChevronDown aria-hidden className="size-4 shrink-0" />
-        <span className="sr-only">Menu da conta</span>
+        <span className="sr-only">
+          <span className="sm:hidden">{usuario.nome}, {papel}. </span>Menu da conta
+        </span>
       </button>
       {menuAberto && (
         <div

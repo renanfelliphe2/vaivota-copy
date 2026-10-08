@@ -14,6 +14,7 @@ import { useConsulta, type EstadoConsulta } from "@/lib/useConsulta";
 import { obterOperacao, obterResultado } from "@/servicos/dashboard";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { useVersaoResultado } from "@/store/seletores/resultado";
+import { TituloPainel } from "@/components/nav/TituloPainel";
 import { BannerPainel } from "./BannerPainel";
 import { OperacaoTab } from "./OperacaoTab";
 import { ResultadoTab } from "./ResultadoTab";
@@ -160,7 +161,7 @@ export function TelaDashboard() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <h1 className="text-3xl font-bold tracking-tight">Painel</h1>
+      <TituloPainel titulo="Painel" />
       <BannerPainel fase={fase} incoerente={incoerente} base={base} />
       <Abas
         rotulo="Abas do painel"

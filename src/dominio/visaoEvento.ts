@@ -1,8 +1,8 @@
 import { resolverSituacaoEvento, type SituacaoEvento } from "./situacaoEvento";
-import type { ConfigApresentacao, Evento, PapelParticipacao } from "./tipos";
+import type { ChaveTextoEstado, ConfigApresentacao, Evento, PapelParticipacao } from "./tipos";
 
 // Etapa 2 (D1): variante e ação da entrada do evento = situação (Etapa 1) + sessão. Pura, sem React.
-// A Etapa 4 compõe a gate de /votar sobre ela.
+// A Etapa 4 compõe a gate da votação sobre ela.
 
 export type EntradaVisao = {
   evento: Pick<Evento, "estado" | "estadoUrna" | "janelaInicio" | "janelaFim" | "moduloJuri">;
@@ -91,4 +91,11 @@ export function resolverVisaoEvento(entrada: EntradaVisao): SaidaVisao {
     seloVoto: variante === "ABERTA" && sessao.jaVotou ? (sessao.papel === "JURADO" ? "REGISTRADO_JURADO" : "REGISTRADO") : null,
     agradecer: variante === "ENCERRADA" && sessao.jaVotou,
   };
+}
+
+/** Chave do texto de estado (título e corpo, com override do tema) que a visão mostra: quem já votou tem texto próprio. */
+export function chaveTextoDaVisao(visao: SaidaVisao): ChaveTextoEstado {
+  if (visao.variante === "ABERTA" && visao.seloVoto === "REGISTRADO") return "JA_VOTOU";
+  if (visao.variante === "ABERTA" && visao.seloVoto === "REGISTRADO_JURADO") return "JURADO_JA_VOTOU";
+  return visao.variante;
 }

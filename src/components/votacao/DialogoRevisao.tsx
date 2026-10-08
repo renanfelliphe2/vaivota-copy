@@ -9,11 +9,13 @@ import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Checkbox } from "@/components/ui/Campo";
 import { Carregando } from "@/components/ui/Carregando";
+import { Dialogo } from "@/components/ui/Dialogo";
 import { mensagemDe } from "@/servicos/mensagens";
 import type { ItemLista } from "@/store/seletores/candidatos";
 
-export type TelaRevisaoProps = {
-  item: ItemLista;
+export type DialogoRevisaoProps = {
+  /** null = fechado. */
+  item: ItemLista | null;
   papelVoto: PapelVoto;
   /** Jurado sem voto ainda: caixa de ciência obrigatória (D11, rev. 3 E10). */
   primeiroVotoJurado: boolean;
@@ -26,8 +28,31 @@ export type TelaRevisaoProps = {
   aoVerificar: () => void;
 };
 
-/** Revisão (Etapa 5, seção 5.5). O aviso de voto identificado aparece só aqui, só para o jurado. */
-export function TelaRevisao(props: TelaRevisaoProps) {
+/**
+ * Revisão (Etapa 5, seção 5.5; 08/10/2026: modal na entrada do evento). O aviso de voto identificado aparece só
+ * aqui, só para o jurado. Fechar é "Trocar escolha", bloqueado durante o envio.
+ */
+export function DialogoRevisao(props: DialogoRevisaoProps) {
+  const { item, envio, falhaEnvio } = props;
+  const travado = envio !== "OCIOSO" || falhaEnvio === "NAO_CONFIRMADO";
+
+  return (
+    <Dialogo
+      aberto={item !== null}
+      aoFechar={() => {
+        if (!travado) props.aoTrocar();
+      }}
+      fecharNoFundo={false}
+      titulo="Revise seu voto"
+      className="sm:max-w-xl!"
+    >
+      {/* key: a caixa de ciência recomeça desmarcada a cada candidato. */}
+      {item && <ConteudoRevisao key={item.candidato.id} {...props} item={item} />}
+    </Dialogo>
+  );
+}
+
+function ConteudoRevisao(props: DialogoRevisaoProps & { item: ItemLista }) {
   const { item, papelVoto, primeiroVotoJurado, ehVotoAtual, envio, falhaEnvio } = props;
   const [ciente, setCiente] = useState(false);
   const jurado = papelVoto === "JURADO";
@@ -38,16 +63,12 @@ export function TelaRevisao(props: TelaRevisaoProps) {
   const { candidato } = item;
 
   return (
-    <section aria-busy={ocupado || undefined} aria-labelledby="titulo-revisao" className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-8 sm:px-6">
-      <h1 id="titulo-revisao" tabIndex={-1} className="text-3xl font-bold tracking-tight">
-        Revise seu voto
-      </h1>
-
+    <div aria-busy={ocupado || undefined} className="flex flex-col gap-5">
       <div className="overflow-hidden rounded-2xl border border-tema-borda bg-tema-superficie">
-        <ImagemCandidato titulo={candidato.titulo} imagemUrl={candidato.imagemUrl} proporcao="16/9" sizes="(min-width: 672px) 672px, 100vw" />
-        <div className="flex flex-col gap-1 p-5">
+        <ImagemCandidato titulo={candidato.titulo} imagemUrl={candidato.imagemUrl} proporcao="16/9" sizes="(min-width: 640px) 576px, 100vw" />
+        <div className="flex flex-col gap-1 p-4">
           <p className="text-sm text-tema-texto-suave">Você está votando em</p>
-          <p className="text-2xl font-bold leading-tight">{candidato.titulo}</p>
+          <p className="text-xl font-bold leading-tight">{candidato.titulo}</p>
         </div>
       </div>
 
@@ -104,6 +125,6 @@ export function TelaRevisao(props: TelaRevisaoProps) {
           </Botao>
         )}
       </div>
-    </section>
+    </div>
   );
 }

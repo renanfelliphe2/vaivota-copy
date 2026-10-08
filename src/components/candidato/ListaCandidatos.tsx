@@ -9,7 +9,7 @@ export type ListaCandidatosProps = {
   itens: readonly ItemLista[];
   campos: readonly CampoCandidato[];
   aoVerDetalhes: (candidatoId: string) => void;
-  /** Rodapé do cartão ("Escolher", na Etapa 5). */
+  /** Rodapé do cartão ("Votar"). */
   renderAcao?: (item: ItemLista) => ReactNode;
   /** Topo do cartão ("Seu voto atual", na Etapa 5). */
   renderSelo?: (item: ItemLista) => ReactNode;

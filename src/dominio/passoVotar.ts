@@ -17,9 +17,9 @@ export type EntradaPassoVotar = {
 };
 
 export type SaidaPassoVotar = {
-  /** null → o componente renderiza a tela de estado da gate (ou TelaJaVotou). */
+  /** null → a lista fica só para leitura (tela de estado da gate ou já votou). */
   passo: PassoVotar | null;
-  /** BASE = /votar sem `passo`; a normalização é um router.replace, nunca setState. */
+  /** BASE = a entrada sem `passo`; a normalização é um router.replace, nunca setState. */
   normalizarPara: "BASE" | "SUCESSO" | null;
 };
 

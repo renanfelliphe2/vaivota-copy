@@ -12,7 +12,7 @@ const TEXTOS: Record<TipoAviso, { variante: "aviso" | "erro" | "informacao"; tex
   },
 };
 
-/** Etapa 5 (seção 5.6): aviso pós-envio, na lista, em TelaJaVotou ou na tela de estado. */
+/** Etapa 5 (seção 5.6): aviso pós-envio, acima da lista de votação da entrada do evento. */
 export function AvisoVotacao({ aviso, className }: { aviso: TipoAviso | null; className?: string }) {
   if (!aviso) return null;
   const { variante, texto } = TEXTOS[aviso];

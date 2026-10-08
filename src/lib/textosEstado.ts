@@ -31,7 +31,7 @@ export const TEXTOS_ESTADO_PADRAO: Record<ChaveTextoEstado, TextoEstado> = {
 
 export type TemaTextos = Pick<Tema, "textosEstado" | "rotuloCandidato" | "rotuloCandidatos">;
 
-/** Contador da Etapa 2 (entrada e lista de /votar): "8 projetos concorrendo". Conta candidatos, nunca votos. */
+/** Contador da Etapa 2 (entrada e lista de votação): "8 projetos concorrendo". Conta candidatos, nunca votos. */
 export function textoContador(n: number, tema: Pick<Tema, "rotuloCandidato" | "rotuloCandidatos">): string {
   const rotulo = (n === 1 ? tema.rotuloCandidato : tema.rotuloCandidatos).toLocaleLowerCase("pt-BR");
   return `${n} ${rotulo} concorrendo`;

@@ -2,7 +2,7 @@ import { embaralharComSemente, hashDeTexto } from "@/lib/aleatorio";
 import { votaveis } from "./candidatos";
 import type { Candidato } from "./tipos";
 
-// Etapa 4 (D4): ordem dos cartões de /votar, determinística por usuário e evento. Usada pela lista,
+// Etapa 4 (D4): ordem dos cartões da votação, determinística por usuário e evento. Usada pela lista,
 // pelo detalhe e pela revisão (Etapa 5). Nunca Math.random() no render.
 
 /** Semente da ordem: `${usuarioId}:${eventoId}`. */

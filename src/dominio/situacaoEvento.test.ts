@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chamadaDaSituacao, resolverSituacaoEvento } from "./situacaoEvento";
+import { chamadaDaSituacao, resolverSituacaoEvento, votacaoAberta } from "./situacaoEvento";
 import type { Evento } from "./tipos";
 
 const T0 = Date.parse("2026-10-22T14:00:00-03:00");
@@ -79,5 +79,15 @@ describe("chamadaDaSituacao", () => {
     expect(chamadaDaSituacao("RETA_FINAL").linkJurado).toBe(true);
     expect(chamadaDaSituacao("ABERTURA_PENDENTE").rotulo).toBe("Criar conta");
     expect(chamadaDaSituacao("NAO_INICIADA").rotulo).toBe("Criar conta");
+  });
+});
+
+describe("votacaoAberta (botões de votar)", () => {
+  it("só com o evento ATIVO e a urna ABERTA", () => {
+    expect(votacaoAberta({ estado: "ATIVO", estadoUrna: "ABERTA" })).toBe(true);
+    expect(votacaoAberta({ estado: "ATIVO", estadoUrna: "NAO_INICIADA" })).toBe(false);
+    expect(votacaoAberta({ estado: "ATIVO", estadoUrna: "ENCERRADA" })).toBe(false);
+    expect(votacaoAberta({ estado: "RASCUNHO", estadoUrna: "ABERTA" })).toBe(false);
+    expect(votacaoAberta({ estado: "CONCLUIDO", estadoUrna: "ABERTA" })).toBe(false);
   });
 });

@@ -58,6 +58,11 @@ body {
   margin: 0;
 }
 
+/* Cabeçalho fixo (08/10/2026): âncoras e foco por teclado param abaixo dele. */
+html {
+  scroll-padding-top: 5rem;
+}
+
 /* Foco visível global com o token do tema. */
 :focus-visible {
   outline: 3px solid var(--tema-foco);
@@ -109,4 +114,69 @@ dialog::backdrop {
 
 .palco-entrada {
   animation: palco-entrada 600ms ease-out both;
+}
+
+/* Totem (rev. 4, A7): feedback imediato para crianças (desligado por prefers-reduced-motion acima). */
+@keyframes totem-pulso {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes totem-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-20deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.15) rotate(6deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes totem-confete {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.4) rotate(0);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-46vh) scale(1) rotate(320deg);
+  }
+}
+
+@keyframes totem-barra {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.totem-pulso {
+  animation: totem-pulso 1.8s ease-in-out infinite;
+}
+
+.totem-pop {
+  animation: totem-pop 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.totem-confete {
+  animation: totem-confete 2.4s ease-out both;
+}
+
+.totem-barra {
+  transform-origin: left;
+  animation: totem-barra linear both;
 }

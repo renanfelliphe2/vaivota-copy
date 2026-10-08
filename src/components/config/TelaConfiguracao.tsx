@@ -16,6 +16,7 @@ import { SecaoJuri } from "./juri/SecaoJuri";
 import { SecaoOperacao } from "./operacao/SecaoOperacao";
 import { SecaoPlacar } from "./placar/SecaoPlacar";
 import { SecaoTema } from "./tema/SecaoTema";
+import { TituloPainel } from "@/components/nav/TituloPainel";
 
 function ehSecao(valor: string | null): valor is SecaoConfig {
   return SECOES.some((s) => s.id === valor);
@@ -65,7 +66,7 @@ export function TelaConfiguracao() {
   return (
     <FormularioSujoProvider>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
-        <h1 className="text-3xl font-bold tracking-tight">Configuração</h1>
+        <TituloPainel titulo="Configuração" />
         {leitura && (
           <Alerta variante="informacao" titulo="Somente leitura">
             O evento foi concluído. A configuração pode ser consultada, mas não alterada.

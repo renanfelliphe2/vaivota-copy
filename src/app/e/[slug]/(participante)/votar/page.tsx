@@ -1,18 +1,17 @@
-import { metadadosDaTela } from "@/servicos/metadados";
-import { Suspense } from "react";
-import { RotaGuard } from "@/components/nav/RotaGuard";
-import { Carregando } from "@/components/ui/Carregando";
-import { TelaVotar } from "@/components/votacao/TelaVotar";
+import { redirect } from "next/navigation";
 
-/** Etapas 4 e 5: o `main id="conteudo"` vem do EventoShell; useSearchParams fica dentro do Suspense. */
-export default function PaginaVotar() {
-  return (
-    <RotaGuard exigencia={{ tipo: "EMAIL_VERIFICADO" }}>
-      <Suspense fallback={<Carregando className="mx-auto py-20" />}>
-        <TelaVotar />
-      </Suspense>
-    </RotaGuard>
-  );
+/**
+ * 08/10/2026: a votação vive na entrada do evento (seção #candidatos). /votar só redireciona, para links antigos,
+ * levando o detalhe e o passo (`?candidato=`, `?passo=`).
+ */
+export default async function PaginaVotar({ params, searchParams }: PageProps<"/e/[slug]/votar">) {
+  const { slug } = await params;
+  const busca = await searchParams;
+  const manter = new URLSearchParams();
+  for (const chave of ["candidato", "passo"]) {
+    const valor = busca[chave];
+    if (typeof valor === "string") manter.set(chave, valor);
+  }
+  const consulta = manter.size > 0 ? `?${manter}` : "";
+  redirect(`/e/${slug}${consulta}#candidatos`);
 }
-
-export const generateMetadata = metadadosDaTela("Votação");
