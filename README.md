@@ -45,28 +45,30 @@ Copie `.env.example` para `.env.local` se quiser mudar a flag `NEXT_PUBLIC_DEV_T
 
 | Rota | Tela |
 |---|---|
-| `/` | Landing do evento padrão (`dev.slugPadrao`, inicial: Festival) |
-| `/e/semana-tech`, `/e/ver-e-fazer-filmes` | Entrada do evento, com acesso (entrar / criar conta) |
-| `/e/[slug]/verificar-email` | Tela do código de login |
+| `/` | Landing do VaiVota, com a lista de eventos publicados |
+| `/e/ver-e-fazer-filmes` | Landing do evento: status, hero, acesso (entrar / criar conta), como funciona e a votação (lista, detalhe, revisão e sucesso em modais; visitante vê a lista e entra para ver detalhes) |
+| `/e/[slug]/recuperar-senha` | Esqueci minha senha: e-mail → código → senha nova |
+| `/e/[slug]/verificar-email` | Confirmação de e-mail por código (só para sessão sem e-mail verificado; alcançável pela toolbar) |
 | `/e/[slug]/convite` | "Tenho um código de convite" (exige e-mail verificado) |
-| `/e/[slug]/votar` | Lista, detalhe e voto (público e júri; exige e-mail verificado) |
+| `/e/[slug]/votar` | Só redireciona para a votação na entrada (`/e/[slug]#candidatos`), para links antigos |
 | `/e/[slug]/admin` | Painel: abas Operação e Resultado, exportação CSV (exige `ADMIN` no evento) |
 | `/e/[slug]/admin/configuracao` | Configuração do evento (seções Geral, Candidatos, Júri, Placar, Tema, Operação) |
 | `/e/[slug]/admin/relatorio` | Relatório imprimível (só com resultado oficial) |
 | `/e/[slug]/admin/apresentar` | Sala de controle e palco do telão (real e ensaio) |
+| `/e/[slug]/totem` | Totem infantil em modo quiosque (sem login; o aparelho é pareado pela toolbar) |
 | `/dev/ui` | Galeria de componentes nos dois temas |
+
+Todas as telas (menos o totem e o palco no ar) têm o mesmo **cabeçalho fixo**: logo, atalhos do papel e a conta. Admin vê **Dashboard**, **Configurações** e **Apresentação**; público e jurado veem **Votar**; visitante vê **Entrar**. Os atalhos só abrem as páginas. No celular, atalhos e conta aparecem só como ícones.
 
 ### Dev toolbar
 
-Botão **Dev ▲** no canto da tela (visual neutro, fora do tema). Age sobre o **evento ativo** (o da URL ou o padrão) e pode forçar combinações que o fluxo real não permitiria: evento padrão, estado do evento e da urna, **Entrar como** (os oito usuários seed), e-mail verificado, módulos júri/infantil (redistribui os pesos), relógio simulado (+15 min, +1 h, reta final, fim da janela, pausar, voltar a T0), latência (0/400/1500 ms), erro de rede, falha no próximo envio, cenários e **Resetar mock**. O **Inspetor** mostra o JSON do estado e as invariantes. `?toolbar=0` oculta; `Alt+D` alterna (oculta ↔ forçada, inclusive no telão).
+Botão **Dev ▲** no canto da tela (visual neutro, fora do tema). Age sobre o evento da URL (ou o padrão) e pode forçar combinações que o fluxo real não permitiria. `?toolbar=0` oculta; `Alt+D` alterna (oculta ↔ forçada, inclusive no telão e no totem). Três grupos:
 
-Seções acrescentadas pelas etapas:
+- **Básico** (sempre visível): **Estado do evento**, **Urna**, **Sessão** ("Entrar como" um dos três usuários seed, e-mail verificado), **Relógio** (+15 min, +1 h, reta final, fim da janela, pausar, voltar a T0), **Votação** ("Resetar meu voto" e "Enviar direto") e **Totem** ("Este aparelho é o" Totem Hall, Pátio ou Oficinas, com os votos de cada um; estado do totem; "Abrir totem"; PIN de saída `1234`; para votar, a urna precisa estar aberta).
+- **Opções avançadas** (botão; fica aberto ou fechado entre telas): **Módulos e pesos** (júri/infantil, redistribui os pesos), **Rede e falhas** (latência 0/400/1500 ms, erro de rede, falha no próximo envio), **Cenários**, **Dashboard** ("Simular votos entrando", 1 a 3 votos a cada 3 s com a urna aberta e a aba visível; "Adicionar votos agora" +10/+50/+200; "Mostrar parcial por candidato"; "Conferir apuração"), **Apresentação** (toolbar no palco, trailer válido/inválido/ausente, trailer gerado, candidatos no trailer, classificação completa, avanço padrão, limiar da reta final, falha do trailer, "Resetar apresentação", "Conferir roteiro e motor"), **Inspetor** (invariantes) e **Mostrar JSON** (o estado inteiro).
+- **Gerais** (rodapé): **Resetar mock**, **Ocultar** e **Recolher**.
 
-- **Votação** (Etapa 5): "Resetar meu voto" e "Enviar direto" (chama o serviço sem a tela).
-- **Dashboard** (Etapa 7): "Simular votos entrando" (1 a 3 votos a cada 3 s, só com a urna aberta e a aba visível; roda em qualquer tela do evento), "Adicionar votos agora" (+10, +50, +200), "Mostrar parcial por candidato" (`ConfigApresentacao.parcialAoVivo`) e "Conferir apuração" (autoteste + invariantes).
-- **Apresentação** (Etapa 8): toolbar no palco (`AUTO`/`FORCADA`), link do trailer (válido, inválido, ausente), trailer gerado, candidatos no trailer, classificação completa, avanço padrão, limiar da reta final, simular falha do trailer, "Resetar apresentação" e "Conferir roteiro e motor".
-
-O seed já abre a Semana Tech com volume (511 públicos, 412 votos, 9 jurados com 7 votos, 27 entradas de auditoria). Os cenários do grupo **Resultado** (`RESULTADO_*`, `FESTIVAL_*`) montam eventos encerrados com resultado congelado, inclusive empates.
+O protótipo é **só do Festival** (a Semana Tech trabalha direto com dados reais). O seed começa **sem votos** e com a urna **não iniciada**, para a demonstração mostrar o primeiro voto de cada conta. Os cenários do grupo **Resultado** (`FESTIVAL_*`, `RESULTADO_SEM_INFANTIL`) montam o Festival encerrado com volume e resultado congelado, inclusive empates.
 
 ### Build sem toolbar (público)
 
@@ -78,7 +80,7 @@ NEXT_PUBLIC_DEV_TOOLBAR=false pnpm build && pnpm start
 
 Sem a toolbar não há como forçar estado, reabrir a urna nem abrir `/dev/ui` (404). O roteiro completo (com toolbar) é só para ensaio: ver [`docs/ROTEIRO-DEMO.md`](docs/ROTEIRO-DEMO.md).
 
-O relógio começa em **22/10/2026 14:00 (-03:00)**: uma hora dentro da janela da Semana Tech e ~34 dias antes do Festival.
+O relógio começa em **25/11/2026 09:30 (-03:00)**: 30 minutos antes da janela do Festival (25/11 10h a 28/11 20h). A abertura da urna é sempre manual.
 
 ### Convenção de navegação
 
@@ -86,18 +88,13 @@ Rotas internas só com `next/link` (ou o componente `Botao` com `href`) e `useRo
 
 ### Contas seed
 
-Login **sem senha**: digite o e-mail, clique em "Enviar código" e use o código **`123456`** (protótipo). O "Entrar com Google" abre um seletor fake (Ana, Gabi ou Marina, que cria conta nova).
+Login com **e-mail e senha** (as três contas usam **`demo1234`**). "Esqueci minha senha" envia um código: no protótipo é sempre **`123456`**. Criar conta já entra, sem código. O "Entrar com Google" abre um seletor fake (Ana, ou Marina, que cria conta nova sem senha). Cinco senhas erradas seguidas bloqueiam o login por 60 s do relógio simulado.
 
 | Usuário | E-mail | Participações |
 |---|---|---|
-| Ana Souza | `publico@demo.com` | Semana Tech: público, não votou |
-| Bruno Lima | `jurado@demo.com` | Semana Tech: jurado, não votou |
-| Carla Mendes | `admin@demo.com` | Admin nos dois eventos |
-| Davi Rocha | `naoverificado@demo.com` | Nenhuma; e-mail não verificado |
-| Eva Santos | `votou@demo.com` | Semana Tech: público, já votou |
-| Fábio Nunes | `jurado.votou@demo.com` | Semana Tech: jurado, já votou |
-| Gabi Torres | `equipe@demo.com` | Semana Tech: público; candidata vinculada nos dois eventos |
-| Hugo Pires | `admin.festival@demo.com` | Admin só do Festival |
+| Ana Souza | `publico@demo.com` | Festival: público, não votou |
+| Bruno Lima | `jurado@demo.com` | Festival: jurado (convite `H4TR-9WNB`), não votou |
+| Carla Mendes | `admin@demo.com` | Festival: admin |
 
 ### Códigos de convite de jurado
 
@@ -105,12 +102,8 @@ Só o hash fica no estado; os códigos legíveis existem apenas no seed e aqui.
 
 | Evento | Código | Estado |
 |---|---|---|
-| Semana Tech | `K7M3-QX9P` | Disponível |
-| Semana Tech | `H4TR-9WNB` | Usado (Bruno) |
-| Semana Tech | `F3WJ-8RNK` | Usado (Fábio) |
-| Semana Tech | `P8CD-2VXF` | Revogado |
-| Semana Tech | `M6ZQ-4KTA` | Disponível, mas expirado |
-| Festival | `R5HN-7DCW`, `T9VB-3JXG` | Disponíveis |
+| Festival | `H4TR-9WNB` | Usado (Bruno) |
+| Festival | `R5HN-7DCW`, `T9VB-3JXG` | Disponíveis (os cenários de resultado os consomem) |
 
 Qualquer código recusado mostra a mesma mensagem; o motivo exato fica só na auditoria (visível no Inspetor). Cinco recusas seguidas bloqueiam o campo por 60 s do relógio simulado (um contador para registro e convite; outro para o código de login).
 
@@ -190,7 +183,7 @@ flowchart LR
 | Rota | Quem | Descrição |
 |---|---|---|
 | `/e/{slug}` | Todos | Entrada do evento, login e registro |
-| `/e/{slug}/votar` | Público, jurado | Candidatos, revisão e confirmação do voto |
+| `/e/{slug}#candidatos` | Público, jurado | Candidatos, revisão e confirmação do voto, na entrada do evento |
 | `/e/{slug}/convite` | Usuário logado | Resgate de código de convite de jurado |
 | `/e/{slug}/admin` | Admin | Dashboard (Operação e Resultado) |
 | `/e/{slug}/admin/configuracao` | Admin | Configuração do evento |

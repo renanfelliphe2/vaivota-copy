@@ -18,5 +18,6 @@ Registro da Etapa 9 (seção 5.1): uma linha por desvio. Classes: `BLOQUEIA_FASE
 | A-012 | 9/CP2 | `/e/[slug]/admin/apresentar` | A sala (fora do `AdminShell`) não tinha caminho de volta ao painel. / X1: nenhuma rota exige digitar URL para sair | BLOQUEIA_FASE2 | 8 | CORRIGIDO (CP2: "Voltar ao painel") |
 | A-013 | 7/CP1 | `dominio/resultado.ts` | `congelarResultado` (domínio) lê o relógio por `store/ambiente` quando `calculadoEm` não é passado. Todos os gatilhos atuais passam o instante | PODE_ESPERAR | 7 | BACKLOG |
 | A-014 | 9/CP9 | Repositório | Tag `fase1-prototipo` e zip final não criados: nenhum commit foi pedido nesta sessão | — | 9 | ABERTO (fazer na aprovação) |
+| A-015 | pós-9 | Seed, cenários e testes | Protótipo passa a ser só do Festival (decisão do dono do produto, 08/10/2026): a Semana Tech trabalha direto com dados reais. Seed com 3 usuários (público, jurado, admin) sem votos; T0 em 25/11/2026 09:30; saem o volume da Semana Tech, os 5 `RESULTADO_*` dela e o `VOTO_PROPRIO_PERMITIDO` (15 cenários). As matrizes de `MATRIZ-ROTAS.md` e o planner ainda citam a Semana Tech e os 8 usuários antigos | PODE_ESPERAR | 9 | ABERTO: revisar MATRIZ-ROTAS e CHECKLIST na próxima conferência manual |
 
 Nenhum `BLOQUEIA_FASE2` aberto entre os achados de código. A-006 impede marcar a Fase 1 como aprovada até a conferência manual.

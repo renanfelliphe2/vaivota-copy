@@ -9,7 +9,7 @@ Comparação entre os tipos do protótipo (`src/dominio/tipos.ts`) e `prisma/sch
 | `Participacao` sem `criadoEm` | A participação nunca nasce junto com o voto (C2, F-1) |
 | Pesos `Int` com CHECK de soma 100 | C12, F-4 (o CHECK vem na migração) |
 | `Evento.local` e `Evento.linkSobre` | E34, F-5 (o código ainda os comenta como `mock-only`; podem perder o comentário) |
-| `Usuario` sem `senhaHash` | Login sem senha; contas e sessões nas tabelas do Better Auth (C22, A5, F-8) |
+| `Usuario` sem `senhaHash` no schema | Contas e sessões nas tabelas do Better Auth (C22, F-8). Desde 08/10/2026 o login é por e-mail e senha (revoga a A5): o mock guarda `Usuario.senhaHash` só para simular; em produção a senha fica na conta `credential` do Better Auth (provedor e-mail e senha), e o código por e-mail serve só para recuperar a senha |
 | `ConfigPlacar` sem `exibirVotosJuriNoTelao` | Votos do júri nunca no telão (E21, F-10) |
 
 ## Campos e tipos

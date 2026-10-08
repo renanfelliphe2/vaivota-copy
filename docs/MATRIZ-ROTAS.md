@@ -9,10 +9,10 @@ Legenda: **VER** tela normal · **LOGIN** vai para `/e/{slug}?de={rota}` · **VE
 | Rota | Deslogado | Davi | Ana | Bruno | Carla | Hugo (Semana Tech) | Conferido |
 |---|---|---|---|---|---|---|---|
 | `/` | VER | VER | VER | VER | VER | VER | ☐ |
-| `/e/[slug]` | VER (acesso) | VER (verificar e-mail) | VER (votar) | VER (votar como jurado) | VER (painel) | VER (votar, usuário comum) | ☐ |
+| `/e/[slug]` | VER (página única; "Votar" pede login) | VER ("Votar" leva à verificação) | VER (vota na lista) | VER (vota na lista como jurado) | VER (só leitura) | VER (vota na lista, usuário comum) | ☐ |
 | `/e/[slug]/verificar-email` | LOGIN; com login pendente: VER | VER | REDIR | REDIR | REDIR | REDIR | ☐ |
 | `/e/[slug]/convite` | LOGIN | VERIF | VER | AVISO "Você já é jurado" | AVISO "Contas administrativas não resgatam convite" | VER | ☐ |
-| `/e/[slug]/votar` | LOGIN | VERIF | VER | VER (sem contagens) | AVISO "Administradores não votam" | VER | ☐ |
+| `/e/[slug]/votar` | REDIR `#candidatos` | REDIR | REDIR | REDIR | REDIR | REDIR | ☐ |
 | `/e/[slug]/admin` | LOGIN | RESTRITO | RESTRITO | RESTRITO | VER | RESTRITO | ☐ |
 | `/e/[slug]/admin/configuracao` | LOGIN | RESTRITO | RESTRITO | RESTRITO | VER | RESTRITO | ☐ |
 | `/e/[slug]/admin/relatorio` | LOGIN | RESTRITO | RESTRITO | RESTRITO | VER (com resultado; senão explicação) | RESTRITO | ☐ |
@@ -27,7 +27,7 @@ Hugo no Festival é admin (VER nas rotas de admin). Além da guarda da tela, tod
 
 | Tela | `RASCUNHO` | `ATIVO_NAO_INICIADA` | `URNA_ABERTA` | `URNA_ENCERRADA` | `CONCLUIDO` |
 |---|---|---|---|---|---|
-| Landing | Em preparação; "Em breve" desabilitado | Abre em… / aguardando abertura; "Criar conta" | Votação aberta; "Quero votar" | Votação encerrada | Evento concluído |
+| Evento (landing) | Em preparação; "Em breve" desabilitado | Abre em… / aguardando abertura; "Criar conta" | Votação aberta; "Quero votar" | Votação encerrada | Evento concluído |
 | Evento | Não admin: indisponível; admin: banner de rascunho | Abre em; sem voto | Botão conforme papel | Sem voto; agradecimento | Concluído |
 | Convite | Comportamento real a registrar na conferência | Formulário | Formulário | Aviso | Aviso |
 | Votar | Indisponível | Não iniciada | Lista / já votou / júri desligado / sem candidatos; vota em tempo esgotado | Encerrada | Concluído |
@@ -41,11 +41,11 @@ Combinações só da toolbar seguem `CONCLUIDO` > `RASCUNHO` > urna e mostram "C
 
 | Rota | Como se chega | Como se sai |
 |---|---|---|
-| `/` | Início; logo da casca do evento; "Voltar ao início" do `not-found` e do `error` | CTA do evento |
-| `/e/[slug]` | CTA da landing; nome do evento no `AdminShell` | Landing, votar, convite, painel (admin), menu do usuário |
+| `/` | Início (landing do VaiVota); "Voltar ao início" do `not-found` e do `error` | Lista de eventos |
+| `/e/[slug]` | Lista de eventos de `/`; logo do cabeçalho; nome do evento no `AdminShell` | Votar, convite, painel (admin), menu do usuário |
 | `/e/[slug]/verificar-email` | Entrar, criar conta | Destino de `resolverDestinoAcesso` (`?de=` seguro) |
 | `/e/[slug]/convite` | "Sou jurado"/"Tenho um código" | Votar como jurado, evento |
-| `/e/[slug]/votar` | Botão de voto do evento | Evento (casca), sucesso |
+| `/e/[slug]#candidatos` | Botão de voto do evento, atalho "Votar", destino pós-login | Revisão e sucesso em modais na própria entrada |
 | `/e/[slug]/admin` | `PAINEL_ADMIN` no evento; `AdminShell` | `AdminShell` (Configuração, Apresentação, evento); "Ver relatório"; "Abrir apresentação" |
 | `/e/[slug]/admin/configuracao` | `AdminShell`; links do painel (`?secao=operacao`, `?secao=juri`) | `AdminShell` |
 | `/e/[slug]/admin/relatorio` | "Ver relatório" na aba Resultado | "Voltar ao painel"; `AdminShell` |
@@ -59,7 +59,7 @@ Combinações só da toolbar seguem `CONCLUIDO` > `RASCUNHO` > urna e mostram "C
 | `/e/[slug]` | `{nome} \| VaiVota` |
 | `/e/[slug]/verificar-email` | `Código de acesso · {nome}` |
 | `/e/[slug]/convite` | `Convite de jurado · {nome}` |
-| `/e/[slug]/votar` | `Votação · {nome}` |
+| `/e/[slug]/votar` | (redireciona; sem título próprio) |
 | `/e/[slug]/admin` | `Painel · {nome}` |
 | `/e/[slug]/admin/configuracao` | `Configuração · {nome}` |
 | `/e/[slug]/admin/relatorio` | `Relatório · {nome}` |

@@ -2,34 +2,29 @@
 
 Inventário conferido contra o código em 08/10/2026 (Etapa 9, CP1). Quando um número diverge do planner, vale o do código e a divergência está em [ACHADOS.md](ACHADOS.md).
 
-## Cenários (21 registrados em `src/mocks/cenarios.ts`)
+## Cenários (15 registrados em `src/mocks/cenarios.ts`)
+
+Protótipo só do Festival (08/10/2026): a Semana Tech trabalha direto com dados reais. Saíram os 5 cenários `RESULTADO_*` da Semana Tech e o `VOTO_PROPRIO_PERMITIDO` (nenhum usuário do seed está vinculado a um candidato). As tabelas de apuração e de roteiro desses casos continuam nos autotestes (`dominio/apuracaoAutoteste.ts`, `dominio/apresentacao/autotestes.ts`), que não dependem do seed.
 
 | # | Id | Grupo | Etapa | O que faz |
 |---|---|---|---|---|
-| 1 | `PADRAO` | DADOS | 0 | Seed inicial (o mesmo do F5), com o volume da Semana Tech |
-| 2 | `SEM_ENCERRAMENTO_AUTOMATICO` | ESTADO | 1 | Desliga o encerramento automático nos dois eventos |
+| 1 | `PADRAO` | DADOS | 0 | Seed inicial (o mesmo do F5): Festival sem votos, urna não iniciada |
+| 2 | `SEM_ENCERRAMENTO_AUTOMATICO` | ESTADO | 1 | Desliga o encerramento automático |
 | 3 | `SEM_CANDIDATOS` | DADOS | 2 | Despublica todos os candidatos do evento ativo |
 | 4 | `SOMENTE_GOOGLE` | ESTADO | 3 | Identificação só por Google no evento ativo |
 | 5 | `SOMENTE_EMAIL` | ESTADO | 3 | Identificação só por e-mail no evento ativo |
 | 6 | `MUITOS_CANDIDATOS` | DADOS | 4 | Completa o evento ativo até 24 votáveis |
-| 7 | `VOTO_PROPRIO_PERMITIDO` | DADOS | 4 | `bloquearVotoProprio = false` no evento ativo |
-| 8 | `RASCUNHO_INCOMPLETO` | ESTADO | 6 | Rascunho com 3 bloqueios no checklist |
-| 9 | `RASCUNHO_PRONTO` | ESTADO | 6 | Rascunho sem bloqueios, janela no futuro |
-| 10 | `URNA_ENCERRADA` | ESTADO | 6 | Ativa e encerra a urna do evento ativo (congela v1) |
-| 11 | `EVENTO_CONCLUIDO` | ESTADO | 6 | Urna encerrada e evento concluído |
-| 12 | `RESULTADO_PADRAO` | RESULTADO | 7 | Semana Tech com o volume PADRAO, encerrada em T0 |
-| 13 | `RESULTADO_EMPATE_RESOLVIDO` | RESULTADO | 7 | c02 e c03 empatam (17,00); júri decide o 2º |
-| 14 | `RESULTADO_EMPATE_PERSISTENTE` | RESULTADO | 7 | c01 e c02 empatam (28,00): 1º compartilhado |
-| 15 | `RESULTADO_CO_VENCEDORES` | RESULTADO | 7 | c02 e c03 dividem o 2º e a categoria do júri |
-| 16 | `RESULTADO_DOIS_CANDIDATOS` | RESULTADO | 7 | Só c01 e c02 publicados (61,32 e 38,68) |
-| 17 | `FESTIVAL_ENCERRADO` | RESULTADO | 7 | Festival com infantil (138 votos em 3 totens) |
-| 18 | `RESULTADO_SEM_INFANTIL` | RESULTADO | 7 | Festival com o infantil desligado antes do cálculo |
-| 19 | `FESTIVAL_EMPATE_RESOLVIDO` | RESULTADO | 8 | c02 e c03 empatam (27,68); júri decide |
-| 20 | `FESTIVAL_EMPATE_PERSISTENTE` | RESULTADO | 8 | c01 e c02 empatam (33,35): 1º compartilhado |
-| 21 | `FESTIVAL_CO_VENCEDORES` | RESULTADO | 8 | c02 e c03 dividem o 2º e o júri |
+| 7 | `RASCUNHO_INCOMPLETO` | ESTADO | 6 | Rascunho com 3 bloqueios no checklist |
+| 8 | `RASCUNHO_PRONTO` | ESTADO | 6 | Rascunho sem bloqueios, janela no futuro |
+| 9 | `URNA_ENCERRADA` | ESTADO | 6 | Ativa e encerra a urna do evento ativo (congela v1) |
+| 10 | `EVENTO_CONCLUIDO` | ESTADO | 6 | Urna encerrada e evento concluído |
+| 11 | `FESTIVAL_ENCERRADO` | RESULTADO | 7 | Festival com infantil (138 votos em 3 totens) |
+| 12 | `RESULTADO_SEM_INFANTIL` | RESULTADO | 7 | Festival com o infantil desligado antes do cálculo |
+| 13 | `FESTIVAL_EMPATE_RESOLVIDO` | RESULTADO | 8 | c02 e c03 empatam (27,68); júri decide |
+| 14 | `FESTIVAL_EMPATE_PERSISTENTE` | RESULTADO | 8 | c01 e c02 empatam (33,35): 1º compartilhado |
+| 15 | `FESTIVAL_CO_VENCEDORES` | RESULTADO | 8 | c02 e c03 dividem o 2º e o júri |
 
-Os 21 da lista D10 da Etapa 9. Todos aplicam, reaplicam com o mesmo estado (os de resultado) e deixam `verificarInvariantes` vazia nos dois eventos (`src/dominio/cenarios.test.ts`, `volume.test.ts` e `apresentacao/apresentacao.test.ts`). A demonstração usa `PADRAO` e `FESTIVAL_EMPATE_RESOLVIDO`; reservas: `RESULTADO_PADRAO`, `FESTIVAL_ENCERRADO` e `SEM_ENCERRAMENTO_AUTOMATICO`.
-
+Todos aplicam, reaplicam com o mesmo estado (os de resultado) e deixam `verificarInvariantes` vazia (`src/dominio/cenarios.test.ts`, `volume.test.ts` e `apresentacao/apresentacao.test.ts`). Nos de resultado, Bruno (jurado do seed) fica pendente e 2 jurados gerados votam. A demonstração usa `PADRAO` e `FESTIVAL_EMPATE_RESOLVIDO`; reserva: `FESTIVAL_ENCERRADO`.
 
 ## Ações de auditoria (21, `AcaoAuditoria` em `src/dominio/tipos.ts`)
 
@@ -47,9 +42,9 @@ Rótulo, grupo e descrição de cada uma estão em `src/dominio/auditoria.ts` (`
 
 Nunca vão para a auditoria: escolha de voto popular ou infantil, código de convite, e-mail.
 
-## Códigos de erro (26, `CodigoErro` em `src/servicos/resultado.ts`)
+## Códigos de erro (27, `CodigoErro` em `src/servicos/resultado.ts`)
 
-Genéricos: `VALIDACAO`, `NAO_ENCONTRADO`, `NAO_AUTORIZADO`, `CONFLITO`, `REDE`, `ERRO_INTERNO`. Autenticação: `CREDENCIAIS_INVALIDAS`, `EMAIL_NAO_VERIFICADO`, `CADASTRO_NAO_CONCLUIDO`. Convite: `CODIGO_INVALIDO`, `CODIGO_USADO`, `CODIGO_REVOGADO`, `CODIGO_EXPIRADO`, `LIMITE_TENTATIVAS`, `JA_VOTOU_COMO_PUBLICO`, `JA_E_JURADO`. Estado: `EVENTO_INDISPONIVEL`, `EVENTO_CONCLUIDO`, `URNA_NAO_ABERTA`, `URNA_ENCERRADA`, `RESULTADO_INDISPONIVEL`, `TRAVADO`. Voto: `JA_VOTOU`, `PAPEL_INVALIDO`, `CANDIDATO_INDISPONIVEL`, `VOTO_PROPRIO`. Textos em `src/servicos/mensagens.ts`.
+Genéricos: `VALIDACAO`, `NAO_ENCONTRADO`, `NAO_AUTORIZADO`, `CONFLITO`, `REDE`, `ERRO_INTERNO`. Autenticação: `CREDENCIAIS_INVALIDAS`, `EMAIL_NAO_VERIFICADO`, `CADASTRO_NAO_CONCLUIDO`. Convite: `CODIGO_INVALIDO`, `CODIGO_USADO`, `CODIGO_REVOGADO`, `CODIGO_EXPIRADO`, `LIMITE_TENTATIVAS`, `JA_VOTOU_COMO_PUBLICO`, `JA_E_JURADO`. Estado: `EVENTO_INDISPONIVEL`, `EVENTO_CONCLUIDO`, `URNA_NAO_ABERTA`, `URNA_ENCERRADA`, `RESULTADO_INDISPONIVEL`, `TRAVADO`. Voto: `JA_VOTOU`, `PAPEL_INVALIDO`, `CANDIDATO_INDISPONIVEL`, `VOTO_PROPRIO`. Totem: `DISPOSITIVO_INATIVO`. Textos em `src/servicos/mensagens.ts`.
 
 `ModoFalha` (6): `NENHUMA`, `REDE_NAO_GRAVOU`, `REDE_GRAVOU`, `URNA_ENCERRA`, `JA_VOTOU_OUTRA_SESSAO`, `ERRO_INTERNO`.
 
