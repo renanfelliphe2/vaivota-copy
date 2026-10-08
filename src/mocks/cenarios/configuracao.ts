@@ -1,3 +1,4 @@
+import { semAvaliacoesDoEvento } from "@/dominio/avaliacaoJuri";
 import { votaveis } from "@/dominio/candidatos";
 import type { EstadoApp, Evento } from "@/dominio/tipos";
 import { DIA, HORA, paraInstante, paraMs } from "@/lib/tempo";
@@ -14,14 +15,14 @@ function alterarEvento(atual: EstadoApp, eventoId: string, mudanca: Partial<Even
   };
 }
 
-/** Zera os votos do evento (popular, júri, histórico, `votou` e vínculos) e o resultado congelado. */
+/** Zera os votos do evento (popular, júri, notas e escolhas do júri, histórico, `votou` e vínculos) e o resultado congelado. */
 function zerarVotos(atual: EstadoApp, eventoId: string): EstadoApp {
   const votosJuriIds = new Set(atual.banco.votosJuri.filter((v) => v.eventoId === eventoId).map((v) => v.id));
   const sufixo = `:${eventoId}`;
   return {
     ...atual,
     banco: {
-      ...atual.banco,
+      ...semAvaliacoesDoEvento(atual.banco, eventoId),
       votos: atual.banco.votos.filter((v) => v.eventoId !== eventoId),
       votosJuri: atual.banco.votosJuri.filter((v) => v.eventoId !== eventoId),
       historicoVotosJuri: atual.banco.historicoVotosJuri.filter((h) => !votosJuriIds.has(h.votoJuriId)),

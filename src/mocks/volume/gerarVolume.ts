@@ -1,5 +1,6 @@
 import { aplicarVotoJuri, aplicarVotoPopular } from "@/dominio/aplicarVoto";
-import { contarVotos } from "@/dominio/contagens";
+import { semAvaliacoesDoEvento } from "@/dominio/avaliacaoJuri";
+import { contarVotos, contarVotosJuriUnico } from "@/dominio/contagens";
 import { estadoExibidoConvite, proximoNumeroRotulo } from "@/dominio/convites";
 import type { ConviteJurado, EstadoApp, Grupo, Instante, Participacao, Usuario, VotoInfantil } from "@/dominio/tipos";
 import { criarGerador, embaralharComSemente, hashDeTexto, type Gerador } from "@/lib/aleatorio";
@@ -87,14 +88,14 @@ function filaDeCandidatos(necessidade: Record<string, number>, semente: string):
   return embaralharComSemente(fila, semente);
 }
 
-/** Remove os votos do evento (popular, júri, histórico, infantil), `votou` e vínculos: parte do núcleo sem votos. */
+/** Remove os votos do evento (popular, júri, notas e escolhas do júri, histórico, infantil), `votou` e vínculos: parte do núcleo sem votos. */
 export function zerarVotosDoEvento(estado: EstadoApp, eventoId: string): EstadoApp {
   const ids = new Set(estado.banco.votosJuri.filter((v) => v.eventoId === eventoId).map((v) => v.id));
   const sufixo = `:${eventoId}`;
   return {
     ...estado,
     banco: {
-      ...estado.banco,
+      ...semAvaliacoesDoEvento(estado.banco, eventoId),
       votos: estado.banco.votos.filter((v) => v.eventoId !== eventoId),
       votosJuri: estado.banco.votosJuri.filter((v) => v.eventoId !== eventoId),
       historicoVotosJuri: estado.banco.historicoVotosJuri.filter((h) => !ids.has(h.votoJuriId)),
@@ -140,7 +141,8 @@ export function gerarVolume(estadoInicial: EstadoApp, opcoes: OpcoesVolume): Est
   const fimMs = paraMs(opcoes.janela.fim);
 
   let estado = opcoes.incluirNucleo ? estadoInicial : zerarVotosDoEvento(estadoInicial, eventoId);
-  const existentes = contarVotos(estado.banco, eventoId);
+  // O volume gera votos de voto único do júri: conta só esses, qualquer que seja o modo do evento.
+  const existentes = { ...contarVotos(estado.banco, eventoId), JURI: contarVotosJuriUnico(estado.banco, eventoId) };
   const falta: Record<Grupo, Record<string, number>> = {
     POPULAR: necessidade(opcoes.distribuicao.POPULAR, existentes.POPULAR),
     JURI: necessidade(opcoes.distribuicao.JURI, existentes.JURI),

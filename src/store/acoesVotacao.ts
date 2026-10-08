@@ -52,7 +52,7 @@ export function descartarSucesso(eventoId: string): void {
 
 /**
  * "Resetar meu voto" (toolbar, D15): só com a urna aberta. Público pelo `dev.vinculosVoto`; júri pela
- * participação (VotoJuri e histórico). Limpa `ui.votacao`. Devolve a mensagem para a toolbar.
+ * participação (VotoJuri e histórico, notas e escolhas por critério). Limpa `ui.votacao`. Devolve a mensagem para a toolbar.
  */
 export function resetarMeuVoto(eventoId: string): string {
   const { store } = obterAmbiente();
@@ -73,11 +73,14 @@ export function resetarMeuVoto(eventoId: string): string {
       banco = { ...banco, votos: banco.votos.filter((v) => v.id !== votoId) };
       vinculosVoto = Object.fromEntries(Object.entries(vinculosVoto).filter(([k]) => k !== chave));
     } else if (participacao.papel === "JURADO") {
+      // Todos os modos do júri: voto único, notas e escolhas por critério (08/10/2026).
       const ids = new Set(banco.votosJuri.filter((v) => v.participacaoId === participacao.id).map((v) => v.id));
       banco = {
         ...banco,
         votosJuri: banco.votosJuri.filter((v) => !ids.has(v.id)),
         historicoVotosJuri: banco.historicoVotosJuri.filter((h) => !ids.has(h.votoJuriId)),
+        notasJuri: banco.notasJuri.filter((n) => n.participacaoId !== participacao.id),
+        escolhasCriterioJuri: banco.escolhasCriterioJuri.filter((x) => x.participacaoId !== participacao.id),
       };
     }
     banco = { ...banco, participacoes: banco.participacoes.map((p) => (p.id === participacao.id ? { ...p, votou: false } : p)) };

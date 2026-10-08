@@ -16,6 +16,11 @@ export type EstadoConvite = "DISPONIVEL" | "USADO" | "REVOGADO";
 export type EstadoDispositivo = "ATIVO" | "PAUSADO" | "REVOGADO";
 export type RegraDesempate = "JURI" | "PUBLICO";
 export type ModoAvanco = "AUTOMATICO" | "MANUAL";
+/**
+ * Como o jurado vota (08/10/2026). VOTO_UNICO: um candidato (Etapa 5). NOTAS_POR_CRITERIO: nota de 0 a 10 a cada
+ * candidato em cada critério. MELHOR_POR_CRITERIO: um candidato por critério. O público sempre vota em um só.
+ */
+export type ModoVotoJuri = "VOTO_UNICO" | "NOTAS_POR_CRITERIO" | "MELHOR_POR_CRITERIO";
 
 /** Domínio; não existe no schema. */
 export type Grupo = "POPULAR" | "JURI" | "INFANTIL";
@@ -150,6 +155,8 @@ export type ConfigPlacar = {
   pesoJuri: number; // inteiro
   pesoInfantil: number; // inteiro
   regraDesempate: RegraDesempate;
+  /** Mock-only (08/10/2026): como os votos do júri viram o placar do júri. Trava com a urna aberta, como os pesos. */
+  modoVotoJuri: ModoVotoJuri;
   atualizadoEm: Instante;
 };
 
@@ -226,6 +233,38 @@ export type VotoJuri = {
   id: string;
   eventoId: string;
   participacaoId: string;
+  candidatoId: string;
+  criadoEm: Instante;
+  atualizadoEm: Instante;
+};
+
+/** Mock-only (08/10/2026): critério de avaliação do júri (ex.: Direção, Roteiro). Vale para os dois modos por critério. */
+export type CriterioJuri = {
+  id: string;
+  eventoId: string;
+  nome: string;
+  ordem: number;
+};
+
+/** Mock-only (08/10/2026): nota de um jurado a um candidato num critério (NOTAS_POR_CRITERIO). Única por (participação, candidato, critério). */
+export type NotaJuri = {
+  id: string;
+  eventoId: string;
+  participacaoId: string;
+  candidatoId: string;
+  criterioId: string;
+  /** Inteiro de 0 a 10. */
+  nota: number;
+  criadoEm: Instante;
+  atualizadoEm: Instante;
+};
+
+/** Mock-only (08/10/2026): o melhor candidato de um critério para um jurado (MELHOR_POR_CRITERIO). Única por (participação, critério). */
+export type EscolhaCriterioJuri = {
+  id: string;
+  eventoId: string;
+  participacaoId: string;
+  criterioId: string;
   candidatoId: string;
   criadoEm: Instante;
   atualizadoEm: Instante;
@@ -334,6 +373,9 @@ export type Banco = {
   votos: Voto[];
   votosJuri: VotoJuri[];
   historicoVotosJuri: HistoricoVotoJuri[];
+  criteriosJuri: CriterioJuri[];
+  notasJuri: NotaJuri[];
+  escolhasCriterioJuri: EscolhaCriterioJuri[];
   dispositivos: Dispositivo[];
   votosInfantis: VotoInfantil[];
   resultados: ResultadoOficial[];

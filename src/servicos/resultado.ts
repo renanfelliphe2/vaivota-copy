@@ -36,6 +36,8 @@ export type CodigoErro =
   | "JA_VOTOU"
   | "PAPEL_INVALIDO"
   | "CANDIDATO_INDISPONIVEL"
+  /** 08/10/2026: o envio não bate com o modo de votação do júri (a toolbar ou o admin trocou). */
+  | "MODO_JURI_DIFERENTE"
   // Etapa 4 (validado nos serviços de voto da Etapa 5)
   | "VOTO_PROPRIO"
   // Totem (rev. 4, A7): aparelho não pareado com o evento, pausado ou revogado

@@ -20,6 +20,11 @@ export function rotaVotacao(slug: string): string {
   return `/e/${slug}#candidatos`;
 }
 
+/** Avaliação por critério de um candidato (08/10/2026: só jurado, com o júri em modo por critério). */
+export function rotaAvaliacao(slug: string, candidatoId: string): string {
+  return `/e/${slug}/avaliar/${encodeURIComponent(candidatoId)}`;
+}
+
 /** Confirmação do e-mail por código (sessão sem e-mail verificado), mantendo `?de=` quando for interno. */
 export function rotaVerificarEmail(slug: string, de?: string | null): string {
   return ehRotaInterna(de) ? `/e/${slug}/verificar-email?de=${encodeURIComponent(de)}` : `/e/${slug}/verificar-email`;

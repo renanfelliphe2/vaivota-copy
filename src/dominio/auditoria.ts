@@ -77,6 +77,7 @@ export const CATALOGO_AUDITORIA: Record<AcaoAuditoria, ItemCatalogo> = {
     grupo: "CONFIGURACAO",
     descrever: (d, entidade) => {
       if (entidade === "config_placar") return "Pesos ou critério de desempate alterados";
+      if (entidade === "config_juri") return "Forma de votação ou critérios do júri alterados";
       if (entidade === "campo_candidato") return "Campos extras alterados";
       if (d?.janela) return "Janela alterada";
       const campos = listaDeCampos(d);
@@ -101,8 +102,18 @@ export const CATALOGO_AUDITORIA: Record<AcaoAuditoria, ItemCatalogo> = {
   },
   CANDIDATO_CORRIGIDO: { rotulo: "Item corrigido", grupo: "CONFIGURACAO", descrever: () => "Dados de um item corrigidos" },
   CONVITE_RESGATADO: { rotulo: "Convite resgatado", grupo: "JURI", descrever: () => "Convite de jurado resgatado" },
-  VOTO_JURI_REGISTRADO: { rotulo: "Voto de jurado", grupo: "JURI", descrever: () => "Voto de jurado registrado" },
-  VOTO_JURI_ALTERADO: { rotulo: "Voto de jurado alterado", grupo: "JURI", descrever: () => "Voto de jurado alterado" },
+  VOTO_JURI_REGISTRADO: {
+    rotulo: "Voto de jurado",
+    grupo: "JURI",
+    descrever: (_d, entidade) =>
+      entidade === "nota_juri" ? "Notas de jurado registradas" : entidade === "escolha_juri" ? "Escolha por critério registrada" : "Voto de jurado registrado",
+  },
+  VOTO_JURI_ALTERADO: {
+    rotulo: "Voto de jurado alterado",
+    grupo: "JURI",
+    descrever: (_d, entidade) =>
+      entidade === "nota_juri" ? "Notas de jurado alteradas" : entidade === "escolha_juri" ? "Escolha por critério alterada" : "Voto de jurado alterado",
+  },
   TENTATIVA_CODIGO_INVALIDA: { rotulo: "Código recusado", grupo: "SEGURANCA", descrever: () => "Código recusado" },
   BLOQUEIO_RATE_LIMIT: {
     rotulo: "Bloqueio por tentativas",

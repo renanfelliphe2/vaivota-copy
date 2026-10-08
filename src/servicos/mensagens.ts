@@ -36,6 +36,7 @@ const MENSAGENS: Record<CodigoErro, string> = {
   JA_VOTOU: "Você já votou neste evento.",
   PAPEL_INVALIDO: "Contas administrativas não resgatam convite.",
   CANDIDATO_INDISPONIVEL: "Esta opção não está mais disponível.",
+  MODO_JURI_DIFERENTE: "A forma de votação do júri mudou. Volte à lista e tente de novo.",
   VOTO_PROPRIO: "Você não pode votar na própria candidatura.",
 
   DISPOSITIVO_INATIVO: "Este totem não está liberado para votar. Chame a organização.",

@@ -1,3 +1,4 @@
+import { juradoTemVoto, notaValida } from "./avaliacaoJuri";
 import type { DadosResultado, EstadoApp } from "./tipos";
 
 /**
@@ -49,11 +50,31 @@ export function verificarInvariantes(estado: EstadoApp): string[] {
     const publicosVotaram = participacoes.filter((p) => p.papel === "PUBLICO" && p.votou).length;
     if (votos !== publicosVotaram) erros.push(`3: ${evento.slug} tem ${votos} votos e ${publicosVotaram} públicos que votaram`);
 
-    // 4. Nº de VotoJuri = nº de participações JURADO com votou.
-    const votosJuri = banco.votosJuri.filter((v) => v.eventoId === evento.id).length;
-    const juradosVotaram = participacoes.filter((p) => p.papel === "JURADO" && p.votou).length;
-    if (votosJuri !== juradosVotaram)
-      erros.push(`4: ${evento.slug} tem ${votosJuri} votos do júri e ${juradosVotaram} jurados que votaram`);
+    // 4. Jurado com votou ⇔ tem VotoJuri, NotaJuri ou EscolhaCriterioJuri (08/10/2026: qualquer modo do júri).
+    for (const p of participacoes) {
+      if (p.papel !== "JURADO") continue;
+      const temVoto = juradoTemVoto(banco, p.id);
+      if (temVoto !== p.votou) erros.push(`4: ${evento.slug} jurado ${p.id} com votou = ${p.votou} e ${temVoto ? "com" : "sem"} voto`);
+    }
+    const semJurado = (participacaoId: string) => participacaoPorId.get(participacaoId)?.papel !== "JURADO";
+    if (banco.votosJuri.some((v) => v.eventoId === evento.id && semJurado(v.participacaoId)))
+      erros.push(`4: ${evento.slug} tem voto do júri de participação que não é JURADO`);
+
+    // 10 (08/10/2026). Notas inteiras de 0 a 10 e notas/escolhas de jurado, critério e candidato do mesmo evento.
+    const criterios = new Set(banco.criteriosJuri.filter((c) => c.eventoId === evento.id).map((c) => c.id));
+    for (const n of banco.notasJuri.filter((x) => x.eventoId === evento.id)) {
+      if (!notaValida(n.nota)) erros.push(`10: nota ${n.id} fora de 0 a 10`);
+      if (!criterios.has(n.criterioId) || candidatoPorId.get(n.candidatoId)?.eventoId !== evento.id || semJurado(n.participacaoId))
+        erros.push(`10: nota ${n.id} com critério, candidato ou jurado de fora do evento`);
+    }
+    const escolhidos = new Set<string>();
+    for (const e of banco.escolhasCriterioJuri.filter((x) => x.eventoId === evento.id)) {
+      if (!criterios.has(e.criterioId) || candidatoPorId.get(e.candidatoId)?.eventoId !== evento.id || semJurado(e.participacaoId))
+        erros.push(`10: escolha ${e.id} com critério, candidato ou jurado de fora do evento`);
+      const chave = `${e.participacaoId}:${e.criterioId}`;
+      if (escolhidos.has(chave)) erros.push(`10: mais de uma escolha do jurado ${e.participacaoId} no critério ${e.criterioId}`);
+      escolhidos.add(chave);
+    }
 
     // 7. Resultados com versão única e sequencial.
     const versoes = banco.resultados

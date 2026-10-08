@@ -3,7 +3,7 @@ import { criarEstadoNucleo } from "../criarEstadoNucleo";
 import { ehUsuarioVolume } from "./gerarVolume";
 
 // Etapa 7 (seção 5.12, passo 1): remove todas as entidades do evento (usuários gerados, participações,
-// convites, votos, histórico, votos infantis, auditoria e resultados) e reinsere as do núcleo do seed,
+// convites, votos, histórico, critérios, notas e escolhas do júri, votos infantis, auditoria e resultados) e reinsere as do núcleo do seed,
 // sem tocar no outro evento, na sessão, em `ui` nem em `dev` (salvo os vínculos de voto do evento).
 // As sequências passam a ser o maior id presente: aplicar duas vezes dá o mesmo estado.
 
@@ -43,6 +43,9 @@ export function restaurarNucleo(estado: EstadoApp, eventoId: string): EstadoApp 
       ...atual.historicoVotosJuri.filter((h) => !votosJuriRemovidos.has(h.votoJuriId)),
       ...n.historicoVotosJuri.filter((h) => idsJuriNucleo.has(h.votoJuriId)),
     ],
+    criteriosJuri: [...fora(atual.criteriosJuri), ...doEvento(n.criteriosJuri)],
+    notasJuri: [...fora(atual.notasJuri), ...doEvento(n.notasJuri)],
+    escolhasCriterioJuri: [...fora(atual.escolhasCriterioJuri), ...doEvento(n.escolhasCriterioJuri)],
     dispositivos: [...fora(atual.dispositivos), ...doEvento(n.dispositivos)],
     votosInfantis: fora(atual.votosInfantis),
     resultados: fora(atual.resultados),

@@ -19,6 +19,7 @@ const NAO_REGISTRADO: CodigoErro[] = [
   "PAPEL_INVALIDO",
   "EMAIL_NAO_VERIFICADO",
   "NAO_AUTORIZADO",
+  "MODO_JURI_DIFERENTE",
 ];
 
 /** Tabela 5.6 (linhas que não são REDE nem ok): um único `concluirEnvio`. */

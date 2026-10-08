@@ -15,6 +15,8 @@ export const LIMITES = {
   valorCampoExtra: 200,
   rotuloCampo: [2, 30],
   maxCampos: 6,
+  nomeCriterio: [2, 30],
+  maxCriterios: 8,
   motivoExcepcional: 10,
   convitesPorLote: 50,
   rotuloBaseConvite: 40,
@@ -189,4 +191,28 @@ export function validarTema(dados: DadosTema, fontes: readonly string[]): Erros 
 
 export function semErros(erros: Erros): boolean {
   return Object.keys(erros).length === 0;
+}
+
+// ─────────────────────────────────────────────
+// Júri: critérios de avaliação (08/10/2026)
+// ─────────────────────────────────────────────
+
+/**
+ * Erros por posição (`criterio-<i>`) e o geral (`criterios`). Nos modos por critério exige ao menos um; no voto
+ * único a lista é guardada para depois, mas continua válida.
+ */
+export function validarCriteriosJuri(nomes: readonly string[], porCriterio: boolean): Erros {
+  const erros: Erros = {};
+  if (porCriterio && nomes.length === 0) erros.criterios = "Cadastre ao menos um critério.";
+  if (nomes.length > LIMITES.maxCriterios) erros.criterios = `Use até ${LIMITES.maxCriterios} critérios.`;
+  const vistos = new Set<string>();
+  nomes.forEach((nome, i) => {
+    const t = nome.trim();
+    const chave = t.toLocaleLowerCase("pt-BR");
+    if (!t) erros[`criterio-${i}`] = "Informe o nome do critério.";
+    else if (!entre(t, LIMITES.nomeCriterio)) erros[`criterio-${i}`] = "Use de 2 a 30 caracteres.";
+    else if (vistos.has(chave)) erros[`criterio-${i}`] = "Já existe um critério com este nome.";
+    vistos.add(chave);
+  });
+  return erros;
 }

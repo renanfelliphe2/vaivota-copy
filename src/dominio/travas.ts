@@ -27,6 +27,8 @@ export type AcaoConfig =
   | "CONVITES_RENOMEAR"
   | "CONVITES_REVOGAR"
   | "PLACAR"
+  /** Modo de votação e critérios do júri (08/10/2026): travam com a urna aberta, como os pesos. */
+  | "JURI_AVALIACAO"
   /** D24 (rev. 3, E32): o nível depende do dado (convite USADO), não da fase. */
   | "MODULO_JURI_DESLIGAR"
   | "TEMA"
@@ -51,6 +53,7 @@ const MATRIZ: Record<Exclude<AcaoConfig, "MODULO_JURI_DESLIGAR">, Linha> = {
   CONVITES_RENOMEAR: ["LIVRE", "LIVRE", "LIVRE", "TRAVADO"],
   CONVITES_REVOGAR: ["LIVRE", "LIVRE", "AUDITADO", "TRAVADO"],
   PLACAR: ["LIVRE", "LIVRE", "TRAVADO", "TRAVADO"],
+  JURI_AVALIACAO: ["LIVRE", "LIVRE", "TRAVADO", "TRAVADO"],
   TEMA: ["LIVRE", "LIVRE", "LIVRE", "LIVRE"],
   OPERACAO: ["LIVRE", "LIVRE", "LIVRE", "LIVRE"],
 };

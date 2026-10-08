@@ -1,4 +1,5 @@
 import { aplicarVotoJuri, aplicarVotoPopular } from "@/dominio/aplicarVoto";
+import { modoVotoJuriDoEvento } from "@/dominio/avaliacaoJuri";
 import { votaveis } from "@/dominio/candidatos";
 import type { Candidato, EstadoApp, Evento, Participacao, ResultadoEnvioVoto, Usuario } from "@/dominio/tipos";
 import { candidatoBloqueadoParaVoto } from "@/dominio/votoProprio";
@@ -24,10 +25,10 @@ import {
 type EntradaVoto = { eventoId: string; candidatoId: string };
 type Papel = "POPULAR" | "JURI";
 
-type Contexto = { estado: EstadoApp; evento: Evento; usuario: Usuario; participacao: Participacao };
+export type Contexto = { estado: EstadoApp; evento: Evento; usuario: Usuario; participacao: Participacao };
 
 /** Validações 1 a 5 (sessão, evento, e-mail, estado do evento, participação, papel). */
-function validarIdentidade(estado: EstadoApp, eventoId: string, papel: Papel): Resultado<Contexto> {
+export function validarIdentidade(estado: EstadoApp, eventoId: string, papel: Papel): Resultado<Contexto> {
   const usuario = estado.banco.usuarios.find((u) => u.id === estado.sessao.usuarioId);
   if (!usuario) return falha("NAO_AUTORIZADO", { detalhe: "sem sessão" });
   const evento = acharEvento(estado, eventoId);
@@ -46,14 +47,14 @@ function validarIdentidade(estado: EstadoApp, eventoId: string, papel: Papel): R
 }
 
 /** Validação 6: só `ABERTA` passa, inclusive depois de janelaFim (D13). */
-function validarUrna(evento: Evento): { ok: false; erro: ErroServico } | null {
+export function validarUrna(evento: Evento): { ok: false; erro: ErroServico } | null {
   if (evento.estadoUrna === "NAO_INICIADA") return falha("URNA_NAO_ABERTA");
   if (evento.estadoUrna === "ENCERRADA") return falha("URNA_ENCERRADA");
   return null;
 }
 
 /** Validações 8 e 9: candidato votável do evento e voto em si mesmo. */
-function validarCandidato(ctx: Contexto, candidatoId: string): Resultado<Candidato> {
+export function validarCandidato(ctx: Contexto, candidatoId: string): Resultado<Candidato> {
   const candidato = votaveis(ctx.estado.banco.candidatos.filter((c) => c.eventoId === ctx.evento.id)).find((c) => c.id === candidatoId);
   if (!candidato) return falha("CANDIDATO_INDISPONIVEL", { detalhe: `candidato ${candidatoId} não votável em ${ctx.evento.id}` });
   if (candidatoBloqueadoParaVoto(candidato, ctx.usuario.id, ctx.evento)) return falha("VOTO_PROPRIO");
@@ -61,14 +62,14 @@ function validarCandidato(ctx: Contexto, candidatoId: string): Resultado<Candida
 }
 
 /** URNA_ENCERRA: depois das validações 1 a 5, encerra pela transição (congela o resultado) e recusa. */
-function encerrarPorFalhaSimulada(eventoId: string): Resultado<never> {
+export function encerrarPorFalhaSimulada(eventoId: string): Resultado<never> {
   const { store, agoraMs } = lerAmbiente();
   store.atualizar((e) => encerrarUrna(e, eventoId, { agoraMs, usuarioId: null, origem: "FALHA_SIMULADA" }));
   return falha("URNA_ENCERRADA", { detalhe: "falha simulada URNA_ENCERRA" });
 }
 
 /** REDE_NAO_GRAVOU e ERRO_INTERNO (e o erro de rede persistente): nada é gravado. */
-async function inicioDoEnvio() {
+export async function inicioDoEnvio() {
   await atraso();
   const persistente = simularFalha({ consumirPontual: false });
   if (persistente) return { erro: persistente, modo: "NENHUMA" as const };
@@ -129,6 +130,9 @@ export async function votarJuri(entrada: EntradaVoto): Promise<Resultado<{ resul
   const urna = validarUrna(ctx.evento);
   if (urna) return urna;
   if (modo === "JA_VOTOU_OUTRA_SESSAO") registrarLog("JA_VOTOU_OUTRA_SESSAO sem efeito no voto do júri (o jurado sempre pode substituir)");
+  // 08/10/2026: com o júri por critério, o voto único é recusado (a tela leva à avaliação).
+  const modoJuri = modoVotoJuriDoEvento(estado.banco, ctx.evento.id);
+  if (modoJuri !== "VOTO_UNICO") return falha("MODO_JURI_DIFERENTE", { detalhe: `votarJuri com o júri em ${modoJuri}` });
 
   const candidato = validarCandidato(ctx, entrada.candidatoId);
   if (!candidato.ok) return candidato;
