@@ -47,8 +47,8 @@ export function criarUiInicial(): EstadoUi {
 export function criarConfigSimuladorInicial(): ConfigSimulador {
   return {
     POPULAR: { ligado: true, votos: 2, intervaloMs: 3000 },
-    JURI: { ligado: false, votos: 1, intervaloMs: 5000 },
-    INFANTIL: { ligado: false, votos: 1, intervaloMs: 2000 },
+    JURI: { ligado: true, votos: 1, intervaloMs: 5000 },
+    INFANTIL: { ligado: true, votos: 1, intervaloMs: 2000 },
   };
 }
 
