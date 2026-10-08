@@ -73,7 +73,16 @@ export function CenaAtual({
 
   if (cena.tipo === "AO_VIVO_ENSAIO") return <>{aoVivoEnsaio}</>;
   if (cena.tipo === "ENCERRADA_ENSAIO")
-    return <CenaEncerrada nome={nome} logoUrl={logoUrl} candidatos={dados.candidatos.filter((c) => !dados.dados.desqualificados.includes(c.id))} />;
+    return (
+      <CenaEncerrada
+        nome={nome}
+        logoUrl={logoUrl}
+        candidatos={dados.candidatos.filter((c) => !dados.dados.desqualificados.includes(c.id))}
+        totalGeral={
+          dados.dados.totais.POPULAR + (dados.modulos.juri ? dados.dados.totais.JURI : 0) + (dados.modulos.infantil ? dados.dados.totais.INFANTIL : 0)
+        }
+      />
+    );
   if (cena.tipo === "TRAILER") {
     const { config } = dados;
     return (

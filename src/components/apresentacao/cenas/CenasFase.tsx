@@ -57,19 +57,22 @@ export function CenaPreVotacao({
   chamada: string;
   contagem: ReactNode | null;
 }) {
+  // 08/10/2026: mesmo arranjo das outras telas: candidatos à esquerda, chamada e contagem na lateral.
   return (
-    <div className="flex h-full flex-col gap-10 p-20">
-      <Cabecalho nome={nome} logoUrl={logoUrl} />
-      <div className="flex items-end justify-between gap-10">
-        <p className="text-[72px] font-black leading-tight">{chamada}</p>
+    <div className="grid h-full grid-cols-[1fr_520px] gap-12 p-20">
+      <div className="flex min-w-0 flex-col gap-8">
+        <Cabecalho nome={nome} logoUrl={logoUrl} />
+        <Grade candidatos={candidatos} />
+      </div>
+      <aside className="flex flex-col items-center justify-center gap-10 text-center">
+        <p className="palco-entrada text-[72px] font-black leading-tight">{chamada}</p>
         {contagem && (
-          <div className="text-right">
+          <div className="flex flex-col items-center gap-2">
             <p className="text-[40px] text-tema-texto-suave">{TEXTOS_PALCO.comecaEm}</p>
-            <div className="text-[80px] font-bold tabular-nums">{contagem}</div>
+            <div className="text-[72px] font-bold tabular-nums">{contagem}</div>
           </div>
         )}
-      </div>
-      <Grade candidatos={candidatos} />
+      </aside>
     </div>
   );
 }
@@ -110,6 +113,7 @@ export function CenaAoVivo({
           <p className="palco-entrada rounded-[48px] border-8 border-tema-primaria px-10 py-16 text-[88px] font-black leading-tight text-tema-primaria-texto">
             {TEXTOS_PALCO.votacaoEncerrada}
           </p>
+          <p className="text-[48px] font-bold leading-tight">{TEXTOS_PALCO.resultadoEmInstantes}</p>
           {totalGeral !== null && (
             <p className="text-[40px]">
               <span className="text-[72px] font-black tabular-nums">{formatarNumero(totalGeral)}</span> {TEXTOS_PALCO.totalVotos}
@@ -171,23 +175,39 @@ export function CenaMensagem({ nome, logoUrl, texto }: { nome: string; logoUrl: 
 
 /**
  * Tela inicial da revelação (08/10/2026; substitui a tela só com "Votação encerrada"): os candidatos, sem QR nem
- * temporizador, com o aviso no lugar do QR. Ao entrar, o aviso aparece grande no meio da tela por alguns segundos.
- * Fica parada até alguém avançar.
+ * temporizador, com o aviso (e a chamada de que o resultado vem a seguir) no lugar do QR. Na primeira vez que entra
+ * nesta aba do telão, o aviso aparece grande no meio da tela por alguns segundos; ao reiniciar ou religar, não
+ * (08/10/2026). Fica parada até alguém avançar.
  */
-export function CenaEncerrada({ nome, logoUrl, candidatos }: { nome: string; logoUrl: string | null; candidatos: CandidatoPalco[] }) {
-  const [aviso, setAviso] = useState(true);
+const avisoEncerradaMostrado = new Set<string>();
+
+export function CenaEncerrada({
+  nome,
+  logoUrl,
+  candidatos,
+  totalGeral,
+}: {
+  nome: string;
+  logoUrl: string | null;
+  candidatos: CandidatoPalco[];
+  totalGeral: number | null;
+}) {
+  const [aviso, setAviso] = useState(() => !avisoEncerradaMostrado.has(nome));
   useEffect(() => {
+    if (!aviso) return;
+    avisoEncerradaMostrado.add(nome);
     const t = setTimeout(() => setAviso(false), DURACOES.avisoEncerrada);
     return () => clearTimeout(t);
-  }, []);
+  }, [aviso, nome]);
   return (
     <div className="relative h-full">
-      <CenaAoVivo nome={nome} logoUrl={logoUrl} candidatos={candidatos} urlQr="" contagem={null} totalGeral={null} parcial={null} subestado={null} encerrada />
+      <CenaAoVivo nome={nome} logoUrl={logoUrl} candidatos={candidatos} urlQr="" contagem={null} totalGeral={totalGeral} parcial={null} subestado={null} encerrada />
       {aviso && (
-        <div className="absolute inset-0 flex items-center justify-center bg-tema-fundo/80">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-12 bg-tema-fundo/80">
           <p className="palco-entrada rounded-[64px] bg-tema-primaria px-24 py-16 text-[160px] font-black leading-none text-tema-sobre-primaria shadow-2xl">
             {TEXTOS_PALCO.votacaoEncerrada}
           </p>
+          <p className="palco-entrada text-[64px] font-bold">{TEXTOS_PALCO.resultadoEmInstantes}</p>
         </div>
       )}
     </div>

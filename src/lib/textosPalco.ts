@@ -12,6 +12,7 @@ export const TEXTOS_PALCO = {
   tempoEsgotado: "Tempo esgotado",
   aguardandoEncerramento: "Aguardando a organização encerrar a votação",
   votacaoEncerrada: "Votação encerrada",
+  resultadoEmInstantes: "O resultado será revelado em instantes",
   coVencedores: "Co-vencedores",
   desempatePontuacao: "Desempate pela pontuação final",
   posicaoCompartilhada: "Posição compartilhada, sem decisão automática",

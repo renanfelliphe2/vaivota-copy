@@ -72,8 +72,9 @@ export function PalcoReal({
   const fasePalco = resolverFasePalco({ fase, resultadoExiste: existe, revelacao });
 
   const aoVivo = useConsulta(() => obterEstadoAoVivo(eventoId), {
-    ativo: fasePalco === "AO_VIVO",
-    intervaloMs: 5000,
+    // 08/10/2026: também na votação encerrada, para o total de votos; lá os números não mudam mais.
+    ativo: fasePalco === "AO_VIVO" || fasePalco === "ENCERRADA_AGUARDANDO",
+    intervaloMs: fasePalco === "AO_VIVO" ? 5000 : undefined,
     chave: `${eventoId}:${fasePalco}:${configApresentacao.parcialAoVivo}`,
   });
 
@@ -245,7 +246,7 @@ export function PalcoReal({
   } else if (fasePalco === "SEM_RESULTADO") {
     conteudo = <CenaMensagem nome={nome} logoUrl={tema.logoUrl} texto={TEXTOS_PALCO.semResultado} />;
   } else if (fasePalco === "ENCERRADA_AGUARDANDO" || !dados) {
-    conteudo = <CenaEncerrada nome={nome} logoUrl={tema.logoUrl} candidatos={candidatos} />;
+    conteudo = <CenaEncerrada nome={nome} logoUrl={tema.logoUrl} candidatos={candidatos} totalGeral={aoVivo.dados?.totalGeral ?? null} />;
   } else if (fasePalco === "FINAL_ESTATICO") {
     conteudo = <CenaFinal final={montarFinal(dados.dados)} catalogo={catalogo} config={dados.config} />;
   } else {
