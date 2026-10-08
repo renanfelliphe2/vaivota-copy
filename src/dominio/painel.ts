@@ -4,7 +4,7 @@ import type { ResumoApuracao } from "./resultado";
 import type { SerieVotos } from "./serie";
 import type { SituacaoEvento } from "./situacaoEvento";
 import type { FaseConfig } from "./travas";
-import type { DadosResultado, EstadoDispositivo, Grupo, Instante, MotivoResultado } from "./tipos";
+import type { DadosResultado, EstadoDispositivo, Grupo, Instante, ModoVotoJuri, MotivoResultado } from "./tipos";
 
 // Etapa 7 (seção 5.3): DTOs do painel. Nenhum carrega e-mail, hash de código nem ipHash.
 // Candidatos aparecem por id; a tela resolve o título pelo seletor público de candidatos.
@@ -60,6 +60,9 @@ export type ResultadoVisao = VersaoResumo & {
 };
 
 export type VotosJuriVisao = {
+  /** 08/10/2026: modo do júri; nos modos por critério, a tabela e o CSV leem `notas` e `escolhas`. */
+  modo: ModoVotoJuri;
+  criterios: { id: string; nome: string }[];
   jurados: {
     nome: string;
     rotulo: string | null;
@@ -67,5 +70,9 @@ export type VotosJuriVisao = {
     candidatoId: string | null;
     atualizadoEm: Instante | null;
     historico: { candidatoAnteriorId: string | null; candidatoId: string; em: Instante }[];
+    /** candidatoId → criterioId → nota. */
+    notas: Record<string, Record<string, number>>;
+    /** criterioId → candidatoId. */
+    escolhas: Record<string, string>;
   }[];
 };

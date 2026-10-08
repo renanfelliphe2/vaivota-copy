@@ -5,6 +5,9 @@ import { useState } from "react";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Carregando } from "@/components/ui/Carregando";
+import { mediaDasNotas } from "@/dominio/avaliacaoJuri";
+import type { VotosJuriVisao } from "@/dominio/painel";
+import { formatarDecimal } from "@/lib/formatar";
 import { formatarDataHora, paraMs } from "@/lib/tempo";
 import { useConsulta } from "@/lib/useConsulta";
 import { obterVotosJuri } from "@/servicos/dashboard";
@@ -42,7 +45,9 @@ export function VotosJuriTable({
         Estes votos são identificados e só a organização os vê. A exportação deste arquivo fica registrada na auditoria.
       </p>
       {aberta &&
-        (consulta.dados ? (
+        (consulta.dados && consulta.dados.modo !== "VOTO_UNICO" ? (
+          <TabelaCriterios visao={consulta.dados} titulo={titulo} />
+        ) : consulta.dados ? (
           <div className="overflow-x-auto rounded-xl border border-tema-borda">
             <table className="w-full min-w-[36rem] text-left text-sm">
               <caption className="sr-only">Votos identificados do júri</caption>
@@ -93,5 +98,69 @@ export function VotosJuriTable({
           <Carregando />
         ))}
     </section>
+  );
+}
+
+/** Júri por critério (08/10/2026): por jurado, as notas de cada candidato (com a média) ou o escolhido de cada critério. */
+function TabelaCriterios({ visao, titulo }: { visao: VotosJuriVisao; titulo: (id: string) => string }) {
+  const notas = visao.modo === "NOTAS_POR_CRITERIO";
+  return (
+    <div className="overflow-x-auto rounded-xl border border-tema-borda">
+      <table className="w-full min-w-[36rem] text-left text-sm">
+        <caption className="sr-only">{notas ? "Notas identificadas do júri" : "Escolhas identificadas do júri por critério"}</caption>
+        <thead className="bg-tema-fundo">
+          <tr className="border-b border-tema-borda">
+            <th scope="col" className="px-3 py-2 font-semibold">Jurado</th>
+            <th scope="col" className="px-3 py-2 font-semibold">{notas ? "Notas (média)" : "Melhor por critério"}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visao.jurados.map((j, i) => {
+            const candidatos = Object.keys(j.notas);
+            const escolhidos = visao.criterios.filter((c) => j.escolhas[c.id]);
+            const pendente = notas ? candidatos.length === 0 : escolhidos.length === 0;
+            return (
+              <tr key={`${j.rotulo}-${i}`} className="border-b border-tema-borda last:border-0 align-top">
+                <th scope="row" className="px-3 py-2 font-normal">
+                  <span className="block font-semibold">{j.nome}</span>
+                  {j.rotulo && <span className="block text-xs text-tema-texto-suave">{j.rotulo}</span>}
+                </th>
+                <td className="px-3 py-2">
+                  {pendente ? (
+                    "Pendente"
+                  ) : notas ? (
+                    <details>
+                      <summary className="cursor-pointer">{candidatos.length} avaliado(s)</summary>
+                      <ul className="mt-1 flex flex-col gap-1 text-xs">
+                        {candidatos.map((id) => {
+                          const valores = visao.criterios.filter((c) => j.notas[id][c.id] !== undefined);
+                          const media = mediaDasNotas(valores.map((c) => j.notas[id][c.id]));
+                          return (
+                            <li key={id}>
+                              <strong>{titulo(id)}</strong>
+                              {media !== null && ` · média ${formatarDecimal(media, 1)}`}:{" "}
+                              {valores.map((c) => `${c.nome} ${j.notas[id][c.id]}`).join(", ")}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </details>
+                  ) : (
+                    <ul className="flex flex-col gap-1">
+                      {escolhidos.map((c) => (
+                        <li key={c.id}>
+                          <span className="text-tema-texto-suave">{c.nome}: </span>
+                          {titulo(j.escolhas[c.id])}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

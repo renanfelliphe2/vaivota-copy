@@ -164,8 +164,31 @@ export function planilhaVotosPorMinuto(serie: SerieVotos, modulos: { juri: boole
   return { cabecalho, linhas };
 }
 
-/** Uma linha por entrada de histórico; pendente sem as últimas quatro colunas. Sem e-mail. */
+/**
+ * Uma linha por entrada de histórico; pendente sem as últimas quatro colunas. Sem e-mail. Júri por critério
+ * (08/10/2026): uma linha por nota (jurado, candidato, critério) ou por escolha (jurado, critério).
+ */
 export function planilhaJurados(v: VotosJuriVisao, titulo: (id: string) => string): Planilha {
+  if (v.modo === "NOTAS_POR_CRITERIO") {
+    const linhas: CelulaCsv[][] = [];
+    for (const j of v.jurados) {
+      const candidatos = Object.keys(j.notas);
+      if (candidatos.length === 0) linhas.push([j.nome, j.rotulo, "Pendente", null, null, null]);
+      for (const candidatoId of candidatos)
+        for (const c of v.criterios)
+          if (j.notas[candidatoId][c.id] !== undefined) linhas.push([j.nome, j.rotulo, "Avaliou", titulo(candidatoId), c.nome, j.notas[candidatoId][c.id]]);
+    }
+    return { cabecalho: ["jurado", "rotulo", "situacao", "candidato", "criterio", "nota"], linhas };
+  }
+  if (v.modo === "MELHOR_POR_CRITERIO") {
+    const linhas: CelulaCsv[][] = [];
+    for (const j of v.jurados) {
+      const escolhidos = v.criterios.filter((c) => j.escolhas[c.id]);
+      if (escolhidos.length === 0) linhas.push([j.nome, j.rotulo, "Pendente", null, null]);
+      for (const c of escolhidos) linhas.push([j.nome, j.rotulo, "Escolheu", c.nome, titulo(j.escolhas[c.id])]);
+    }
+    return { cabecalho: ["jurado", "rotulo", "situacao", "criterio", "candidato"], linhas };
+  }
   const cabecalho = ["jurado", "rotulo", "situacao", "registro", "candidato_anterior", "candidato", "registrado_em"];
   const linhas: CelulaCsv[][] = [];
   for (const j of v.jurados) {

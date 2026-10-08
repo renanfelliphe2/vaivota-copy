@@ -1,4 +1,5 @@
 import { descreverAuditoria, grupoDaAcao, resumirAuditoria, type GrupoAuditoria } from "@/dominio/auditoria";
+import { avaliacaoDoJurado, criteriosDoEvento, modoVotoJuriDoEvento } from "@/dominio/avaliacaoJuri";
 import { votaveis } from "@/dominio/candidatos";
 import { contarParticipantes, contarVotos, totalDoGrupo } from "@/dominio/contagens";
 import { resumirConvites } from "@/dominio/convites";
@@ -191,7 +192,10 @@ export async function obterResultado(eventoId: string): Promise<Resultado<Result
 /** Votos identificados do júri: só depois do encerramento (D8). */
 export function montarVotosJuri(estado: EstadoApp, eventoId: string): VotosJuriVisao {
   return {
+    modo: modoVotoJuriDoEvento(estado.banco, eventoId),
+    criterios: criteriosDoEvento(estado.banco, eventoId).map((c) => ({ id: c.id, nome: c.nome })),
     jurados: juradosDoEvento(estado, eventoId).map(({ participacao, rotulo, nome }) => {
+      const { notas, escolhas } = avaliacaoDoJurado(estado.banco, participacao.id, eventoId);
       const voto = estado.banco.votosJuri.find((v) => v.participacaoId === participacao.id && v.eventoId === eventoId);
       const historico = voto
         ? estado.banco.historicoVotosJuri
@@ -206,6 +210,8 @@ export function montarVotosJuri(estado: EstadoApp, eventoId: string): VotosJuriV
         candidatoId: voto?.candidatoId ?? null,
         atualizadoEm: voto?.atualizadoEm ?? null,
         historico,
+        notas,
+        escolhas,
       };
     }),
   };
