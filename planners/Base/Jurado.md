@@ -1,6 +1,7 @@
 # VaiVota — Funcionalidade 2: Votação do Júri
 
 > Status: definida em conversa, pronta para implementação.
+> Revisão 07/10/2026: alinhado às revisões 3 e 4 dos planners.
 > Depende de: `Login.md` (usuário, participação, urna, fluxo de voto).
 > Stack: React/TS + Next.js.
 
@@ -13,12 +14,12 @@ Permitir que jurados convidados votem em um candidato por um fluxo quase idênti
 **Dentro:**
 - Códigos de convite individuais (geração em lote, resgate, revogação).
 - Registro e login de jurado (reaproveita o fluxo do `Login.md`).
-- Voto do júri (um candidato por jurado), com alteração até o fim da urna.
+- Voto do júri (um candidato por jurado) na Semana Tech, com alteração até o fim da urna.
+- **Requisito do Festival:** voto do júri **por critério** (Direção, Roteiro, Fotografia e Som — documento de requisitos §3.3), com `Criterio` e `NotaJuri`. Detalhes na seção 12.
 - Apuração do júri e placar combinado (popular + júri).
 - Regras de desempate.
 
 **Fora:**
-- Notas por critério (Direção, Roteiro, Fotografia, Som): previsto, não implementado agora.
 - Lista de impedimentos por conflito de interesse: futuro.
 - Exibição do resultado (modo apresentação) e exportação (dashboard): arquivos próprios.
 
@@ -27,9 +28,9 @@ Permitir que jurados convidados votem em um candidato por um fluxo quase idênti
 | Tema | Decisão |
 |---|---|
 | Convite | **Código individual de uso único** por jurado, gerado em lote pelo admin |
-| Tipo de voto | Voto simples (um candidato); modelo preparado para notas por critério |
+| Tipo de voto | **Voto simples** (um candidato) na Semana Tech; **voto por critério** (Direção, Roteiro, Fotografia e Som) no Festival |
 | Urna | Mesma urna e mesma janela do voto popular |
-| Sigilo | Voto do jurado **identificado para o admin**; opção de ser transparente no telão (desligada por padrão) |
+| Sigilo | Voto do jurado **identificado para o admin**; **nunca** exibido no telão (a categoria do júri mostra só o vencedor) |
 | Alteração | Jurado pode mudar o voto **enquanto a urna estiver aberta**; histórico guardado |
 | Fórmula | Percentual ponderado, configurável por evento (ex.: 70% popular / 30% júri) |
 | Placares | Sempre exibir também o placar popular e o do júri separados |
@@ -57,9 +58,9 @@ Acrescenta ao modelo do `Login.md`:
   - Restrição única: `(participacao, evento)`.
   - Diferente do `Voto` popular, aqui **há vínculo** com a participação.
 - **HistoricoVotoJuri:** id, voto do júri, candidato anterior, candidato novo, horário (alimenta a auditoria).
-- **ConfigPlacar** (por evento): peso popular, peso júri, regra de desempate, exibir votos do júri no telão (booleano).
+- **ConfigPlacar** (por evento): peso popular, peso júri (inteiros, somando 100), regra de desempate.
 
-> Futuro, sem alterar o que existe: `Criterio` e `NotaJuri` (participação, candidato, critério, nota) para notas por critério.
+> Requisito do Festival, sem alterar o que existe: `Criterio` e `NotaJuri` (participação, candidato, critério, nota) para o voto por critério.
 
 ## 6. Fluxo
 
@@ -90,7 +91,7 @@ pontuação(candidato) =
 - Como o voto é identificado, o admin consegue verificar em quem cada jurado votou e o histórico de alterações.
 - Cenários cobertos: jurado alega voto diferente do registrado, voto não confirmado, suspeita de conflito de interesse, resultado apertado.
 - A visão de votos identificados é **restrita ao admin**; jurados não veem votos de outros.
-- Se "transparente no telão" estiver ligado, os votos do júri aparecem na revelação do resultado, nunca durante a votação.
+- Os votos identificados do júri **nunca** aparecem no telão; na revelação, a categoria do júri mostra só o candidato vencedor.
 
 ## 9. Regras de negócio
 
@@ -121,8 +122,9 @@ pontuação(candidato) =
 
 ## 12. Pendências
 
-- Pesos padrão sugeridos (ex.: 70/30) e se podem ser alterados depois de a urna abrir.
+- Pesos padrão sugeridos (ex.: 70/30).
+- **Resolvida (rev. 3, C4):** pesos e regra de desempate ficam **travados ao abrir a urna**, sem exceção, no MVP. Alteração auditada com a urna aberta é evolução futura.
 - Validade padrão dos códigos.
 - Lista de impedimentos por conflito de interesse (futuro).
-- Notas por critério e desempate por critério (futuro).
-- Se o jurado pode ver o próprio voto após o fim do evento.
+- **Resolvida (rev. 4, A8):** voto simples na Semana Tech; **voto por critério no Festival** (Direção, Roteiro, Fotografia e Som). Detalhes em aberto: escala da nota, peso por critério, como a nota vira placar do júri (proposta: placar do júri do candidato = soma das médias dos critérios dadas pelos jurados, normalizada como os outros grupos) e desempate por critério.
+- **Resolvida (rev. 3, E9):** o jurado não vê o próprio voto após o fim do evento.

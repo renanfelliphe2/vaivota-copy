@@ -1,6 +1,7 @@
 # VaiVota — Funcionalidade 4: Modo Apresentação (Telão)
 
 > Status: definida em conversa, pronta para implementação.
+> Revisão 07/10/2026: alinhado às revisões 3 e 4 dos planners.
 > Depende de: `Login.md` (evento, urna), `Jurado.md` (fórmula, desempate) e `VotoInfantil.md` (placar infantil).
 > Stack: React/TS + Next.js.
 
@@ -30,7 +31,7 @@ Oferecer ao admin uma tela cinematográfica para o telão: durante a votação, 
 |---|---|
 | Quem usa | **Só o admin**. Ele espelha/estende a tela no telão e clica em **Apresentar** |
 | Execução | **Local**, sem sincronização com o servidor durante a apresentação |
-| Trailer | **Um único trailer do evento**; não apresenta os candidatos individualmente |
+| Trailer | **Um único trailer do evento**, por link/embed (nunca vídeo armazenado); não apresenta os candidatos individualmente |
 | Revelação | Trailer → categorias → pódio → (opcional) classificação completa |
 | Empate | Descoberto **ao vivo**, com animação que destaca o desempate e mostra o critério |
 | Classificação completa | Opcional por evento, **desligada por padrão** (evita desanimar quem ficou abaixo) |
@@ -65,7 +66,7 @@ O botão **Apresentar** abre a tela conforme o estado do evento:
 **Regras:**
 - Categorias sem módulo no evento (ex.: sem voto infantil) são **puladas**.
 - Os nomes das categorias são **configuráveis** por evento (white-label).
-- Nas categorias aparece a **quantidade de votos** do vencedor.
+- As categorias mostram **só o candidato vencedor**, com a **quantidade de votos** (ou pontuação) dele. **Nunca** se mostra quem votou em quem (inclusive na escolha dos jurados: os votos identificados do júri não vão ao telão).
 - O pódio mostra a **pontuação final**, não a contagem bruta, porque a colocação vem da fórmula ponderada.
 - A classificação completa exibe só a **pontuação**, sem destaque negativo, e fica desligada por padrão. Os números completos ficam no dashboard e na exportação.
 - Se o evento tiver menos de 3 candidatos, o pódio mostra os que existirem.
@@ -89,7 +90,7 @@ O botão **Apresentar** abre a tela conforme o estado do evento:
 - Se o link falhar (removido, sem internet, embed bloqueado), cai no trailer gerado após um **tempo limite**.
 - **Pular trailer** disponível a qualquer momento.
 - O clique em **Apresentar** libera o áudio (navegadores bloqueiam som automático sem interação).
-- Vídeo hospedado/upload próprio: futuro.
+- **Nunca se armazena vídeo; o trailer é sempre link/embed.** Não existe trailer por candidato.
 
 ## 8. Controle e operação no dia
 
@@ -131,8 +132,8 @@ O botão **Apresentar** abre a tela conforme o estado do evento:
 
 ## 12. Pendências
 
-- Modo de avanço padrão (automático ou manual entre etapas).
-- Duração padrão de cada etapa e do trailer gerado.
+- **Resolvida (rev. 3/4):** modo de avanço padrão automático com pausa (DD §8.4), configurável por evento.
+- **Resolvida (rev. 4, E21):** durações de cada etapa e do trailer gerado mantidas nas constantes do planner (Etapa 8), ajustadas no ensaio.
 - Direção visual das animações (incluindo o efeito de desempate).
 - Tela pública de resultado estático após o evento (futuro).
 - Trilha sonora e efeitos (futuro, por licenciamento).

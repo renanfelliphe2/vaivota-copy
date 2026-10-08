@@ -1,6 +1,7 @@
 # VaiVota — Funcionalidade 5: Dashboard e Exportação
 
 > Status: definida em conversa, pronta para implementação.
+> Revisão 07/10/2026: alinhado às revisões 3 e 4 dos planners.
 > Depende de: `Login.md`, `Jurado.md`, `VotoInfantil.md` e `ModoApresentacao.md` (resultado congelado).
 > Stack: React/TS + Next.js.
 
@@ -18,7 +19,7 @@ Dar ao admin duas coisas: **acompanhar a operação** durante a votação e **gu
 **Fora:**
 - Gráficos avançados e análises complexas.
 - Geração de PDF no servidor (futuro).
-- Painel do super admin da plataforma (ver `ConfiguracaoEvento.md`).
+- Painel do super admin da plataforma (ver DD §7.6).
 
 ## 3. Decisões tomadas
 
@@ -61,9 +62,9 @@ Dar ao admin duas coisas: **acompanhar a operação** durante a votação e **gu
 |---|---|---|
 | `resumo_evento` | Evento, período, totais por grupo, pesos usados | Após encerrar |
 | `resultado_candidatos` | Votos por grupo, pontuação final, posição, empates | Após encerrar |
-| `votos_por_minuto` | Série temporal da votação | Sempre |
+| `votos_por_minuto` | Série temporal da votação | A partir da ativação |
 | `jurados` | Voto identificado de cada jurado e histórico de alterações | Após encerrar, só admin |
-| `dispositivos` | Votos por totem | Sempre |
+| `dispositivos` | Votos por totem | A partir da ativação |
 | `auditoria` | Eventos administrativos e bloqueios | Sempre |
 
 - **Relatório imprimível:** página formatada com resumo do evento, resultado e gráficos básicos; o navegador salva como PDF.
@@ -82,7 +83,7 @@ Dar ao admin duas coisas: **acompanhar a operação** durante a votação e **gu
 - Só o admin **do evento** vê o dashboard daquele evento; eventos não se enxergam.
 - Jurados, público e totens não têm acesso.
 - Validação sempre no servidor.
-- Se existir um super admin da plataforma, o escopo dele é definido em `ConfiguracaoEvento.md`.
+- Se existir um super admin da plataforma, o escopo dele é definido no DD §7.6.
 
 ## 9. Desempenho
 
@@ -111,8 +112,8 @@ Dar ao admin duas coisas: **acompanhar a operação** durante a votação e **gu
 
 ## 12. Pendências
 
-- Política padrão de retenção de dados pessoais (manter, anonimizar ou excluir e prazo).
-- Formato e campos exatos de cada CSV (separador, codificação, cabeçalhos).
+- **Resolvida (rev. 3/4, E29):** retenção: anonimizar nome e e-mail 90 dias após Concluir Evento; controladora dos dados é a VaiVota.
+- **Resolvida (rev. 3, E16):** CSV em UTF-8 com BOM, separador `;`, fim de linha CRLF; colunas definidas no planner do dashboard (Etapa 7).
 - Layout do relatório imprimível.
 - Geração de PDF no servidor (futuro).
 - Existência e escopo do super admin da plataforma.

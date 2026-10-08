@@ -1,5 +1,9 @@
 -- VaiVota — schema MySQL 8.0.16+ (InnoDB, utf8mb4)
--- Baseado no DocumentDesign.md v1.1. Espelha o schema.prisma.
+-- Baseado no DocumentDesign.md v1.2. Espelha o schema.prisma.
+--
+-- Banco decidido: Supabase (PostgreSQL); a conversão deste SQL e dos tipos MySQL é tarefa da trilha de produção.
+-- Login sem senha (Better Auth: Google + código por e-mail): as tabelas do Better Auth (conta, sessão,
+-- verificação) entram na trilha de produção; `usuario` não guarda senha nem método de login.
 --
 -- Fonte da verdade das migrations: Prisma (`prisma migrate`). Este arquivo serve como referência
 -- legível em SQL e inclui o que o Prisma não expressa (CHECKs e consultas de exemplo).
@@ -24,7 +28,6 @@ CREATE TABLE usuario (
   nome                VARCHAR(120) NOT NULL,
   email               VARCHAR(191) NOT NULL,
   email_verificado_em DATETIME(3)  NULL,
-  senha_hash          VARCHAR(255) NULL,
   anonimizado_em      DATETIME(3)  NULL,
   criado_em           DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   atualizado_em       DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
@@ -41,6 +44,8 @@ CREATE TABLE evento (
   slug                    VARCHAR(80)  NOT NULL,
   nome                    VARCHAR(160) NOT NULL,
   descricao               TEXT         NULL,
+  local                   VARCHAR(120) NULL,
+  link_sobre              VARCHAR(500) NULL,
   fuso_horario            VARCHAR(64)  NOT NULL DEFAULT 'America/Sao_Paulo',
   estado                  ENUM('RASCUNHO','ATIVO','CONCLUIDO') NOT NULL DEFAULT 'RASCUNHO',
   estado_urna             ENUM('NAO_INICIADA','ABERTA','ENCERRADA') NOT NULL DEFAULT 'NAO_INICIADA',
@@ -51,7 +56,7 @@ CREATE TABLE evento (
   modulo_juri             TINYINT(1)   NOT NULL DEFAULT 0,
   modulo_infantil         TINYINT(1)   NOT NULL DEFAULT 0,
   bloquear_voto_proprio   TINYINT(1)   NOT NULL DEFAULT 1,
-  aviso_privacidade_url   VARCHAR(500) NULL,
+  aviso_privacidade_url   VARCHAR(500) NULL,                -- opcional, complementar ao aviso da plataforma VaiVota
   prazo_anonimizacao_dias INT          NOT NULL DEFAULT 90,
   urna_aberta_em          DATETIME(3)  NULL,
   urna_encerrada_em       DATETIME(3)  NULL,
@@ -83,11 +88,10 @@ CREATE TABLE tema (
 
 CREATE TABLE config_placar (
   evento_id                CHAR(36)     NOT NULL,
-  peso_popular             DECIMAL(5,2) NOT NULL DEFAULT 100,
-  peso_juri                DECIMAL(5,2) NOT NULL DEFAULT 0,
-  peso_infantil            DECIMAL(5,2) NOT NULL DEFAULT 0,
+  peso_popular             INT          NOT NULL DEFAULT 100,   -- pesos inteiros (sem decimais)
+  peso_juri                INT          NOT NULL DEFAULT 0,
+  peso_infantil            INT          NOT NULL DEFAULT 0,
   regra_desempate          ENUM('JURI','PUBLICO') NOT NULL DEFAULT 'JURI',
-  exibir_votos_juri_telao  TINYINT(1)   NOT NULL DEFAULT 0,
   atualizado_em            DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   PRIMARY KEY (evento_id),
   CONSTRAINT fk_config_placar_evento FOREIGN KEY (evento_id) REFERENCES evento (id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -151,13 +155,14 @@ CREATE TABLE candidato (
 -- Participação e votos
 -- ─────────────────────────────────────────────
 
+-- Participação: guarda apenas SE votou. Sigilo: NENHUM horário (nem do voto, nem da criação),
+-- para que não seja possível cruzar a participação com o horário de um voto popular.
 CREATE TABLE participacao (
   id         CHAR(36)    NOT NULL DEFAULT (UUID()),
   usuario_id CHAR(36)    NOT NULL,
   evento_id  CHAR(36)    NOT NULL,
   papel      ENUM('PUBLICO','JURADO','ADMIN') NOT NULL DEFAULT 'PUBLICO',
   votou      TINYINT(1)  NOT NULL DEFAULT 0,
-  criado_em  DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (id),
   UNIQUE KEY uq_participacao_usuario_evento (usuario_id, evento_id),   -- um usuário, uma participação por evento
   UNIQUE KEY uq_participacao_id_evento (id, evento_id),                -- alvo da FK composta do voto do júri
@@ -304,9 +309,9 @@ CREATE TABLE resultado_oficial (
   evento_id         CHAR(36)     NOT NULL,
   versao            INT          NOT NULL,
   motivo            VARCHAR(40)  NOT NULL,          -- ENCERRAMENTO | DESQUALIFICACAO | CORRECAO
-  peso_popular      DECIMAL(5,2) NOT NULL,
-  peso_juri         DECIMAL(5,2) NOT NULL,
-  peso_infantil     DECIMAL(5,2) NOT NULL,
+  peso_popular      INT          NOT NULL,
+  peso_juri         INT          NOT NULL,
+  peso_infantil     INT          NOT NULL,
   dados             JSON         NOT NULL,
   calculado_por_id  CHAR(36)     NULL,
   calculado_em      DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -315,7 +320,10 @@ CREATE TABLE resultado_oficial (
   KEY idx_resultado_oficial_calculado_por (calculado_por_id),
   CONSTRAINT fk_resultado_oficial_evento        FOREIGN KEY (evento_id)        REFERENCES evento (id)  ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT fk_resultado_oficial_calculado_por FOREIGN KEY (calculado_por_id) REFERENCES usuario (id) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT chk_resultado_oficial_pesos CHECK (peso_popular + peso_juri + peso_infantil = 100)
+  CONSTRAINT chk_resultado_oficial_pesos CHECK (
+    peso_popular >= 0 AND peso_juri >= 0 AND peso_infantil >= 0
+    AND peso_popular + peso_juri + peso_infantil = 100
+  )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Trilha de auditoria (separada dos logs técnicos). Nunca guarda a escolha de voto popular/infantil.

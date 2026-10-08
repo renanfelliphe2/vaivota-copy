@@ -1,6 +1,7 @@
 # VaiVota — Funcionalidade 3: Votação Infantil
 
-> Status: definida em conversa, pronta para implementação (entra no Festival, depois da Semana Tech).
+> Status: definida em conversa, pronta para implementação. Entra no **protótipo** (aparece na demonstração), com planner próprio "Totem" (mock e depois real), e em uso real no **Festival**.
+> Revisão 07/10/2026: alinhado às revisões 3 e 4 dos planners.
 > Depende de: `Login.md` (evento, urna, candidatos) e `Jurado.md` (fórmula de placar).
 > Stack: React/TS + Next.js.
 
@@ -113,7 +114,8 @@ Permitir que crianças votem de forma simples e rápida em **totens ou tablets d
 
 ## 12. Pendências
 
-- Peso infantil padrão sugerido e se os pesos travam ao abrir a urna (recomendado: travar, com alteração auditada).
+- Peso infantil padrão sugerido.
+- **Resolvida (rev. 3, C4):** pesos e regra de desempate ficam **travados ao abrir a urna**, sem exceção, no MVP. Alteração auditada com a urna aberta é evolução futura.
 - Tempo de retorno automático e de inatividade.
 - Textos e ilustrações das telas do totem (alinhadas ao tema do evento).
 - Futuro: fila offline, intervalo mínimo entre votos, limite por totem e alertas de anomalia no dashboard.

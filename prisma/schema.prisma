@@ -1,12 +1,17 @@
 // VaiVota — schema Prisma (MySQL)
-// Baseado no DocumentDesign.md v1.1
+// Baseado no DocumentDesign.md v1.2
+//
+// Banco decidido: Supabase (PostgreSQL); a conversão do provider e dos tipos MySQL é tarefa da trilha de produção.
+// Login sem senha (Better Auth: Google + código por e-mail): as tabelas do Better Auth (conta, sessão,
+// verificação) entram na trilha de produção; `Usuario` não guarda senha nem método de login.
 //
 // Convenções:
 //  - Modelos em PascalCase mapeados para tabelas snake_case (@@map) e campos camelCase mapeados para colunas snake_case (@map).
 //  - Entidades de domínio usam UUID (CHAR(36)); tabelas de alto volume e append-only (votos, histórico, auditoria) usam INT autoincrement.
 //  - Votos e registros históricos NUNCA são apagados (onDelete: Restrict). Dados pessoais são anonimizados, não excluídos.
 //  - Integridade entre eventos: FKs compostas (id, eventoId) garantem que um voto só aponte para candidato/participação/dispositivo do MESMO evento.
-//  - O CHECK dos pesos (somam 100) não é expresso no Prisma: adicionar na migration (ver schema.sql).
+//  - Pesos são inteiros (sem decimais). O CHECK dos pesos (cada um >= 0, soma = 100) não é expresso no Prisma:
+//    adicionar na migration (ver schema.sql).
 //  - Prisma 7+: a URL do banco fica em prisma.config.ts (datasource.url = env("DATABASE_URL")).
 //    Se usar Prisma 5/6, adicione `url = env("DATABASE_URL")` ao bloco datasource abaixo.
 
@@ -84,14 +89,13 @@ enum ModoAvanco {
 // Identidade
 // ─────────────────────────────────────────────
 
-// Usuário global. A biblioteca de autenticação escolhida (Auth.js, Better Auth etc.)
-// poderá exigir tabelas próprias (conta externa, sessão, token de verificação), a adicionar depois.
+// Usuário global, sem senha. O método de login fica nas tabelas do Better Auth (conta, sessão,
+// verificação), que entram na trilha de produção.
 model Usuario {
   id                String    @id @default(uuid()) @db.Char(36)
   nome              String    @db.VarChar(120)
   email             String    @unique @db.VarChar(191)
   emailVerificadoEm DateTime? @map("email_verificado_em")
-  senhaHash         String?   @map("senha_hash") @db.VarChar(255)
   anonimizadoEm     DateTime? @map("anonimizado_em")
   criadoEm          DateTime  @default(now()) @map("criado_em")
   atualizadoEm      DateTime  @updatedAt @map("atualizado_em")
@@ -114,7 +118,9 @@ model Evento {
   slug                   String              @unique @db.VarChar(80)
   nome                   String              @db.VarChar(160)
   descricao              String?             @db.Text
-  fusoHorario            String              @default("America/Sao_Paulo") @map("fuso_horario") @db.VarChar(64)
+  local                  String?             @db.VarChar(120)
+  linkSobre              String?             @map("link_sobre") @db.VarChar(500)
+  fusoHorario            String             @default("America/Sao_Paulo") @map("fuso_horario") @db.VarChar(64)
   estado                 EstadoEvento        @default(RASCUNHO)
   estadoUrna             EstadoUrna          @default(NAO_INICIADA) @map("estado_urna")
   janelaInicio           DateTime?           @map("janela_inicio")
@@ -123,8 +129,9 @@ model Evento {
   metodoIdentificacao    MetodoIdentificacao @default(GOOGLE_OU_EMAIL) @map("metodo_identificacao")
   moduloJuri             Boolean             @default(false) @map("modulo_juri")
   moduloInfantil         Boolean             @default(false) @map("modulo_infantil")
-  // Candidato vinculado a um usuário não pode votar em si mesmo (padrão recomendado; pendência do DD).
+  // Candidato vinculado a um usuário não pode votar em si mesmo (padrão decidido; configurado por seed).
   bloquearVotoProprio    Boolean             @default(true) @map("bloquear_voto_proprio")
+  // Aviso de privacidade próprio do evento: opcional e complementar ao aviso da plataforma VaiVota (controladora dos dados).
   avisoPrivacidadeUrl    String?             @map("aviso_privacidade_url") @db.VarChar(500)
   prazoAnonimizacaoDias  Int                 @default(90) @map("prazo_anonimizacao_dias")
   urnaAbertaEm           DateTime?           @map("urna_aberta_em")
@@ -172,14 +179,13 @@ model Tema {
   @@map("tema")
 }
 
-// Pesos (somam 100) e desempate (1:1).
+// Pesos inteiros (somam 100) e desempate (1:1). O voto do júri nunca é exibido no telão (sem opção).
 model ConfigPlacar {
   eventoId                String         @id @map("evento_id") @db.Char(36)
-  pesoPopular             Decimal        @default(100) @map("peso_popular") @db.Decimal(5, 2)
-  pesoJuri                Decimal        @default(0) @map("peso_juri") @db.Decimal(5, 2)
-  pesoInfantil            Decimal        @default(0) @map("peso_infantil") @db.Decimal(5, 2)
+  pesoPopular             Int            @default(100) @map("peso_popular")
+  pesoJuri                Int            @default(0) @map("peso_juri")
+  pesoInfantil            Int            @default(0) @map("peso_infantil")
   regraDesempate          RegraDesempate @default(JURI) @map("regra_desempate")
-  exibirVotosJuriNoTelao  Boolean        @default(false) @map("exibir_votos_juri_telao")
   atualizadoEm            DateTime       @updatedAt @map("atualizado_em")
 
   evento Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
@@ -257,14 +263,14 @@ model Candidato {
 // Participação e votos
 // ─────────────────────────────────────────────
 
-// Vínculo usuário × evento com papel. Guarda apenas SE votou (sem horário), para não cruzar com o voto.
+// Vínculo usuário × evento com papel. Guarda apenas SE votou. Sigilo: NENHUM horário (nem do voto, nem da
+// criação), para que não seja possível cruzar a participação com o horário de um voto popular.
 model Participacao {
   id        String            @id @default(uuid()) @db.Char(36)
   usuarioId String            @map("usuario_id") @db.Char(36)
   eventoId  String            @map("evento_id") @db.Char(36)
   papel     PapelParticipacao @default(PUBLICO)
   votou     Boolean           @default(false)
-  criadoEm  DateTime          @default(now()) @map("criado_em")
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
   evento  Evento  @relation(fields: [eventoId], references: [id], onDelete: Restrict)
@@ -439,9 +445,9 @@ model ResultadoOficial {
   versao         Int
   // Ex.: ENCERRAMENTO, DESQUALIFICACAO, CORRECAO
   motivo         String   @db.VarChar(40)
-  pesoPopular    Decimal  @map("peso_popular") @db.Decimal(5, 2)
-  pesoJuri       Decimal  @map("peso_juri") @db.Decimal(5, 2)
-  pesoInfantil   Decimal  @map("peso_infantil") @db.Decimal(5, 2)
+  pesoPopular    Int      @map("peso_popular")
+  pesoJuri       Int      @map("peso_juri")
+  pesoInfantil   Int      @map("peso_infantil")
   // Placares por grupo, pontuação final, posições, categorias, empates e critério aplicado.
   dados          Json
   calculadoPorId String?  @map("calculado_por_id") @db.Char(36)
