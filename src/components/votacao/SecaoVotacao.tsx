@@ -1,18 +1,22 @@
 "use client";
 
-import { CircleCheck, Gavel, Vote } from "lucide-react";
+import { CircleCheck, ClipboardPen, Gavel, Trophy, Vote } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
-import { rotaVerificarEmail } from "@/dominio/destinoAcesso";
+import { useEffect, useRef, useState } from "react";
+import { candidatoAvaliado, ehModoPorCriterio, mediaDasNotas } from "@/dominio/avaliacaoJuri";
+import { rotaAvaliacao, rotaVerificarEmail } from "@/dominio/destinoAcesso";
 import type { PapelVoto } from "@/dominio/estadoVotar";
 import { localizarNaOrdem } from "@/dominio/ordemVotacao";
 import { resolverPassoVotar } from "@/dominio/passoVotar";
 import { votacaoAberta } from "@/dominio/situacaoEvento";
 import { useAnunciar } from "@/components/a11y/LiveRegion";
+import { PainelAvaliacaoJuri, filtrarPorAvaliacao, type FiltroAvaliacao } from "@/components/avaliacao/PainelAvaliacaoJuri";
+import { useAvaliacaoJuri } from "@/components/avaliacao/useAvaliacaoJuri";
 import { DetalheCandidato } from "@/components/candidato/DetalheCandidato";
 import { ListaCandidatos } from "@/components/candidato/ListaCandidatos";
 import { Botao } from "@/components/ui/Botao";
 import { Selo } from "@/components/ui/Selo";
+import { formatarDecimal } from "@/lib/formatar";
 import { textoContador } from "@/lib/textosEstado";
 import { abrirAcesso } from "@/store/acoesAcesso";
 import { descartarSucesso, selecionarCandidato } from "@/store/acoesVotacao";
@@ -40,6 +44,8 @@ const ID_TITULO = "titulo-candidatos";
  * - LEITURA (demais telas da gate: já votou, admin, urna fechada…): lista e detalhe, sem escolher. Nunca mostra
  *   em quem o público votou nem resultado.
  * A tela vem de resolverEstadoVotar e o passo de resolverPassoVotar; detalhe e passo vivem na URL (`?candidato=`, `?passo=`).
+ * Jurado com o júri por critério (08/10/2026): "Avaliar" leva à página do candidato (/avaliar/[id]); a lista mostra
+ * o progresso, quem já foi avaliado (ou o melhor de cada critério) e, nas notas, um filtro. Sem revisão nem sucesso.
  */
 export function SecaoVotacao() {
   const estado = useEstadoVotar();
@@ -55,8 +61,13 @@ export function SecaoVotacao() {
 
   const tela = estado?.tela ?? "ACESSO_PENDENTE";
   const papelVoto = estado?.papelVoto ?? null;
+  const modoJuri = ativo?.configPlacar.modoVotoJuri ?? "VOTO_UNICO";
+  // Só o jurado na lista avalia por critério; o público sempre vota em um só.
+  const porCriterio = papelVoto === "JURADO" && ehModoPorCriterio(modoJuri);
   // papelVoto só existe com tela = LISTA: a consulta do voto atual roda só para o jurado na lista.
-  const { candidatoAtualId, recarregar } = useVotoAtual(eventoId, sessao.usuario?.id ?? null, papelVoto === "JURADO");
+  const { candidatoAtualId, recarregar } = useVotoAtual(eventoId, sessao.usuario?.id ?? null, papelVoto === "JURADO" && !porCriterio);
+  const juri = useAvaliacaoJuri(eventoId, sessao.usuario?.id ?? null, modoJuri, porCriterio);
+  const [filtro, setFiltro] = useState<FiltroAvaliacao>("TODOS");
   // JA_VOTOU (sucesso ou envio em andamento) é sempre do público.
   const papel: PapelVoto = papelVoto ?? "PUBLICO";
   const { enviar, verificarNovamente } = useEnviarVoto(eventoId ?? "", papel, recarregar);
@@ -94,13 +105,15 @@ export function SecaoVotacao() {
   const itemVotarUrl = lista?.itens.find((i) => i.candidato.id === votarUrl && !i.bloqueadoVotoProprio) ?? null;
   useEffect(() => {
     if (!votarUrl || !eventoId || tela === "ACESSO_PENDENTE") return;
-    if (tela === "LISTA" && itemVotarUrl && itemVotarUrl.candidato.id !== candidatoAtualId) {
+    if (porCriterio && itemVotarUrl && ativo) {
+      router.replace(rotaAvaliacao(ativo.slug, itemVotarUrl.candidato.id));
+    } else if (tela === "LISTA" && itemVotarUrl && itemVotarUrl.candidato.id !== candidatoAtualId) {
       selecionarCandidato(eventoId, itemVotarUrl.candidato.id);
       router.replace(`${pathname}?passo=revisao`, { scroll: false });
     } else {
       router.replace(pathname, { scroll: false });
     }
-  }, [votarUrl, itemVotarUrl, candidatoAtualId, eventoId, tela, pathname, router]);
+  }, [votarUrl, itemVotarUrl, candidatoAtualId, eventoId, tela, pathname, router, porCriterio, ativo]);
 
   // Marcas escritas e lidas só em manipuladores (React Compiler).
   const detalhePelaLista = useRef(false);
@@ -118,7 +131,47 @@ export function SecaoVotacao() {
   const emModal = passo === "REVISAO" || passo === "SUCESSO";
   const posicao = visitante || emModal ? null : localizarNaOrdem(lista.itens, candidatoUrl);
   const urlCom = (busca: string) => (busca ? `${pathname}?${busca}` : pathname);
-  const ehVotoAtual = (item: ItemLista) => jurado && item.candidato.id === candidatoAtualId;
+  const ehVotoAtual = (item: ItemLista) => jurado && !porCriterio && item.candidato.id === candidatoAtualId;
+  const criterios = ativo.criteriosJuri;
+  const avaliado = (item: ItemLista) => candidatoAvaliado(juri.avaliacao.notas[item.candidato.id], criterios);
+  const melhorEm = (item: ItemLista) => criterios.filter((c) => juri.avaliacao.escolhas[c.id] === item.candidato.id);
+  const avaliaveis = itens.filter((i) => !i.bloqueadoVotoProprio);
+  const itensVisiveis = porCriterio && modoJuri === "NOTAS_POR_CRITERIO" ? filtrarPorAvaliacao(itens, filtro, juri.avaliacao, criterios) : itens;
+
+  /** "Avaliar" do jurado por critério: a página do candidato. */
+  function botaoAvaliar(item: ItemLista, tamanho: "pequeno" | "medio") {
+    const revisar = modoJuri === "NOTAS_POR_CRITERIO" ? avaliado(item) : melhorEm(item).length > 0;
+    return (
+      <Botao
+        tamanho={tamanho}
+        href={rotaAvaliacao(slug, item.candidato.id)}
+        aria-label={`${revisar ? "Rever avaliação" : "Avaliar"}: ${item.candidato.titulo}`}
+        icone={<ClipboardPen aria-hidden className="size-4" />}
+      >
+        {revisar ? "Rever avaliação" : "Avaliar"}
+      </Botao>
+    );
+  }
+
+  /** Selo do jurado por critério: avaliado (com a média das próprias notas) ou melhor em quais critérios. */
+  function seloCriterio(item: ItemLista) {
+    if (modoJuri === "NOTAS_POR_CRITERIO") {
+      if (!avaliado(item)) return null;
+      const media = mediaDasNotas(criterios.map((c) => juri.avaliacao.notas[item.candidato.id][c.id]));
+      return (
+        <Selo variante="sucesso" icone={CircleCheck} className="bg-tema-fundo">
+          Avaliado{media !== null && ` · média ${formatarDecimal(media, 1)}`}
+        </Selo>
+      );
+    }
+    const melhores = melhorEm(item);
+    if (melhores.length === 0) return null;
+    return (
+      <Selo variante="sucesso" icone={Trophy} className="bg-tema-fundo">
+        Melhor {melhores.map((c) => c.nome.toLocaleLowerCase("pt-BR")).join(", ")}
+      </Selo>
+    );
+  }
 
   /** Visitante: pede o acesso (ou a verificação do e-mail) e volta com o detalhe aberto ou direto na revisão. */
   function pedirAcesso(candidatoId: string, intencao: "candidato" | "votar") {
@@ -193,10 +246,15 @@ export function SecaoVotacao() {
   // "Votar" só com o evento ativo e a urna aberta; aí, o visitante vê (e o botão pede o acesso) e o logado, na gate LISTA.
   const mostraVotar =
     votacaoAberta(ativo.evento) && (modo === "ESCOLHA" || (modo === "VISITANTE" && estado.visao.variante === "ABERTA"));
-  // Mesmo texto para todos (08/10/2026); só depende de o "Votar" estar na tela.
-  const instrucao = mostraVotar
-    ? 'Toque em "Votar" no seu favorito, ou em "Ver detalhes" para conhecer melhor antes de decidir.'
-    : 'Use "Ver detalhes" para conhecer melhor cada um.';
+  // Mesmo texto para todos (08/10/2026); só depende de o "Votar" estar na tela. O jurado por critério tem o seu.
+  const instrucao =
+    mostraVotar && porCriterio
+      ? modoJuri === "NOTAS_POR_CRITERIO"
+        ? 'Toque em "Avaliar" em cada um e dê uma nota de 0 a 10 em cada critério.'
+        : 'Toque em "Avaliar" para dizer em quais critérios cada um é o melhor.'
+      : mostraVotar
+        ? 'Toque em "Votar" no seu favorito, ou em "Ver detalhes" para conhecer melhor antes de decidir.'
+        : 'Use "Ver detalhes" para conhecer melhor cada um.';
   // Na leitura, só os avisos que explicam por que não há escolha (JA_VOTOU_ANTES, NAO_REGISTRADO).
   const aviso =
     modo === "ESCOLHA"
@@ -225,12 +283,30 @@ export function SecaoVotacao() {
           <p className="text-tema-texto-suave">{instrucao}</p>
         </header>
         <AvisoVotacao aviso={aviso} />
+        {porCriterio && modo === "ESCOLHA" && modoJuri !== "VOTO_UNICO" && (
+          <PainelAvaliacaoJuri
+            modo={modoJuri}
+            criterios={criterios}
+            itens={avaliaveis}
+            avaliacao={juri.avaliacao}
+            carregando={juri.carregando}
+            filtro={filtro}
+            aoFiltrar={setFiltro}
+          />
+        )}
+        {itensVisiveis.length === 0 && (
+          <p className="rounded-xl border border-dashed border-tema-borda p-6 text-tema-texto-suave">
+            {filtro === "AVALIADOS" ? "Você ainda não avaliou nenhum." : "Você já avaliou todos. Pode rever qualquer avaliação até o encerramento."}
+          </p>
+        )}
         <ListaCandidatos
-          itens={lista.itens}
+          itens={itensVisiveis}
           campos={lista.campos}
           aoVerDetalhes={visitante ? (id) => pedirAcesso(id, "candidato") : abrirDetalhe}
           renderAcao={(item) =>
-            !mostraVotar || item.bloqueadoVotoProprio || ehVotoAtual(item) ? null : (
+            !mostraVotar || item.bloqueadoVotoProprio || ehVotoAtual(item) ? null : porCriterio ? (
+              botaoAvaliar(item, "pequeno")
+            ) : (
               <Botao
                 tamanho="pequeno"
                 aria-label={`Votar: ${item.candidato.titulo}`}
@@ -242,7 +318,9 @@ export function SecaoVotacao() {
             )
           }
           renderSelo={(item) =>
-            modo !== "ESCOLHA" ? null : ehVotoAtual(item) ? (
+            modo !== "ESCOLHA" ? null : porCriterio ? (
+              seloCriterio(item)
+            ) : ehVotoAtual(item) ? (
               <Selo variante="sucesso" icone={Gavel} className="bg-tema-fundo">
                 Seu voto atual
               </Selo>
@@ -265,6 +343,7 @@ export function SecaoVotacao() {
         }
         renderAcoes={(item) => {
           if (modo !== "ESCOLHA" || item.bloqueadoVotoProprio) return null;
+          if (porCriterio) return botaoAvaliar(item, "medio");
           if (ehVotoAtual(item)) return <p className="self-center text-sm font-medium">Esse já é o seu voto.</p>;
           return (
             <Botao onClick={() => escolherERevisar(item.candidato.id)}>
