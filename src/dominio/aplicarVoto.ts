@@ -58,6 +58,29 @@ export function aplicarVotoPopular(estado: EstadoApp, entrada: EntradaVoto): Est
   };
 }
 
+export type EntradaVotoInfantil = {
+  eventoId: string;
+  dispositivoId: string;
+  candidatoId: string;
+  agoraMs: number;
+};
+
+/** Voto infantil (totem): `VotoInfantil` com candidato, horário e dispositivo + `ultimoUsoEm` do totem. Nenhum dado da criança. */
+export function aplicarVotoInfantil(estado: EstadoApp, entrada: EntradaVotoInfantil): EstadoApp {
+  const { eventoId, dispositivoId, candidatoId, agoraMs } = entrada;
+  const id = estado.banco.sequencias.votoInfantil + 1;
+  const agora = paraInstante(agoraMs, fusoDoEvento(estado, eventoId));
+  return {
+    ...estado,
+    banco: {
+      ...estado.banco,
+      sequencias: { ...estado.banco.sequencias, votoInfantil: id },
+      votosInfantis: [...estado.banco.votosInfantis, { id, eventoId, candidatoId, dispositivoId, criadoEm: agora }],
+      dispositivos: estado.banco.dispositivos.map((d) => (d.id === dispositivoId ? { ...d, ultimoUsoEm: agora } : d)),
+    },
+  };
+}
+
 /** Id do `VotoJuri` de uma participação (único por participação e evento). */
 export function idVotoJuri(participacaoId: string): string {
   return `vj-${participacaoId}`;

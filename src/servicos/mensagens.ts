@@ -37,6 +37,8 @@ const MENSAGENS: Record<CodigoErro, string> = {
   PAPEL_INVALIDO: "Contas administrativas não resgatam convite.",
   CANDIDATO_INDISPONIVEL: "Esta opção não está mais disponível.",
   VOTO_PROPRIO: "Você não pode votar na própria candidatura.",
+
+  DISPOSITIVO_INATIVO: "Este totem não está liberado para votar. Chame a organização.",
 };
 
 export function mensagemDe(codigo: CodigoErro, parametros: ParametrosMensagem = {}): string {

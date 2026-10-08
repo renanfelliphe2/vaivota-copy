@@ -37,7 +37,9 @@ export type CodigoErro =
   | "PAPEL_INVALIDO"
   | "CANDIDATO_INDISPONIVEL"
   // Etapa 4 (validado nos serviços de voto da Etapa 5)
-  | "VOTO_PROPRIO";
+  | "VOTO_PROPRIO"
+  // Totem (rev. 4, A7): aparelho não pareado com o evento, pausado ou revogado
+  | "DISPOSITIVO_INATIVO";
 
 export type ErroServico = {
   codigo: CodigoErro;
