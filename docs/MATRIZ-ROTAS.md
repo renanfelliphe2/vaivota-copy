@@ -18,6 +18,7 @@ Legenda: **VER** tela normal · **LOGIN** vai para `/e/{slug}?de={rota}` · **VE
 | `/e/[slug]/admin/configuracao` | LOGIN | RESTRITO | RESTRITO | RESTRITO | VER | RESTRITO | ☐ |
 | `/e/[slug]/admin/relatorio` | LOGIN | RESTRITO | RESTRITO | RESTRITO | VER (com resultado; senão explicação) | RESTRITO | ☐ |
 | `/e/[slug]/admin/apresentar` | LOGIN | RESTRITO | RESTRITO | RESTRITO | VER | RESTRITO | ☐ |
+| `/e/[slug]/admin/apresentar/palco` | LOGIN | RESTRITO | RESTRITO | RESTRITO | VER (aba do telão) | RESTRITO | ☐ |
 | `/dev/ui` | VER com a toolbar ligada; 404 com `NEXT_PUBLIC_DEV_TOOLBAR=false` | | | | | | ☐ |
 | `/xyz`, `/e/semana-tech/xyz` | `not-found` global | | | | | | ☐ |
 | `/e/inexistente/...` | `EventoNaoEncontrado` (gate) | | | | | | ☐ |
@@ -51,7 +52,8 @@ Combinações só da toolbar seguem `CONCLUIDO` > `RASCUNHO` > urna e mostram "C
 | `/e/[slug]/admin` | `PAINEL_ADMIN` no evento; `AdminShell` | `AdminShell` (Configuração, Apresentação, evento); "Ver relatório"; "Abrir apresentação" |
 | `/e/[slug]/admin/configuracao` | `AdminShell`; links do painel (`?secao=operacao`, `?secao=juri`) | `AdminShell` |
 | `/e/[slug]/admin/relatorio` | "Ver relatório" na aba Resultado | "Voltar ao painel"; `AdminShell` |
-| `/e/[slug]/admin/apresentar` | `AdminShell`; "Abrir apresentação" | "Voltar ao painel" na sala (acrescentado na Etapa 9, A-012); `Q`/Sair no palco volta à sala |
+| `/e/[slug]/admin/apresentar` | `AdminShell`; "Abrir apresentação" | "Voltar ao painel" na sala (acrescentado na Etapa 9, A-012); "Apresentar" abre o palco na aba do telão |
+| `/e/[slug]/admin/apresentar/palco` | "Apresentar" da sala (aba própria, reaproveitada) | `Q`/Sair fecha a aba (se o navegador não fechar, fica "Apresentação encerrada") |
 
 ## Títulos (`<title>`)
 
@@ -67,6 +69,7 @@ Combinações só da toolbar seguem `CONCLUIDO` > `RASCUNHO` > urna e mostram "C
 | `/e/[slug]/admin/configuracao` | `Configuração · {nome}` |
 | `/e/[slug]/admin/relatorio` | `Relatório · {nome}` |
 | `/e/[slug]/admin/apresentar` | `Apresentação · {nome}` |
+| `/e/[slug]/admin/apresentar/palco` | `Telão · {nome}` |
 | `not-found` | `Página não encontrada · VaiVota` |
 
 O nome vem do seed (o servidor não conhece o estado do cliente): um evento renomeado na Configuração mantém o título do seed até o F5.

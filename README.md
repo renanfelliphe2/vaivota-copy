@@ -26,7 +26,7 @@ Plataforma web **white-label de votação para eventos**. Um mesmo software aten
 
 ## Fase 1 — protótipo (sem banco)
 
-O protótipo navegável roda **só no navegador**: todo o estado fica em memória (store no layout raiz) e **o F5 ou uma nova aba voltam ao seed**. A navegação entre telas preserva o estado. Todas as etapas da Fase 1 estão implementadas (0 a 9). O que é fake, a fronteira de dados e o roteiro de demonstração estão em [`docs/`](docs/).
+O protótipo navegável roda **só no navegador**: todo o estado fica em memória (store no layout raiz). **As abas do mesmo navegador ficam sincronizadas** (`BroadcastChannel`): o palco da apresentação abre numa aba própria, que vai para o telão, enquanto o admin opera na outra; F5 ou uma aba nova com outra aberta recuperam o estado, e **fechar todas as abas volta ao seed**. A navegação entre telas preserva o estado. Todas as etapas da Fase 1 estão implementadas (0 a 9). O que é fake, a fronteira de dados e o roteiro de demonstração estão em [`docs/`](docs/).
 
 ### Como rodar
 
@@ -55,7 +55,8 @@ Copie `.env.example` para `.env.local` se quiser mudar a flag `NEXT_PUBLIC_DEV_T
 | `/e/[slug]/admin` | Painel: abas Operação e Resultado, exportação CSV (exige `ADMIN` no evento) |
 | `/e/[slug]/admin/configuracao` | Configuração do evento (seções Geral, Candidatos, Júri, Placar, Tema, Operação) |
 | `/e/[slug]/admin/relatorio` | Relatório imprimível (só com resultado oficial) |
-| `/e/[slug]/admin/apresentar` | Sala de controle e palco do telão (real e ensaio) |
+| `/e/[slug]/admin/apresentar` | Sala de controle da apresentação (real e ensaio). **Apresentar** abre o palco na aba do telão |
+| `/e/[slug]/admin/apresentar/palco` | Palco do telão, numa aba própria (uma só, reaproveitada) e sincronizada com a do admin; um clique entra em tela cheia; depois é comandado pelo **controle remoto**, que flutua em todas as telas do admin enquanto o telão estiver aberto (avançar, voltar, pausar/retomar, controle manual/automático, emergência, desligar/ligar e reiniciar; só clique) |
 | `/e/[slug]/totem` | Totem infantil em modo quiosque (sem login; o aparelho é pareado pela toolbar) |
 | `/dev/ui` | Galeria de componentes nos dois temas |
 
@@ -315,7 +316,7 @@ vaivota/
 | **2. Endurecimento** | Teste de carga, ensaio da apresentação, contingência, backups, revisão de segurança |
 | **3. Voto infantil** | Totens pareados, modo quiosque, placar próprio e peso na fórmula |
 
-**Fora do escopo por ora:** painel de super admin, sincronização da apresentação entre telas, revelação por critério do júri no telão, peso e desempate por critério, fila offline nos totens, upload de vídeo, geração de PDF no servidor e duplicar configuração entre eventos.
+**Fora do escopo por ora:** painel de super admin, sincronização entre aparelhos diferentes (no protótipo, só entre abas do mesmo navegador), revelação por critério do júri no telão, peso e desempate por critério, fila offline nos totens, upload de vídeo, geração de PDF no servidor e duplicar configuração entre eventos.
 
 ## Licença
 
