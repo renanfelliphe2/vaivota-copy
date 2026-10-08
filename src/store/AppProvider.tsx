@@ -7,18 +7,30 @@ import { criarEstadoInicial } from "@/mocks/criarEstadoInicial";
 import { definirAmbiente, type Ambiente } from "./ambiente";
 import { criarStore } from "./criarStore";
 import { criarRelogio } from "./relogio";
+import { ESPERA_COM_MAE_MS, ESPERA_SOZINHA_MS, sincronizarAbas } from "./sincronizarAbas";
 import { fecharUrnasVencidas } from "./transicoes";
 
 const AmbienteContext = createContext<Ambiente | null>(null);
 
-/** D1: estado único em memória, montado no layout raiz. Store e relógio criados por montagem. */
+/**
+ * D1: estado único em memória, montado no layout raiz. Store e relógio criados por montagem.
+ * 08/10/2026: as abas do navegador ficam sincronizadas (sincronizarAbas). As telas só aparecem depois da foto de
+ * outra aba (ou da espera curta, se esta for a primeira): sem isso, a aba nova do telão nasceria deslogada e o
+ * RotaGuard a mandaria para o login.
+ */
 export function AppProvider({ children }: { children: ReactNode }) {
+  const [pronto, setPronto] = useState(false);
   const [ambiente] = useState<Ambiente>(() => {
     const novo = { store: criarStore(criarEstadoInicial()), relogio: criarRelogio(T0_MS) };
     // Serviços (funções comuns) precisam do store já no primeiro efeito dos filhos.
     if (typeof window !== "undefined") definirAmbiente(novo);
     return novo;
   });
+
+  useEffect(
+    () => sincronizarAbas(ambiente, () => setPronto(true), window.opener ? ESPERA_COM_MAE_MS : ESPERA_SOZINHA_MS),
+    [ambiente],
+  );
 
   useEffect(() => {
     definirAmbiente(ambiente);
@@ -36,7 +48,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [ambiente]);
 
-  return <AmbienteContext.Provider value={ambiente}>{children}</AmbienteContext.Provider>;
+  return <AmbienteContext.Provider value={ambiente}>{pronto ? children : null}</AmbienteContext.Provider>;
 }
 
 export function useAmbiente(): Ambiente {
