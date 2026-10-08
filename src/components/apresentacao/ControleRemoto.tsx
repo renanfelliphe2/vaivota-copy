@@ -1,7 +1,28 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Hand, Minus, Pause, Play, Power, RotateCcw, Siren, Tv, Zap } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CircleDot,
+  Hand,
+  Minus,
+  MousePointerClick,
+  Pause,
+  Play,
+  Power,
+  PowerOff,
+  RotateCcw,
+  Siren,
+  Timer,
+  TriangleAlert,
+  Tv,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { TemaEvento } from "@/components/evento/TemaEvento";
+import { classesBotao, type VarianteBotao } from "@/components/ui/Botao";
+import { Selo, type VarianteSelo } from "@/components/ui/Selo";
 import { cx } from "@/lib/classes";
 import { enviarComandoTelao, useEstadoTelao, type ComandoTelao, type EstadoTelao } from "@/store/canalTelao";
 import { useUi } from "@/store/seletores/dev";
@@ -11,7 +32,9 @@ import { useSessao } from "@/store/seletores/sessao";
 // toolbar), para comandar a apresentação de qualquer página. Some na própria aba do telão.
 // Só clique: nada de atalhos e os botões nem recebem foco. Com o controle em várias abas, uma tecla digitada noutra
 // tela (Espaço, Enter) nunca pode avançar a cerimônia. Emergência, Reiniciar e Desligar pedem um segundo clique.
-// Carcaça com os tokens do tema invertidos (fundo na cor do texto): segue o tema do evento sem cor fixa.
+// Visual (08/10/2026): o mesmo das outras telas do admin (cartão, Selo para a situação, botões do Botao), nas cores do
+// evento ativo. Fica fora do TemaEvento do layout (flutua sobre tudo), por isso aplica o próprio; o cabeçalho vai na
+// cor primária do evento.
 
 const CONFIRMAR_MS = 4000;
 type Confirmavel = Extract<ComandoTelao, "EMERGENCIA" | "REINICIAR" | "DESLIGAR">;
@@ -21,6 +44,27 @@ function rotuloAndamento(telao: EstadoTelao): string {
   if (telao.situacao === "DESLIGADO") return "Desligado";
   return { APRESENTANDO: "Apresentando", PAUSADO: "Pausado", PARADO: "Ligado" }[telao.andamento];
 }
+
+function varianteSituacao(telao: EstadoTelao): VarianteSelo {
+  if (telao.situacao === "DESLIGADO") return "neutro";
+  if (telao.situacao === "AGUARDANDO_CLIQUE" || telao.andamento === "PAUSADO") return "aviso";
+  return telao.andamento === "APRESENTANDO" ? "sucesso" : "info";
+}
+
+function iconeSituacao(telao: EstadoTelao): LucideIcon {
+  if (telao.situacao === "DESLIGADO") return PowerOff;
+  if (telao.situacao === "AGUARDANDO_CLIQUE") return MousePointerClick;
+  return { APRESENTANDO: CircleDot, PAUSADO: Pause, PARADO: Tv }[telao.andamento];
+}
+
+const COR_INDICADOR: Record<VarianteSelo, string> = {
+  neutro: "bg-tema-texto-suave",
+  primaria: "bg-tema-primaria",
+  info: "bg-tema-info",
+  sucesso: "bg-tema-sucesso",
+  aviso: "bg-tema-aviso",
+  erro: "bg-tema-erro",
+};
 
 export function ControleRemoto() {
   const telao = useEstadoTelao();
@@ -47,175 +91,219 @@ export function ControleRemoto() {
   };
   const confirmando = (c: Confirmavel) => () => (armado === c ? enviar(c) : setArmado(c));
   const andamento = rotuloAndamento(telao);
+  const variante = varianteSituacao(telao);
+  const pausado = ligado?.andamento === "PAUSADO";
+  const manual = ligado?.modoAvanco === "MANUAL";
 
   if (recolhido)
     return (
-      <div data-print="ocultar" className="fixed bottom-3 left-3 z-50">
+      <TemaEvento data-print="ocultar" className="fixed bottom-3 left-3 z-50 rounded-full shadow-lg">
         <button
           type="button"
           onClick={() => setRecolhido(false)}
           aria-expanded={false}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-tema-texto px-4 text-sm font-semibold text-tema-fundo shadow-lg ring-1 ring-tema-borda"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-tema-primaria px-4 text-sm font-semibold text-tema-sobre-primaria hover:opacity-90"
         >
           <Tv aria-hidden className="size-4" />
-          Telão · {andamento}
+          Telão
+          <span aria-hidden className={cx("size-2 rounded-full ring-2 ring-tema-sobre-primaria", COR_INDICADOR[variante])} />
+          <span className="font-normal">{andamento}</span>
         </button>
-      </div>
+      </TemaEvento>
     );
 
   return (
-    <aside
+    <TemaEvento
       data-print="ocultar"
-      aria-label="Controle remoto do telão"
-      className="fixed bottom-3 left-3 z-50 flex w-60 flex-col gap-3 rounded-[2rem] bg-tema-texto p-4 text-tema-fundo shadow-2xl ring-1 ring-tema-borda"
+      className="fixed bottom-3 left-3 z-50 w-72 overflow-hidden rounded-2xl border border-tema-borda shadow-xl"
     >
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest opacity-80">
-          <Tv aria-hidden className="size-4" /> Telão
-        </span>
-        <div className="flex items-center gap-1">
+      <aside aria-label="Controle remoto do telão" className="flex flex-col">
+        <header className="flex items-center justify-between gap-2 bg-tema-primaria py-2 pl-4 pr-2 text-tema-sobre-primaria">
+          <span className="flex items-center gap-2 font-bold">
+            <Tv aria-hidden className="size-5" /> Telão
+            {telao.ensaio && <span className="rounded-full border border-current px-2 py-0.5 text-xs font-semibold">Ensaio</span>}
+          </span>
           <button
             type="button"
             onClick={() => setRecolhido(true)}
             aria-label="Recolher controle remoto"
-            className="inline-flex size-8 items-center justify-center rounded-full hover:bg-tema-fundo/15"
+            className="inline-flex size-9 items-center justify-center rounded-full hover:bg-tema-sobre-primaria/15"
           >
             <Minus aria-hidden className="size-4" />
           </button>
-          <BotaoRemoto
-            rotulo={ligado ? (armado === "DESLIGAR" ? "Confirmar desligar" : "Desligar") : "Ligar"}
-            aoClicar={ligado ? confirmando("DESLIGAR") : () => enviar("LIGAR")}
-            className={cx(
-              "size-11 rounded-full",
-              ligado ? "bg-tema-erro text-tema-fundo" : "bg-tema-sucesso text-tema-fundo",
-              armado === "DESLIGAR" && "animate-pulse ring-4 ring-tema-fundo",
+        </header>
+
+        <div className="flex flex-col gap-3 p-4">
+          {/* Situação */}
+          <div role="status" className="flex flex-col gap-1.5 rounded-xl border border-tema-borda bg-tema-superficie p-3">
+            <Selo variante={variante} icone={iconeSituacao(telao)} pulsar={ligado?.andamento === "APRESENTANDO"} className="self-start">
+              {andamento}
+            </Selo>
+            {ligado && (
+              <p className="text-sm">
+                {ligado.progresso && (
+                  <span className="font-bold tabular-nums">
+                    Cena {ligado.progresso.cena} de {ligado.progresso.total}
+                    {ligado.nomeCena && " · "}
+                  </span>
+                )}
+                <span className={ligado.progresso ? "text-tema-texto-suave" : "font-semibold"}>{ligado.nomeCena}</span>
+              </p>
             )}
-          >
-            <Power aria-hidden className="size-5" />
-          </BotaoRemoto>
-        </div>
-      </div>
+            {ligado?.proximoAvancoEm && <ContagemAvanco em={ligado.proximoAvancoEm} />}
+          </div>
 
-      {/* Visor */}
-      <div role="status" className="flex flex-col gap-1 rounded-2xl bg-tema-fundo/10 px-3 py-2.5 font-mono text-xs ring-1 ring-tema-fundo/20">
-        <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 font-bold">
-            <span
-              aria-hidden
-              className={cx(
-                "size-2 rounded-full",
-                telao.situacao === "DESLIGADO" ? "bg-tema-erro" : ligado?.andamento === "PAUSADO" || !ligado ? "bg-tema-aviso" : "bg-tema-sucesso",
-              )}
+          {ligado && !ligado.telaCheia && <Aviso>Fora da tela cheia: clique no telão e aperte F.</Aviso>}
+          {ligado?.mensagem && <Aviso>{ligado.mensagem}</Aviso>}
+          {telao.situacao === "AGUARDANDO_CLIQUE" && <Aviso>Clique em “Entrar em tela cheia” no telão (ou ligue sem tela cheia).</Aviso>}
+
+          {/* Navegação */}
+          <div className="grid grid-cols-2 gap-2">
+            <BotaoRemoto
+              rotulo="Voltar"
+              variante="contorno"
+              aoClicar={() => enviar("VOLTAR")}
+              disabled={!pode("VOLTAR")}
+              icone={<ChevronLeft aria-hidden className="size-5" />}
             />
-            {andamento}
-          </span>
-          {telao.ensaio && <span className="rounded bg-tema-fundo/20 px-1.5">ENSAIO</span>}
+            <BotaoRemoto
+              rotulo="Avançar"
+              aoClicar={() => enviar("AVANCAR")}
+              disabled={!pode("AVANCAR")}
+              icone={<ChevronRight aria-hidden className="size-5" />}
+              iconeDepois
+            />
+            <BotaoRemoto
+              rotulo={pausado ? "Retomar" : "Pausar"}
+              variante="contorno"
+              aoClicar={() => enviar("ALTERNAR_PAUSA")}
+              disabled={!pode("ALTERNAR_PAUSA")}
+              icone={pausado ? <Play aria-hidden className="size-4" /> : <Pause aria-hidden className="size-4" />}
+            />
+            <BotaoRemoto
+              rotulo={manual ? "Manual" : "Automático"}
+              dica={`Avanço ${manual ? "manual" : "automático"}. Clique para alternar.`}
+              variante="contorno"
+              aoClicar={() => enviar("ALTERNAR_MODO")}
+              disabled={!pode("ALTERNAR_MODO")}
+              icone={manual ? <Hand aria-hidden className="size-4" /> : <Zap aria-hidden className="size-4" />}
+            />
+          </div>
+
+          {/* Ações com confirmação */}
+          <div className="grid grid-cols-2 gap-2 border-t border-tema-borda pt-3">
+            <BotaoRemoto
+              rotulo={armado === "REINICIAR" ? "Confirmar" : "Reiniciar"}
+              variante="contorno"
+              aoClicar={confirmando("REINICIAR")}
+              disabled={!pode("REINICIAR")}
+              className={cx(armado === "REINICIAR" && "border-tema-aviso! text-tema-aviso! motion-safe:animate-pulse")}
+              icone={<RotateCcw aria-hidden className="size-4" />}
+            />
+            <BotaoRemoto
+              rotulo={armado === "EMERGENCIA" ? "Confirmar" : "Emergência"}
+              variante="perigo"
+              aoClicar={confirmando("EMERGENCIA")}
+              disabled={!pode("EMERGENCIA")}
+              className={cx(armado === "EMERGENCIA" && "ring-2 ring-tema-erro ring-offset-2 ring-offset-tema-fundo motion-safe:animate-pulse")}
+              icone={<Siren aria-hidden className="size-4" />}
+            />
+            <BotaoRemoto
+              rotulo={ligado ? (armado === "DESLIGAR" ? "Confirmar desligar" : "Desligar telão") : "Ligar telão"}
+              variante={ligado ? "fantasma" : "primaria"}
+              aoClicar={ligado ? confirmando("DESLIGAR") : () => enviar("LIGAR")}
+              className={cx("col-span-2", ligado && "text-tema-erro!", armado === "DESLIGAR" && "bg-tema-superficie motion-safe:animate-pulse")}
+              icone={<Power aria-hidden className="size-4" />}
+            />
+          </div>
+
+          {armado && (
+            <p role="alert" className="text-center text-xs font-semibold text-tema-texto-suave">
+              {armado === "EMERGENCIA"
+                ? "Clique de novo para ir direto ao resultado final."
+                : armado === "REINICIAR"
+                  ? "Clique de novo para voltar à tela de votação encerrada."
+                  : "Clique de novo para desligar o telão."}
+            </p>
+          )}
         </div>
-        <span className="text-base font-bold tabular-nums">
-          {ligado?.progresso ? `Cena ${ligado.progresso.cena}/${ligado.progresso.total}` : "Cena —"}
-        </span>
-        {ligado && <span className="truncate opacity-80">{ligado.nomeCena}</span>}
-        {ligado && !ligado.telaCheia && <span className="text-tema-aviso">Fora da tela cheia: clique no telão e aperte F.</span>}
-        {ligado?.mensagem && <span className="text-tema-aviso">{ligado.mensagem}</span>}
-        {telao.situacao === "AGUARDANDO_CLIQUE" && <span className="opacity-80">Clique em “Entrar em tela cheia” no telão (ou Ligar sem tela cheia).</span>}
-      </div>
-
-      {/* Navegação */}
-      <div className="grid grid-cols-2 gap-2">
-        <BotaoRemoto rotulo="Voltar" aoClicar={() => enviar("VOLTAR")} disabled={!pode("VOLTAR")} className="h-14 rounded-2xl bg-tema-fundo/15">
-          <ChevronLeft aria-hidden className="size-6" />
-        </BotaoRemoto>
-        <BotaoRemoto rotulo="Avançar" aoClicar={() => enviar("AVANCAR")} disabled={!pode("AVANCAR")} className="h-14 rounded-2xl bg-tema-primaria text-tema-sobre-primaria">
-          <ChevronRight aria-hidden className="size-6" />
-        </BotaoRemoto>
-      </div>
-
-      <BotaoRemoto
-        rotulo={ligado?.andamento === "PAUSADO" ? "Retomar" : "Pausar"}
-        aoClicar={() => enviar("ALTERNAR_PAUSA")}
-        disabled={!pode("ALTERNAR_PAUSA")}
-        className="h-12 rounded-2xl bg-tema-fundo/15"
-        comTexto
-      >
-        {ligado?.andamento === "PAUSADO" ? <Play aria-hidden className="size-5" /> : <Pause aria-hidden className="size-5" />}
-      </BotaoRemoto>
-
-      <BotaoRemoto
-        rotulo={`Controle: ${ligado?.modoAvanco === "MANUAL" ? "manual" : "automático"}`}
-        aoClicar={() => enviar("ALTERNAR_MODO")}
-        disabled={!pode("ALTERNAR_MODO")}
-        className="h-11 rounded-2xl bg-tema-fundo/15"
-        comTexto
-      >
-        {ligado?.modoAvanco === "MANUAL" ? <Hand aria-hidden className="size-4" /> : <Zap aria-hidden className="size-4" />}
-      </BotaoRemoto>
-
-      <div className="grid grid-cols-2 gap-2">
-        <BotaoRemoto
-          rotulo={armado === "REINICIAR" ? "Confirmar" : "Reiniciar"}
-          aoClicar={confirmando("REINICIAR")}
-          disabled={!pode("REINICIAR")}
-          className={cx("h-11 rounded-2xl bg-tema-fundo/15", armado === "REINICIAR" && "animate-pulse ring-2 ring-tema-aviso")}
-          comTexto
-        >
-          <RotateCcw aria-hidden className="size-4" />
-        </BotaoRemoto>
-        <BotaoRemoto
-          rotulo={armado === "EMERGENCIA" ? "Confirmar" : "Emergência"}
-          aoClicar={confirmando("EMERGENCIA")}
-          disabled={!pode("EMERGENCIA")}
-          className={cx("h-11 rounded-2xl bg-tema-erro text-tema-fundo", armado === "EMERGENCIA" && "animate-pulse ring-2 ring-tema-fundo")}
-          comTexto
-        >
-          <Siren aria-hidden className="size-4" />
-        </BotaoRemoto>
-      </div>
-      {armado && (
-        <p role="alert" className="text-center text-xs font-semibold">
-          {armado === "EMERGENCIA" ? "Clique de novo para ir direto ao resultado final." : armado === "REINICIAR" ? "Clique de novo para voltar à tela de votação encerrada." : "Clique de novo para desligar o telão."}
-        </p>
-      )}
-    </aside>
+      </aside>
+    </TemaEvento>
   );
 }
 
-/** Botão só de clique: ignora a ativação por teclado (detail 0) e não fica com o foco. */
+/** Segundos até a tela avançar sozinha (relógio real, o mesmo do setTimeout do palco). Fora do anúncio do visor. */
+function ContagemAvanco({ em }: { em: number }) {
+  const [agora, setAgora] = useState<number | null>(null);
+  useEffect(() => {
+    const tique = () => setAgora(Date.now());
+    const primeiro = setTimeout(tique, 0);
+    const t = setInterval(tique, 250);
+    return () => {
+      clearTimeout(primeiro);
+      clearInterval(t);
+    };
+  }, []);
+  if (agora === null) return null;
+  const segundos = Math.max(0, Math.ceil((em - agora) / 1000));
+  return (
+    <p aria-live="off" className="flex items-center gap-1.5 text-sm text-tema-texto-suave">
+      <Timer aria-hidden className="size-4" />
+      Próxima tela em <span className="font-bold tabular-nums text-tema-texto">{segundos} s</span>
+    </p>
+  );
+}
+
+function Aviso({ children }: { children: ReactNode }) {
+  return (
+    <p className="flex gap-2 rounded-xl border border-l-4 border-tema-borda border-l-tema-aviso bg-tema-superficie px-3 py-2 text-xs">
+      <TriangleAlert aria-hidden className="mt-px size-4 shrink-0 text-tema-aviso" />
+      <span>{children}</span>
+    </p>
+  );
+}
+
+/** Botão só de clique, no visual do Botao: ignora a ativação por teclado (detail 0) e não fica com o foco. */
 function BotaoRemoto({
   rotulo,
+  dica,
   aoClicar,
   disabled,
+  variante = "primaria",
+  icone,
+  iconeDepois,
   className,
-  comTexto,
-  children,
 }: {
   rotulo: string;
+  /** Dica ao passar o mouse; sem ela, o próprio rótulo. */
+  dica?: string;
   aoClicar: () => void;
   disabled?: boolean;
+  variante?: VarianteBotao;
+  icone: ReactNode;
+  iconeDepois?: boolean;
   className?: string;
-  /** Mostra o rótulo ao lado do ícone; sem ele, o rótulo vai só para o leitor de tela e a dica. */
-  comTexto?: boolean;
-  children: ReactNode;
 }) {
   return (
     <button
       type="button"
       tabIndex={-1}
-      title={rotulo}
-      aria-label={comTexto ? undefined : rotulo}
+      title={dica ?? rotulo}
       disabled={disabled}
       onMouseDown={(e) => e.preventDefault()}
       onClick={(e: MouseEvent<HTMLButtonElement>) => {
         if (e.detail === 0) return;
         aoClicar();
       }}
-      className={cx(
-        "inline-flex items-center justify-center gap-2 text-sm font-semibold transition hover:brightness-110 active:scale-95",
-        "disabled:cursor-not-allowed disabled:opacity-35 disabled:active:scale-100",
-        className,
-      )}
+      className={classesBotao({
+        variante,
+        tamanho: "pequeno",
+        className: cx("gap-1.5 px-3 active:scale-95 disabled:active:scale-100", className),
+      })}
     >
-      {children}
-      {comTexto && <span>{rotulo}</span>}
+      {!iconeDepois && icone}
+      <span>{rotulo}</span>
+      {iconeDepois && icone}
     </button>
   );
 }

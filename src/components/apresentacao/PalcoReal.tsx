@@ -164,7 +164,7 @@ export function PalcoReal({
     aoDesligar();
   }
 
-  useTemporizadorDoPasso(estadoMotor, roteiro, despachar, fasePalco === "REVELACAO" && dados !== null);
+  const proximoAvancoEm = useTemporizadorDoPasso(estadoMotor, roteiro, despachar, fasePalco === "REVELACAO" && dados !== null);
 
   useTelaCheia(() => {
     setForaDaTelaCheia(true);
@@ -272,6 +272,7 @@ export function PalcoReal({
         ensaio={false}
         nomeCena={revelando ? nomeDaCena(cenaAtual) : anuncio}
         progresso={revelando ? { cena: estadoMotor.cena + 1, total: roteiro.length } : null}
+        proximoAvancoEm={revelando ? proximoAvancoEm : null}
         aoDesligar={desligar}
         mensagem={mensagemHud ?? (erroLeitura ? `Falha de leitura: ${erroLeitura.mensagem}. Mostrando o último dado.` : null)}
         ajudaVisivel={ajuda}

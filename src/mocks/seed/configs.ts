@@ -20,7 +20,7 @@ export const seedConfigsApresentacao = [
     usarTrailerGerado: false,
     incluirCandidatosTrailer: false,
     classificacaoCompleta: false,
-    modoAvanco: "AUTOMATICO",
+    modoAvanco: "MANUAL",
     rotuloCategoriaPublico: "Queridinho do público",
     rotuloCategoriaInfantil: "Preferido das crianças",
     rotuloCategoriaJuri: "Escolha dos jurados",

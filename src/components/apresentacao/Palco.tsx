@@ -58,6 +58,7 @@ export function Palco({
   avisoPausa,
   controles,
   progresso = null,
+  proximoAvancoEm = null,
   aoDesligar,
   children,
 }: {
@@ -70,6 +71,8 @@ export function Palco({
   controles: ControlesPalco;
   /** Cena atual (1…) e total, só durante a revelação. */
   progresso?: { cena: number; total: number } | null;
+  /** Quando o passo atual avança sozinho (Date.now, em ms), para a contagem no controle remoto. */
+  proximoAvancoEm?: number | null;
   /** "Desligar" do controle remoto. */
   aoDesligar: () => void;
   children: ReactNode;
@@ -99,6 +102,7 @@ export function Palco({
       progresso,
       andamento: !controles.alternarPausa ? "PARADO" : controles.pausado ? "PAUSADO" : "APRESENTANDO",
       modoAvanco: controles.modoAvanco ?? null,
+      proximoAvancoEm,
       telaCheia,
       mensagem,
       pode: {

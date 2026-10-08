@@ -32,6 +32,8 @@ export type EstadoTelao =
       /** APRESENTANDO e PAUSADO: revelação em curso. PARADO: tela sem cenas para conduzir (candidatos, final). */
       andamento: "APRESENTANDO" | "PAUSADO" | "PARADO";
       modoAvanco: ModoAvanco | null;
+      /** Quando a tela avança sozinha (Date.now, em ms); null sem avanço automático no passo atual. */
+      proximoAvancoEm: number | null;
       telaCheia: boolean;
       mensagem: string | null;
       pode: Record<ComandoDoPalco, boolean>;

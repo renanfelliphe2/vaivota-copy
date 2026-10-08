@@ -55,7 +55,7 @@ export function PalcoEnsaio({
   const noAoVivo = cena?.tipo === "AO_VIVO_ENSAIO";
   const tiques = useTique(1000, noAoVivo && !estado.pausado);
 
-  useTemporizadorDoPasso(estado, roteiro, despachar);
+  const proximoAvancoEm = useTemporizadorDoPasso(estado, roteiro, despachar);
   useTelaCheia(() => {
     setForaDaTelaCheia(true);
     despachar({ tipo: "PAUSAR" });
@@ -91,6 +91,7 @@ export function PalcoEnsaio({
       ensaio
       nomeCena={nomeDaCena(cena)}
       progresso={{ cena: estado.cena + 1, total: roteiro.length }}
+      proximoAvancoEm={proximoAvancoEm}
       aoDesligar={aoDesligar}
       mensagem={null}
       ajudaVisivel={ajuda}

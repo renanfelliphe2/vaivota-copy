@@ -77,21 +77,33 @@ export function usePalcoTeclado(atalhos: AtalhosPalco): void {
   }, []);
 }
 
-/** Um setTimeout por (cena, passo, pausado, modo, trailer); despacha AVANCO_AUTOMATICO com o par atual. */
-export function useTemporizadorDoPasso(estado: EstadoMotor, roteiro: Cena[], despachar: (a: AcaoMotor) => void, ativo = true): void {
+/**
+ * Um setTimeout por (cena, passo, pausado, modo, trailer); despacha AVANCO_AUTOMATICO com o par atual.
+ * Devolve quando o passo avança sozinho (Date.now, em ms), para o controle remoto (08/10/2026); null sem avanço
+ * automático. O prazo vale só para a chave do passo em que foi marcado.
+ */
+export function useTemporizadorDoPasso(estado: EstadoMotor, roteiro: Cena[], despachar: (a: AcaoMotor) => void, ativo = true): number | null {
   const { cena, passo, pausado, modoAvanco, trailer, situacao } = estado;
   const despacharRef = useRef(despachar);
   useEffect(() => {
     despacharRef.current = despachar;
   });
   const atual = roteiro[cena];
+  const chave = `${ativo}:${cena}:${passo}:${pausado}:${modoAvanco}:${trailer}:${situacao}`;
+  const [prazo, setPrazo] = useState<{ chave: string; em: number } | null>(null);
   useEffect(() => {
     if (!ativo || !atual || pausado || situacao === "CONCLUIDA" || !avancaSozinha(atual, modoAvanco)) return;
     const ms = duracaoDoPasso(atual, passo, trailer);
     if (ms === null) return;
+    const em = Date.now() + ms;
+    const marcar = setTimeout(() => setPrazo({ chave, em }), 0);
     const timer = setTimeout(() => despacharRef.current({ tipo: "AVANCO_AUTOMATICO", cena, passo }), ms);
-    return () => clearTimeout(timer);
-  }, [ativo, atual, cena, passo, pausado, modoAvanco, trailer, situacao]);
+    return () => {
+      clearTimeout(marcar);
+      clearTimeout(timer);
+    };
+  }, [ativo, atual, cena, passo, pausado, modoAvanco, trailer, situacao, chave]);
+  return prazo?.chave === chave ? prazo.em : null;
 }
 
 /** HUD visível ao mover o mouse; some após `ms` sem movimento. */
