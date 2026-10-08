@@ -13,6 +13,7 @@ Legenda: **VER** tela normal · **LOGIN** vai para `/e/{slug}?de={rota}` · **VE
 | `/e/[slug]/verificar-email` | LOGIN; com login pendente: VER | VER | REDIR | REDIR | REDIR | REDIR | ☐ |
 | `/e/[slug]/convite` | LOGIN | VERIF | VER | AVISO "Você já é jurado" | AVISO "Contas administrativas não resgatam convite" | VER | ☐ |
 | `/e/[slug]/votar` | REDIR `#candidatos` | REDIR | REDIR | REDIR | REDIR | REDIR | ☐ |
+| `/e/[slug]/avaliar/[candidatoId]` | LOGIN | VERIF | AVISO "Só para jurados" | VER (júri por critério e urna aberta; senão AVISO) | AVISO "Só para jurados" | AVISO "Só para jurados" | ☐ |
 | `/e/[slug]/admin` | LOGIN | RESTRITO | RESTRITO | RESTRITO | VER | RESTRITO | ☐ |
 | `/e/[slug]/admin/configuracao` | LOGIN | RESTRITO | RESTRITO | RESTRITO | VER | RESTRITO | ☐ |
 | `/e/[slug]/admin/relatorio` | LOGIN | RESTRITO | RESTRITO | RESTRITO | VER (com resultado; senão explicação) | RESTRITO | ☐ |
@@ -45,7 +46,8 @@ Combinações só da toolbar seguem `CONCLUIDO` > `RASCUNHO` > urna e mostram "C
 | `/e/[slug]` | Lista de eventos de `/`; logo do cabeçalho; nome do evento no `AdminShell` | Votar, convite, painel (admin), menu do usuário |
 | `/e/[slug]/verificar-email` | Entrar, criar conta | Destino de `resolverDestinoAcesso` (`?de=` seguro) |
 | `/e/[slug]/convite` | "Sou jurado"/"Tenho um código" | Votar como jurado, evento |
-| `/e/[slug]#candidatos` | Botão de voto do evento, atalho "Votar", destino pós-login | Revisão e sucesso em modais na própria entrada |
+| `/e/[slug]#candidatos` | Botão de voto do evento, atalho "Votar", destino pós-login | Revisão e sucesso em modais na própria entrada; jurado por critério: "Avaliar" |
+| `/e/[slug]/avaliar/[candidatoId]` | "Avaliar"/"Rever avaliação" no cartão ou no detalhe (jurado com o júri por critério); "Votar" do visitante que volta do login como jurado | "Voltar para a lista"; salvar volta à lista ou vai ao próximo sem avaliação; "Anterior"/"Seguinte" |
 | `/e/[slug]/admin` | `PAINEL_ADMIN` no evento; `AdminShell` | `AdminShell` (Configuração, Apresentação, evento); "Ver relatório"; "Abrir apresentação" |
 | `/e/[slug]/admin/configuracao` | `AdminShell`; links do painel (`?secao=operacao`, `?secao=juri`) | `AdminShell` |
 | `/e/[slug]/admin/relatorio` | "Ver relatório" na aba Resultado | "Voltar ao painel"; `AdminShell` |
@@ -60,6 +62,7 @@ Combinações só da toolbar seguem `CONCLUIDO` > `RASCUNHO` > urna e mostram "C
 | `/e/[slug]/verificar-email` | `Código de acesso · {nome}` |
 | `/e/[slug]/convite` | `Convite de jurado · {nome}` |
 | `/e/[slug]/votar` | (redireciona; sem título próprio) |
+| `/e/[slug]/avaliar/[candidatoId]` | `Avaliação do júri · {nome}` |
 | `/e/[slug]/admin` | `Painel · {nome}` |
 | `/e/[slug]/admin/configuracao` | `Configuração · {nome}` |
 | `/e/[slug]/admin/relatorio` | `Relatório · {nome}` |

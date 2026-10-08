@@ -127,4 +127,5 @@ pontuação(candidato) =
 - Validade padrão dos códigos.
 - Lista de impedimentos por conflito de interesse (futuro).
 - **Resolvida (rev. 4, A8):** voto simples na Semana Tech; **voto por critério no Festival** (Direção, Roteiro, Fotografia e Som). Detalhes em aberto: escala da nota, peso por critério, como a nota vira placar do júri (proposta: placar do júri do candidato = soma das médias dos critérios dadas pelos jurados, normalizada como os outros grupos) e desempate por critério.
+- **Resolvida (08/10/2026, dono do produto):** o júri tem três formas de votar, escolhidas pelo admin em Configuração › Júri (travam com a urna aberta): **voto único**; **notas por critério** (nota inteira de 0 a 10 a cada candidato em cada critério, cada candidato salvo por si; placar do júri = média simples de todas as notas recebidas, normalizada como os outros grupos); **melhor por critério** (um candidato por critério; cada escolha vale 1 voto do júri). O público continua com voto único. Seguem em aberto: peso por critério, desempate por critério e a revelação por critério no telão.
 - **Resolvida (rev. 3, E9):** o jurado não vê o próprio voto após o fim do evento.

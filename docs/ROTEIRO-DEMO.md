@@ -28,7 +28,8 @@ Para trocar de conta: menu do usuário no topo → **Sair** → **Entrar** com o
 | 3 | **Telão antes da abertura.** QR Code, contagem regressiva até as 10h, estado da votação | **Painel** → **Apresentação** → **Apresentar**. `F` tela cheia, `Q` sai | §4.4 Modo Evento | 1 min |
 | 4 | **A organização abre a urna.** Botão, confirmação e registro na auditoria | **Configuração** → **Operação** → **Abrir urna** | §7.2 controle da urna; §10 auditoria | 1 min |
 | 5 | **Público vota pelo celular.** Login com e-mail e senha, lista de curtas, detalhe, escolha, revisão, confirmação e tela de sucesso. Depois tentar votar de novo: "Seu voto está registrado" | Modo dispositivo (390 px). **Sair** → **Entrar** com `publico@demo.com` → **Votar** → escolher → **Revisar voto** → **Confirmar voto** | §6.1 fluxo do público; §3.2 voto único; §13 celular | 3 min |
-| 6 | **Jurado vota e corrige.** Painel próprio do jurado; ele pode trocar o voto, e a troca fica no histórico | Volte ao tamanho normal. **Sair** → **Entrar** com `jurado@demo.com` → **Votar como jurado** → escolher → confirmar → alterar o voto | §3.3 júri separado (ver "O que dizer" abaixo) | 2 min |
+| 6 | **Jurado vota e corrige.** Painel próprio do jurado; ele pode trocar o voto, e a troca fica no histórico | Volte ao tamanho normal. **Sair** → **Entrar** com `jurado@demo.com` → **Votar como jurado** → escolher → confirmar → alterar o voto | §3.3 júri separado | 2 min |
+| 6b | **Júri por critério (Direção, Roteiro, Fotografia, Som).** Notas de 0 a 10 por curta, progresso "2 de 6 avaliados" e filtro; ou o melhor curta em cada critério | Ainda como jurado: toolbar → **Votação** → **Modo do júri** → **Notas por critério** → **Avaliar** num curta → notas → **Salvar e avaliar o próximo**. Depois **Melhor por critério** → **Avaliar** → marcar "Melhor direção". Os critérios ficam em **Configuração** → **Júri** (admin) | §3.3 voto por critério | 2 min |
 | 7 | **Crianças votam no totem.** Tela cheia, cartazes grandes, "Você escolheu…? Sim / Não", estrelas e volta sozinho ao início. Depois mostrar o totem **pausado** | Toolbar → **Totem** → **Abrir totem →** → votar. `Alt+D` → Totem → **Pausado**. Sair do totem com o PIN **`1234`** | §4.2 interface infantil; §6.2 fluxo infantil | 2 min |
 | 8 | **Acompanhamento ao vivo.** Votos por grupo, votos por minuto, totens, jurados que votaram e que faltam, auditoria | **Sair** → **Entrar** com `admin@demo.com` → **Painel** (Operação). Toolbar → **Opções avançadas** → **Dashboard** → "Simular votos entrando" para os números se moverem | §7.1 dashboard; §10 auditoria | 2 min |
 | 9 | **Resultado, exportação e relatório.** Placar com os três grupos e a regra de empate aplicada; CSV e relatório em PDF | Toolbar → **Opções avançadas** → **Cenários** → `FESTIVAL_EMPATE_RESOLVIDO` → **Aplicar** (Festival encerrado com 240 votos do público, júri e 138 infantis). **Painel** → aba Resultado → **Mostrar resultado** → **Baixar tudo** → **Relatório** (imprimir como PDF) | §8 resultado e relatórios; §17 desempate | 2 min |
@@ -38,7 +39,7 @@ O ato 9 usa um cenário pronto porque um resultado com dois ou três votos não 
 
 ## O que dizer sobre o que ainda não existe
 
-- **Júri por critério (Direção, Roteiro, Fotografia, Som).** Hoje o jurado escolhe um curta. As notas por critério são a próxima etapa e dependem das regras deles (perguntas abaixo).
+- **Júri por critério no telão.** O júri já vota por notas ou pelo melhor de cada critério, e o resultado entra no placar do júri. A revelação "melhor em cada critério" no telão ainda não existe: a categoria do júri mostra o vencedor geral.
 - **Pareamento e gestão de totens.** No protótipo, a toolbar faz o papel do pareamento. No produto, a organização gera um código e digita no tablet.
 - **Seis curtas no exemplo.** O concurso tem quatro. O exemplo inclui casos de teste: um título muito longo e um curta em rascunho.
 - **Trailer.** O link é um vídeo de exemplo.
@@ -47,7 +48,7 @@ O ato 9 usa um cenário pronto porque um resultado com dois ou três votos não 
 
 ## Perguntas para levar
 
-- Júri: escala das notas, peso de cada critério, como as notas viram placar e o desempate.
+- Júri: qual das três formas (voto único, notas de 0 a 10 ou melhor por critério); se algum critério pesa mais; se querem o "melhor em cada critério" no telão.
 - Empate entre curtas: o desempate pelo júri está bom?
 - Totens: quantos aparelhos, de que tipo e onde ficam; quem é o adulto mediador em cada um.
 - Público esperado e o pico depois das sessões.

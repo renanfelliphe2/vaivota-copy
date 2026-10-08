@@ -34,11 +34,12 @@ Comparação entre os tipos do protótipo (`src/dominio/tipos.ts`) e `prisma/sch
 | `CodigoPareamento`, `EstadoCodigoPareamento` | Planner Totem (A7) |
 | `ConviteAdmin`, `EstadoConviteAdmin` | Depois; admins adicionais por seed (A9) |
 | Tabelas do Better Auth | Trilha de produção (A5) |
-| `Criterio`, `NotaJuri` (previstos) | Voto por critério do júri no Festival (A8) |
 
 ## Só no mock
 
 `banco.sequencias`, `ui` (estado de tela), `dev` (toolbar), `dev.vinculosVoto` (só para "Resetar meu voto"), usuários e participações gerados pelo volume.
+
+**Júri por critério (08/10/2026, A8), a levar ao schema:** `ConfigPlacar.modoVotoJuri` (`VOTO_UNICO` | `NOTAS_POR_CRITERIO` | `MELHOR_POR_CRITERIO`), `CriterioJuri` (id, evento, nome, ordem), `NotaJuri` (participação, candidato, critério, nota inteira 0 a 10; única por participação, candidato e critério) e `EscolhaCriterioJuri` (participação, critério, candidato; única por participação e critério). Substituem os `Criterio` e `NotaJuri` previstos. Ids legíveis no mock (`crit-fv-direcao`, `nj-…`, `ec-…`). Auditoria com `entidade` `nota_juri`, `escolha_juri` e `config_juri`.
 
 ## Invariantes × constraints
 
@@ -47,7 +48,8 @@ Comparação entre os tipos do protótipo (`src/dominio/tipos.ts`) e `prisma/sch
 | 1 slug único; uma participação por usuário e evento | `@unique` em `slug`; `@@unique([usuarioId, eventoId])` |
 | 2 pesos inteiros que somam 100; módulo desligado com peso 0 | CHECK na migração (soma 100); peso 0 com módulo desligado na regra de serviço |
 | 3 votos = públicos que votaram | Transação no serviço de voto (`Voto` + `votou` juntos); não é constraint |
-| 4 votos do júri = jurados que votaram; histórico obrigatório | Transação; `VotoJuri.participacaoId @unique` |
+| 4 jurado com `votou` ⇔ tem voto único, nota ou escolha (08/10/2026); histórico obrigatório no voto único | Transação; `VotoJuri.participacaoId @unique` |
+| 10 nota inteira de 0 a 10; nota e escolha de critério, candidato e jurado do mesmo evento; uma escolha por jurado e critério | CHECK `nota BETWEEN 0 AND 10`; FKs compostas por evento; `@@unique([participacaoId, criterioId])` na escolha |
 | 5 voto aponta para candidato do mesmo evento | FK composta `(eventoId, candidatoId)` → `Candidato(eventoId, id)` |
 | 6 convite usado aponta para participação JURADO do evento | FK + CHECK/regra de serviço |
 | 7 versões sequenciais; urna encerrada com versão | `@@unique([eventoId, versao])`; a criação da versão na mesma transação do encerramento |

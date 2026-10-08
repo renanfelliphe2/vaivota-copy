@@ -51,6 +51,7 @@ Copie `.env.example` para `.env.local` se quiser mudar a flag `NEXT_PUBLIC_DEV_T
 | `/e/[slug]/verificar-email` | Confirmação de e-mail por código (só para sessão sem e-mail verificado; alcançável pela toolbar) |
 | `/e/[slug]/convite` | "Tenho um código de convite" (exige e-mail verificado) |
 | `/e/[slug]/votar` | Só redireciona para a votação na entrada (`/e/[slug]#candidatos`), para links antigos |
+| `/e/[slug]/avaliar/[candidatoId]` | Avaliação por critério de um candidato: só jurado, com a urna aberta e o júri em "Notas por critério" ou "Melhor por critério" |
 | `/e/[slug]/admin` | Painel: abas Operação e Resultado, exportação CSV (exige `ADMIN` no evento) |
 | `/e/[slug]/admin/configuracao` | Configuração do evento (seções Geral, Candidatos, Júri, Placar, Tema, Operação) |
 | `/e/[slug]/admin/relatorio` | Relatório imprimível (só com resultado oficial) |
@@ -64,7 +65,7 @@ Todas as telas (menos o totem e o palco no ar) têm o mesmo **cabeçalho fixo**:
 
 Botão **Dev ▲** no canto da tela (visual neutro, fora do tema). Age sobre o evento da URL (ou o padrão) e pode forçar combinações que o fluxo real não permitiria. `?toolbar=0` oculta; `Alt+D` alterna (oculta ↔ forçada, inclusive no telão e no totem). Três grupos:
 
-- **Básico** (sempre visível): **Estado do evento**, **Urna**, **Sessão** ("Entrar como" um dos três usuários seed, e-mail verificado), **Relógio** (+15 min, +1 h, reta final, fim da janela, pausar, voltar a T0), **Votação** ("Resetar meu voto" e "Enviar direto") e **Totem** ("Este aparelho é o" Totem Hall, Pátio ou Oficinas, com os votos de cada um; estado do totem; "Abrir totem"; PIN de saída `1234`; para votar, a urna precisa estar aberta).
+- **Básico** (sempre visível): **Estado do evento**, **Urna**, **Sessão** ("Entrar como" um dos três usuários seed, e-mail verificado), **Relógio** (+15 min, +1 h, reta final, fim da janela, pausar, voltar a T0), **Votação** ("Modo do júri": voto único, notas por critério ou melhor por critério, ignorando a trava da urna aberta; "Resetar meu voto" e "Enviar direto") e **Totem** ("Este aparelho é o" Totem Hall, Pátio ou Oficinas, com os votos de cada um; estado do totem; "Abrir totem"; PIN de saída `1234`; para votar, a urna precisa estar aberta).
 - **Opções avançadas** (botão; fica aberto ou fechado entre telas): **Módulos e pesos** (júri/infantil, redistribui os pesos), **Rede e falhas** (latência 0/400/1500 ms, erro de rede, falha no próximo envio), **Cenários**, **Dashboard** ("Simular votos entrando", 1 a 3 votos a cada 3 s com a urna aberta e a aba visível; "Adicionar votos agora" +10/+50/+200; "Mostrar parcial por candidato"; "Conferir apuração"), **Apresentação** (toolbar no palco, trailer válido/inválido/ausente, trailer gerado, candidatos no trailer, classificação completa, avanço padrão, limiar da reta final, falha do trailer, "Resetar apresentação", "Conferir roteiro e motor"), **Inspetor** (invariantes) e **Mostrar JSON** (o estado inteiro).
 - **Gerais** (rodapé): **Resetar mock**, **Ocultar** e **Recolher**.
 
@@ -118,7 +119,7 @@ O produto é **configurável, não customizável**: o layout e os fluxos são fi
 | Recurso | Descrição |
 |---|---|
 | **Votação popular** | Login com Google ou e-mail verificado, lista de candidatos, revisão e confirmação. Um voto por pessoa, irrevogável e sigiloso |
-| **Votação do júri** | Convites individuais de uso único, voto simples identificado para o admin, alterável enquanto a urna estiver aberta |
+| **Votação do júri** | Convites individuais de uso único; voto identificado para o admin e alterável enquanto a urna estiver aberta. Três formas, escolhidas pelo admin: **voto único** (um candidato), **notas por critério** (0 a 10 por candidato em cada critério; placar = média simples) e **melhor por critério** (um candidato por critério; cada escolha vale 1 voto). O público sempre vota em um só |
 | **Votação infantil** | Totens pareados em modo quiosque, sem login e sem dados pessoais |
 | **Modo apresentação** | Tela cinematográfica para telão: andamento ao vivo, QR Code, temporizador e revelação do resultado com categorias, pódio e empates |
 | **Dashboard** | Acompanhamento da operação (aba Operação) e resultado oficial (aba Resultado), com exportação em CSV e relatório imprimível |
@@ -314,7 +315,7 @@ vaivota/
 | **2. Endurecimento** | Teste de carga, ensaio da apresentação, contingência, backups, revisão de segurança |
 | **3. Voto infantil** | Totens pareados, modo quiosque, placar próprio e peso na fórmula |
 
-**Fora do escopo por ora:** painel de super admin, sincronização da apresentação entre telas, notas por critério do júri, fila offline nos totens, upload de vídeo, geração de PDF no servidor e duplicar configuração entre eventos.
+**Fora do escopo por ora:** painel de super admin, sincronização da apresentação entre telas, revelação por critério do júri no telão, peso e desempate por critério, fila offline nos totens, upload de vídeo, geração de PDF no servidor e duplicar configuração entre eventos.
 
 ## Licença
 
