@@ -468,6 +468,10 @@ export type ModoFalha =
 
 export type ToolbarModo = "AUTO" | "OCULTA" | "FORCADA";
 
+/** Um tipo de voto do simulador: `votos` a cada `intervaloMs`. */
+export type RitmoSimulador = { ligado: boolean; votos: number; intervaloMs: number };
+export type ConfigSimulador = Record<Grupo, RitmoSimulador>;
+
 export type EstadoDev = {
   /** Evento exibido em "/" e fallback de useEventoAtivo (inicial: "ver-e-fazer-filmes"). */
   slugPadrao: string;
@@ -478,6 +482,8 @@ export type EstadoDev = {
   falhaProxima: ModoFalha;
   /** Lógica na Etapa 7; usada por 7 e 8. */
   simularVotosEntrando: boolean;
+  /** 08/10/2026: o que "Simular votos entrando" cria, por tipo de voto. */
+  simuladorVotos: ConfigSimulador;
   toolbarModo: ToolbarModo;
   toolbarRecolhida: boolean;
   /** "Opções avançadas" aberta na toolbar. */

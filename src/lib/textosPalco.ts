@@ -22,7 +22,6 @@ export const TEXTOS_PALCO = {
   semCandidatos: "Nenhum candidato na disputa",
   semResultado: "O resultado oficial ainda não foi calculado",
   marca: "Apuração por VaiVota",
-  pausada: "Apresentação pausada. Pressione F para voltar à tela cheia e Espaço para continuar.",
   vencedor: "Vencedor",
   totalVotos: "votos registrados",
   escaneie: "Aponte a câmera para votar",

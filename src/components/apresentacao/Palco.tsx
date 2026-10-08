@@ -3,15 +3,16 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ModoAvanco } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
-import { TEXTOS_PALCO } from "@/lib/textosPalco";
 import { useTelaoPublicado, type ComandoDoPalco } from "@/store/canalTelao";
 import { ALTURA_PALCO, LARGURA_PALCO, useEscalaPalco } from "./hooks";
 import { SeloEnsaio } from "./Pecas";
 
-// Etapa 8 (5.7): canvas lógico 1920×1080 escalado (letterbox), camadas (cena, selo, pausa, ajuda).
+// Etapa 8 (5.7): canvas lógico 1920×1080 escalado (letterbox), camadas (cena, selo, ajuda).
 // 08/10/2026: nada de HUD no telão. O palco é comandado pelo controle remoto (ControleRemoto, em qualquer aba do
 // admin) pelos mesmos controles do teclado, e conta ao controle o que está mostrando (canalTelao). Na própria
 // janela do telão, os atalhos de teclado continuam valendo.
+// 08/10/2026: a tela cheia é opcional. Sair dela não pausa nem trava nada, e o telão segue comandável numa aba de
+// fundo (com uma tela só); `telaCheia` vai ao controle só como informação.
 
 export type ControlesPalco = {
   pausado: boolean;
@@ -55,7 +56,6 @@ export function Palco({
   nomeCena,
   mensagem,
   ajudaVisivel,
-  avisoPausa,
   controles,
   progresso = null,
   proximoAvancoEm = null,
@@ -67,7 +67,6 @@ export function Palco({
   /** Aviso técnico (falha de leitura, auditoria): vai só para o controle remoto, nunca para o telão. */
   mensagem: string | null;
   ajudaVisivel: boolean;
-  avisoPausa: boolean;
   controles: ControlesPalco;
   /** Cena atual (1…) e total, só durante a revelação. */
   progresso?: { cena: number; total: number } | null;
@@ -129,11 +128,6 @@ export function Palco({
         >
           {children}
           {ensaio && <SeloEnsaio />}
-          {avisoPausa && (
-            <div className="absolute inset-x-0 bottom-16 mx-auto w-fit rounded-3xl bg-tema-superficie px-10 py-6 text-[40px] font-semibold shadow-xl">
-              {TEXTOS_PALCO.pausada}
-            </div>
-          )}
         </div>
       </div>
       {ajudaVisivel && (

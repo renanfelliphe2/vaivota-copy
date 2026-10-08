@@ -44,6 +44,7 @@ export function TelaPalco() {
   const dadosEnsaio = useConsulta<DadosEnsaio>(() => obterDadosEnsaio(eventoId, cenarioId), {
     ativo: ensaio && Boolean(eventoId && cenarioId),
     chave: `${eventoId}:${cenarioId}`,
+    emSegundoPlano: true,
   });
 
   // Nesta aba o palco está sempre no ar: some cabeçalho e toolbar. Só nesta aba (sincronizarAbas).
@@ -69,17 +70,17 @@ export function TelaPalco() {
     else entrarTelaCheia();
   }
 
-  /** Clique no telão: tela cheia e palco no ar. */
-  function iniciar() {
-    entrarTelaCheia();
+  /** Clique no telão: palco no ar, em tela cheia ou em janela (a tela cheia é opcional). */
+  function iniciar(telaCheia: boolean) {
+    if (telaCheia) entrarTelaCheia();
     setReligado(false);
     setSituacao("LIGADO");
   }
 
-  /** "Ligar" do controle (sem gesto aqui, não pede tela cheia; se já estava, continua). */
+  /** "Ligar" do controle (sem gesto aqui, não pede tela cheia; se já estava, continua). Só religar volta pausado. */
   function ligar() {
     if (!ensaioPronto) return;
-    setReligado(true);
+    setReligado(situacao === "DESLIGADO");
     setSituacao("LIGADO");
   }
 
@@ -125,15 +126,20 @@ export function TelaPalco() {
           <p className="text-lg text-tema-texto-suave">
             {encerrado
               ? "Pode fechar esta aba."
-              : "Arraste esta janela para o monitor do telão e clique no botão abaixo para entrar em tela cheia. Depois, comande tudo pelo controle remoto, nas outras abas."}
+              : "Arraste esta janela para o monitor do telão e entre em tela cheia, ou apresente em janela (por exemplo, para testar com uma tela só). Depois, comande tudo pelo controle remoto, nas outras abas."}
           </p>
           {dadosEnsaio.erro && <Alerta variante="erro">{dadosEnsaio.erro.mensagem}</Alerta>}
           {!ensaioPronto && !dadosEnsaio.erro ? (
             <Carregando texto="Preparando o ensaio…" />
           ) : (
-            <Botao tamanho="grande" onClick={iniciar} disabled={!ensaioPronto} icone={<Maximize aria-hidden className="size-5" />}>
-              {encerrado ? "Apresentar de novo" : "Entrar em tela cheia"}
-            </Botao>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Botao tamanho="grande" onClick={() => iniciar(true)} disabled={!ensaioPronto} icone={<Maximize aria-hidden className="size-5" />}>
+                {encerrado ? "Apresentar de novo" : "Entrar em tela cheia"}
+              </Botao>
+              <Botao tamanho="grande" variante="contorno" onClick={() => iniciar(false)} disabled={!ensaioPronto} icone={<MonitorPlay aria-hidden className="size-5" />}>
+                Apresentar em janela
+              </Botao>
+            </div>
           )}
         </div>
       </main>

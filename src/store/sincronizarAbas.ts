@@ -48,12 +48,13 @@ function novoId(): string {
 }
 
 /**
- * Liga a aba ao canal. `aoPronto` roda uma vez: com a foto de outra aba ou, sem nenhuma, depois de `esperaMs`.
+ * Liga a aba ao canal. `aoPronto` roda uma vez: com a foto de outra aba ou, sem nenhuma, depois de `esperaMs`
+ * (`comFoto` diz qual: sem foto, esta é a primeira aba).
  * Uma foto atrasada ainda vale se esta aba não mudou nada desde então.
  */
-export function sincronizarAbas({ store, relogio }: Ambiente, aoPronto: () => void, esperaMs = ESPERA_SOZINHA_MS): () => void {
+export function sincronizarAbas({ store, relogio }: Ambiente, aoPronto: (comFoto: boolean) => void, esperaMs = ESPERA_SOZINHA_MS): () => void {
   if (typeof BroadcastChannel === "undefined") {
-    const t = setTimeout(aoPronto, 0);
+    const t = setTimeout(() => aoPronto(false), 0);
     return () => clearTimeout(t);
   }
   const id = novoId();
@@ -80,7 +81,7 @@ export function sincronizarAbas({ store, relogio }: Ambiente, aoPronto: () => vo
   const marcarPronto = () => {
     if (pronto) return;
     pronto = true;
-    aoPronto();
+    aoPronto(temFoto);
   };
   const aplicar = (remoto: EstadoApp, comSessao: boolean) => {
     aplicandoRemoto = true;

@@ -26,25 +26,6 @@ export function useEscalaPalco(ref: RefObject<HTMLElement | null>): number {
   return escala;
 }
 
-/** true enquanto algum elemento estiver em tela cheia; avisa ao sair. */
-export function useTelaCheia(aoSair: () => void): boolean {
-  const [cheia, setCheia] = useState(false);
-  const aoSairRef = useRef(aoSair);
-  useEffect(() => {
-    aoSairRef.current = aoSair;
-  });
-  useEffect(() => {
-    const aoMudar = () => {
-      const agora = Boolean(document.fullscreenElement);
-      setCheia(agora);
-      if (!agora) aoSairRef.current();
-    };
-    document.addEventListener("fullscreenchange", aoMudar);
-    return () => document.removeEventListener("fullscreenchange", aoMudar);
-  }, []);
-  return cheia;
-}
-
 export type AtalhosPalco = Partial<Record<"espaco" | "avancar" | "voltar" | "trailer" | "telaCheia" | "emergencia" | "sair" | "ajuda", () => void>>;
 
 /** Um keydown no window (D15). Ignora `repeat` e alvos interativos (botão, campo, dialog). */

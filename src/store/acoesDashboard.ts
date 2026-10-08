@@ -1,5 +1,6 @@
 import { obterAmbiente } from "./ambiente";
-import { criarVotosSimulados } from "./simularVotos";
+import type { ConfigSimulador, Grupo, RitmoSimulador } from "@/dominio/tipos";
+import { CRIAR_VOTOS_SIMULADOS } from "./simularVotos";
 
 // Etapa 7: ações síncronas do painel e da seção Dashboard da toolbar (protótipo).
 // `ui.dashboard` é estado de tela; o resto só existe para a validação (D12, 5.12).
@@ -15,11 +16,26 @@ export function definirSimularVotos(ligado: boolean): void {
   obterAmbiente().store.atualizar((e) => ({ ...e, dev: { ...e.dev, simularVotosEntrando: ligado } }));
 }
 
-/** Cria `quantidade` votos simulados agora. Devolve false se a urna não estiver aberta. */
-export function adicionarVotosSimulados(eventoId: string, quantidade: number): boolean {
+/** Troca o ritmo de um tipo de voto do simulador (ou a configuração inteira, ao restaurar a demonstração). */
+export function definirConfigSimulador(config: ConfigSimulador): void {
+  obterAmbiente().store.atualizar((e) => ({ ...e, dev: { ...e.dev, simuladorVotos: { ...e.dev.simuladorVotos, ...config } } }));
+}
+
+export function definirRitmoSimulador(grupo: Grupo, mudanca: Partial<RitmoSimulador>): void {
+  obterAmbiente().store.atualizar((e) => ({
+    ...e,
+    dev: { ...e.dev, simuladorVotos: { ...e.dev.simuladorVotos, [grupo]: { ...e.dev.simuladorVotos[grupo], ...mudanca } } },
+  }));
+}
+
+/**
+ * Cria `quantidade` votos simulados agora (público, por padrão). Devolve false se nada foi criado: urna fechada,
+ * módulo desligado, júri por critério sem critérios ou infantil sem totem ativo.
+ */
+export function adicionarVotosSimulados(eventoId: string, quantidade: number, grupo: Grupo = "POPULAR"): boolean {
   const { store, relogio } = obterAmbiente();
   const antes = store.getState();
-  store.atualizar((e) => criarVotosSimulados(e, eventoId, quantidade, relogio.getAgora()));
+  store.atualizar((e) => CRIAR_VOTOS_SIMULADOS[grupo](e, eventoId, quantidade, relogio.getAgora()));
   return store.getState() !== antes;
 }
 

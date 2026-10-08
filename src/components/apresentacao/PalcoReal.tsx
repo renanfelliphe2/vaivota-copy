@@ -27,7 +27,7 @@ import { useSituacaoEvento } from "@/store/seletores/situacao";
 import { CenaAtual, nomeDaCena, useCatalogo } from "./CenaAtual";
 import { CenaAoVivo, CenaEncerrada, CenaMensagem, CenaPreVotacao, type SubestadoAoVivo } from "./cenas/CenasFase";
 import { CenaFinal } from "./cenas/CenasRevelacao";
-import { usePalcoTeclado, useTelaCheia, useTemporizadorDoPasso } from "./hooks";
+import { usePalcoTeclado, useTemporizadorDoPasso } from "./hooks";
 import { Palco } from "./Palco";
 
 // Etapa 8 (D2 a D7, 5.1): palco real. A fase vem de resolverFasePalco; o resultado só é carregado depois de
@@ -61,11 +61,11 @@ export function PalcoReal({
   const [mensagemHud, setMensagemHud] = useState<string | null>(null);
   const [ajuda, setAjuda] = useState(false);
   const [confirmarSaida, setConfirmarSaida] = useState(false);
-  const [foraDaTelaCheia, setForaDaTelaCheia] = useState(false);
   const [carregado, setCarregado] = useState<DadosRevelacao | null>(null);
   const [trailer, setTrailer] = useState<{ cena: number; estado: EstadoTrailer }>({ cena: -1, estado: "CARREGANDO" });
 
-  const status = useConsulta(() => obterStatusResultado(eventoId), { chave: `${eventoId}:${versao}` });
+  // 08/10/2026: emSegundoPlano em todas: com uma tela só, o telão fica numa aba de fundo enquanto o controle comanda.
+  const status = useConsulta(() => obterStatusResultado(eventoId), { chave: `${eventoId}:${versao}`, emSegundoPlano: true });
   const assinatura = status.dados?.assinatura ?? null;
   const existe = status.dados?.existe ?? versao !== null;
   const { revelacao } = useRevelacao(eventoId, assinatura);
@@ -76,12 +76,14 @@ export function PalcoReal({
     ativo: fasePalco === "AO_VIVO" || fasePalco === "ENCERRADA_AGUARDANDO",
     intervaloMs: fasePalco === "AO_VIVO" ? 5000 : undefined,
     chave: `${eventoId}:${fasePalco}:${configApresentacao.parcialAoVivo}`,
+    emSegundoPlano: true,
   });
 
   const precisaResultado = fasePalco === "REVELACAO" || fasePalco === "FINAL_ESTATICO";
   const consultaResultado = useConsulta(() => carregarRevelacao(eventoId), {
     ativo: precisaResultado && carregado?.assinatura !== assinatura,
     chave: `${eventoId}:${assinatura}`,
+    emSegundoPlano: true,
   });
   const dados =
     carregado && carregado.assinatura === assinatura
@@ -166,11 +168,6 @@ export function PalcoReal({
 
   const proximoAvancoEm = useTemporizadorDoPasso(estadoMotor, roteiro, despachar, fasePalco === "REVELACAO" && dados !== null);
 
-  useTelaCheia(() => {
-    setForaDaTelaCheia(true);
-    if (fasePalco === "REVELACAO") despachar({ tipo: "PAUSAR" });
-  });
-
   usePalcoTeclado({
     espaco: () => fasePalco === "REVELACAO" && despachar({ tipo: estadoMotor.pausado ? "RETOMAR" : "PAUSAR" }),
     avancar: () => {
@@ -184,10 +181,7 @@ export function PalcoReal({
       else if (fasePalco === "ENCERRADA_AGUARDANDO" && existe) void iniciar(true);
       else if (fasePalco !== "FINAL_ESTATICO") setMensagemHud("Sem resultado para mostrar");
     },
-    telaCheia: () => {
-      setForaDaTelaCheia(false);
-      alternarTelaCheia();
-    },
+    telaCheia: alternarTelaCheia,
     sair: () => (fasePalco === "REVELACAO" && estadoMotor.situacao === "EM_ANDAMENTO" ? setConfirmarSaida(true) : aoSair()),
     ajuda: () => setAjuda((v) => !v),
   });
@@ -276,7 +270,6 @@ export function PalcoReal({
         aoDesligar={desligar}
         mensagem={mensagemHud ?? (erroLeitura ? `Falha de leitura: ${erroLeitura.mensagem}. Mostrando o último dado.` : null)}
         ajudaVisivel={ajuda}
-        avisoPausa={revelando && estadoMotor.pausado && foraDaTelaCheia}
         controles={{
           pausado: estadoMotor.pausado,
           alternarPausa: revelando ? () => despachar({ tipo: estadoMotor.pausado ? "RETOMAR" : "PAUSAR" }) : undefined,

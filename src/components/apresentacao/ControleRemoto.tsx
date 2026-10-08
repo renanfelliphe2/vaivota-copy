@@ -153,9 +153,10 @@ export function ControleRemoto() {
             {ligado?.proximoAvancoEm && <ContagemAvanco em={ligado.proximoAvancoEm} />}
           </div>
 
-          {ligado && !ligado.telaCheia && <Aviso>Fora da tela cheia: clique no telão e aperte F.</Aviso>}
           {ligado?.mensagem && <Aviso>{ligado.mensagem}</Aviso>}
-          {telao.situacao === "AGUARDANDO_CLIQUE" && <Aviso>Clique em “Entrar em tela cheia” no telão (ou ligue sem tela cheia).</Aviso>}
+          {telao.situacao === "AGUARDANDO_CLIQUE" && (
+            <Aviso>Clique no telão para entrar em tela cheia ou apresentar em janela; ou ligue por aqui, sem tela cheia.</Aviso>
+          )}
 
           {/* Navegação */}
           <div className="grid grid-cols-2 gap-2">

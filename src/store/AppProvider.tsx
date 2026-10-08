@@ -7,6 +7,7 @@ import { criarEstadoInicial } from "@/mocks/criarEstadoInicial";
 import { definirAmbiente, type Ambiente } from "./ambiente";
 import { criarStore } from "./criarStore";
 import { criarRelogio } from "./relogio";
+import { restaurarDemo, salvarDemo } from "./persistirDemo";
 import { ESPERA_COM_MAE_MS, ESPERA_SOZINHA_MS, idDaAbaMae, sincronizarAbas } from "./sincronizarAbas";
 import { fecharUrnasVencidas } from "./transicoes";
 
@@ -27,10 +28,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return novo;
   });
 
-  useEffect(
-    () => sincronizarAbas(ambiente, () => setPronto(true), idDaAbaMae() ? ESPERA_COM_MAE_MS : ESPERA_SOZINHA_MS),
-    [ambiente],
-  );
+  useEffect(() => {
+    let pararDeSalvar = () => {};
+    const parar = sincronizarAbas(
+      ambiente,
+      (comFoto) => {
+        // Primeira aba: aplica o preparo salvo da demonstração (persistirDemo). As outras já vêm com a foto.
+        if (!comFoto) restaurarDemo(ambiente);
+        pararDeSalvar = salvarDemo(ambiente);
+        setPronto(true);
+      },
+      idDaAbaMae() ? ESPERA_COM_MAE_MS : ESPERA_SOZINHA_MS,
+    );
+    return () => {
+      parar();
+      pararDeSalvar();
+    };
+  }, [ambiente]);
 
   useEffect(() => {
     definirAmbiente(ambiente);

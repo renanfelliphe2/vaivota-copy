@@ -12,6 +12,8 @@ export type OpcoesConsulta = {
   ativo?: boolean;
   /** Muda a chave para refazer a consulta (ex.: eventoId). */
   chave?: string;
+  /** Segue consultando com a aba oculta (o telão numa aba de fundo, comandado pelo controle remoto). */
+  emSegundoPlano?: boolean;
 };
 
 export type EstadoConsulta<T> = {
@@ -24,7 +26,7 @@ export type EstadoConsulta<T> = {
 };
 
 export function useConsulta<T>(consulta: () => Promise<Resultado<T>>, opcoes: OpcoesConsulta = {}): EstadoConsulta<T> {
-  const { intervaloMs, ativo = true, chave = "" } = opcoes;
+  const { intervaloMs, ativo = true, chave = "", emSegundoPlano = false } = opcoes;
   const { relogio } = useAmbiente();
   const consultaAtual = useRef(consulta);
   const [rodada, setRodada] = useState(0);
@@ -51,7 +53,7 @@ export function useConsulta<T>(consulta: () => Promise<Resultado<T>>, opcoes: Op
 
     async function executar() {
       clearTimeout(timer);
-      if (document.visibilityState === "hidden") return; // retoma no visibilitychange
+      if (!emSegundoPlano && document.visibilityState === "hidden") return; // retoma no visibilitychange
       const resposta = await consultaAtual.current();
       if (cancelado) return;
       setEstado((anterior) =>
@@ -64,7 +66,7 @@ export function useConsulta<T>(consulta: () => Promise<Resultado<T>>, opcoes: Op
 
     const aoMudarVisibilidade = () => {
       if (document.visibilityState === "visible") void executar();
-      else clearTimeout(timer);
+      else if (!emSegundoPlano) clearTimeout(timer);
     };
 
     void executar();
@@ -74,7 +76,7 @@ export function useConsulta<T>(consulta: () => Promise<Resultado<T>>, opcoes: Op
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", aoMudarVisibilidade);
     };
-  }, [ativo, intervaloMs, chave, rodada, relogio]);
+  }, [ativo, intervaloMs, chave, rodada, relogio, emSegundoPlano]);
 
   const recarregar = useCallback(() => {
     setEstado((anterior) => ({ ...anterior, carregando: true }));

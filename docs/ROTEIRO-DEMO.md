@@ -5,6 +5,7 @@ Para os organizadores do Festival. Cada ato cita o item do documento de requisit
 ## Antes de começar
 
 - Rode em **build de produção**: `pnpm build && pnpm start`, e abra `http://localhost:3000`. As abas do mesmo navegador ficam sincronizadas; fechar todas volta tudo ao início (o protótipo não tem banco). Navegue sempre pelos botões da tela.
+- **Preparo guardado neste navegador:** o estado do evento, o da urna, o modo do júri e o ritmo do "Simular votos entrando" ficam salvos (localStorage) e voltam ao reabrir o protótipo. Votos não são guardados. Para começar do zero: toolbar → **Resetar mock**.
 - **Telão com a tela estendida:** na sala de **Apresentação**, **Apresentar** abre o palco numa aba própria. Arraste essa janela para o monitor do telão e clique em **Entrar em tela cheia**. O notebook segue na sala e no resto do sistema: votos, urna e resultado aparecem no telão na hora. **Apresentar** de novo só traz o telão para a frente, sem recarregá-lo; trocar entre real e ensaio e apresentar recarrega o telão no novo modo. Daí em diante, use o **controle remoto** (canto inferior esquerdo, em qualquer tela do admin): Avançar, Voltar, Pausar/Retomar, avanço Manual (o padrão) ou Automático, Emergência, Desligar/Ligar e Reiniciar, com o estado, a cena ("Cena 3 de 9") e, no avanço automático, o tempo até a próxima tela no visor. Ele funciona só por clique. Não é preciso tocar no telão depois do clique da tela cheia.
 - Deixe a toolbar recolhida (**Dev ▲**). `Alt+D` esconde e mostra; no telão e no totem ela some sozinha.
 - O relógio começa em **25/11/2026 às 9h30**, meia hora antes da janela do Festival (25/11 10h a 28/11 20h). A urna começa **não iniciada**.
@@ -64,5 +65,5 @@ O controle remoto não usa teclado. Na própria janela do telão (com ela em foc
 
 - Algo travou: toolbar → **Resetar mock** (rodapé), que volta todas as abas ao início, e recomece do ato em que parou. F5 numa aba com outra aberta recupera o estado em vez de zerar. Para pular direto ao resultado, aplique `FESTIVAL_EMPATE_RESOLVIDO`; reserva: `FESTIVAL_ENCERRADO`.
 - A revelação saiu errada: na sala de controle, **Recomeçar** ou **Refazer revelação** volta a cerimônia ao início.
-- A tela cheia não abriu ou o telão saiu dela: a sala avisa. Clique na janela do telão e aperte `F`.
+- A tela cheia não abriu ou o telão saiu dela: a apresentação segue normalmente e o controle remoto continua valendo. Para voltar à tela cheia, clique na janela do telão e aperte `F`. Com uma tela só, use **Apresentar em janela** e comande pelo controle remoto em outra aba.
 - A sala mostra "Telão fechado" com o telão aberto: a aba do telão foi recarregada ou fechada. Toque em **Apresentar** de novo; a revelação continua de onde parou.

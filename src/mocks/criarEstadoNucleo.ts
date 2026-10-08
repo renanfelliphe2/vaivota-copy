@@ -1,4 +1,4 @@
-import type { EstadoApp, EstadoDev, EstadoUi, EstadoUiApresentacao, EstadoUiVotacao } from "@/dominio/tipos";
+import type { ConfigSimulador, EstadoApp, EstadoDev, EstadoUi, EstadoUiApresentacao, EstadoUiVotacao } from "@/dominio/tipos";
 import {
   seedAuditoria,
   seedCamposCandidato,
@@ -42,6 +42,15 @@ export function criarUiInicial(): EstadoUi {
   };
 }
 
+/** "Simular votos entrando" (08/10/2026): por padrão só o público, 2 votos a cada 3 s (o ritmo de antes). */
+export function criarConfigSimuladorInicial(): ConfigSimulador {
+  return {
+    POPULAR: { ligado: true, votos: 2, intervaloMs: 3000 },
+    JURI: { ligado: false, votos: 1, intervaloMs: 5000 },
+    INFANTIL: { ligado: false, votos: 1, intervaloMs: 2000 },
+  };
+}
+
 function criarDevInicial(): EstadoDev {
   return {
     slugPadrao: "ver-e-fazer-filmes",
@@ -49,6 +58,7 @@ function criarDevInicial(): EstadoDev {
     simularErroRede: false,
     falhaProxima: "NENHUMA",
     simularVotosEntrando: false,
+    simuladorVotos: criarConfigSimuladorInicial(),
     toolbarModo: "AUTO",
     toolbarRecolhida: true,
     toolbarAvancadas: false,

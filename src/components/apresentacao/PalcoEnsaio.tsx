@@ -11,7 +11,7 @@ import { useDev } from "@/store/seletores/dev";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { CenaAtual, nomeDaCena } from "./CenaAtual";
 import { CenaAoVivo } from "./cenas/CenasFase";
-import { usePalcoTeclado, useTelaCheia, useTemporizadorDoPasso, useTique } from "./hooks";
+import { usePalcoTeclado, useTemporizadorDoPasso, useTique } from "./hooks";
 import { Palco } from "./Palco";
 
 // Etapa 8 (D5, 5.10): ensaio 100% local. Motor num useReducer, tempo por contador de tiques; nada vai ao
@@ -50,26 +50,18 @@ export function PalcoEnsaio({
     pausado: iniciarPausado,
   }));
   const [ajuda, setAjuda] = useState(false);
-  const [foraDaTelaCheia, setForaDaTelaCheia] = useState(false);
   const cena = roteiro[estado.cena];
   const noAoVivo = cena?.tipo === "AO_VIVO_ENSAIO";
   const tiques = useTique(1000, noAoVivo && !estado.pausado);
 
   const proximoAvancoEm = useTemporizadorDoPasso(estado, roteiro, despachar);
-  useTelaCheia(() => {
-    setForaDaTelaCheia(true);
-    despachar({ tipo: "PAUSAR" });
-  });
   usePalcoTeclado({
     espaco: () => despachar({ tipo: estado.pausado ? "RETOMAR" : "PAUSAR" }),
     avancar: () => despachar({ tipo: "AVANCAR" }),
     voltar: () => despachar({ tipo: "VOLTAR" }),
     trailer: () => despachar({ tipo: "PULAR_TRAILER" }),
     emergencia: () => despachar({ tipo: "IR_PARA_FINAL" }),
-    telaCheia: () => {
-      setForaDaTelaCheia(false);
-      alternarTelaCheia();
-    },
+    telaCheia: alternarTelaCheia,
     sair: aoSair,
     ajuda: () => setAjuda((v) => !v),
   });
@@ -95,7 +87,6 @@ export function PalcoEnsaio({
       aoDesligar={aoDesligar}
       mensagem={null}
       ajudaVisivel={ajuda}
-      avisoPausa={estado.pausado && foraDaTelaCheia}
       controles={{
         pausado: estado.pausado,
         alternarPausa: () => despachar({ tipo: estado.pausado ? "RETOMAR" : "PAUSAR" }),
