@@ -16,7 +16,7 @@ const SELOS: Record<EstadoExibidoConvite, { texto: string; variante: "sucesso" |
   EXPIRADO: { texto: "Expirado", variante: "aviso", icone: Clock },
 };
 
-/** Etapa 6 (seção 5.4): lista de cartões (vira tabela visual a partir de md). Rótulo editável, revogar só disponível/expirado. */
+/** Etapa 6 (seção 5.4): lista de cartões responsivos. Rótulo editável, revogar só disponível/expirado. */
 export function TabelaConvites({
   convites,
   fuso,
@@ -54,7 +54,7 @@ export function TabelaConvites({
           const selo = SELOS[c.estado];
           const emEdicao = editando?.id === c.id;
           return (
-            <li key={c.id} className="grid gap-2 rounded-xl border border-tema-borda bg-tema-superficie p-3 md:grid-cols-[1fr_auto_auto_auto] md:items-center">
+            <li key={c.id} className="grid gap-2 rounded-xl border border-tema-borda bg-tema-superficie p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
               <div className="min-w-0">
                 {emEdicao ? (
                   <form
