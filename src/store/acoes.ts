@@ -1,6 +1,7 @@
+import { aplicarAvaliacaoJuri, criteriosDoEvento, ehModoPorCriterio } from "@/dominio/avaliacaoJuri";
 import { redistribuirPesos } from "@/dominio/placar";
 import { exigirAcao } from "@/dominio/travas";
-import type { EstadoApp, EstadoDev, EstadoEvento, EstadoUrna, ModoFalha, ToolbarModo } from "@/dominio/tipos";
+import type { EstadoApp, EstadoDev, EstadoEvento, EstadoUrna, ModoFalha, ModoVotoJuri, ToolbarModo } from "@/dominio/tipos";
 import { paraInstante } from "@/lib/tempo";
 import { CENARIOS } from "@/mocks/cenarios";
 import { criarApresentacaoInicial } from "@/mocks/criarEstadoNucleo";
@@ -142,6 +143,24 @@ export function alternarModulo(eventoId: string, modulo: "JURI" | "INFANTIL"): s
     };
   });
   return null;
+}
+
+/** Critérios usados pela toolbar quando o evento não tem nenhum (documento de requisitos do Festival, §3.3). */
+const CRITERIOS_PADRAO = ["Direção", "Roteiro", "Fotografia", "Som"];
+
+/**
+ * Modo de votação do júri pela toolbar (08/10/2026, demonstração): ignora a trava da urna aberta e não audita.
+ * Num modo por critério sem critérios, cria os padrão. Notas e escolhas de outros modos ficam guardadas.
+ */
+export function definirModoVotoJuri(eventoId: string, modo: ModoVotoJuri): void {
+  const { agoraMs } = contexto();
+  atualizar((e) => {
+    const evento = e.banco.eventos.find((ev) => ev.id === eventoId);
+    if (!evento) return e;
+    const atuais = criteriosDoEvento(e.banco, eventoId).map((c) => ({ id: c.id, nome: c.nome }));
+    const criterios = atuais.length === 0 && ehModoPorCriterio(modo) ? CRITERIOS_PADRAO.map((nome) => ({ id: null, nome })) : atuais;
+    return aplicarAvaliacaoJuri(e, eventoId, { modoVotoJuri: modo, criterios }, paraInstante(agoraMs, evento.fusoHorario));
+  });
 }
 
 export function definirLatencia(latenciaMs: EstadoDev["latenciaMs"]): void {
