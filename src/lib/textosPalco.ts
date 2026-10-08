@@ -26,7 +26,23 @@ export const TEXTOS_PALCO = {
   vencedor: "Vencedor",
   totalVotos: "votos registrados",
   escaneie: "Aponte a câmera para votar",
+  // Revelação cinematográfica (08/10/2026).
+  eOVencedorE: "E o vencedor é",
+  eOGrandeVencedorE: "E o grande vencedor é",
+  empate: "Empate!",
+  venceuDesempate: "Venceu o desempate",
+  grandesVencedores: "Os grandes vencedores",
+  resultadoFinal: "Resultado final",
+  pontos: "pontos",
+  destaques: "Também premiados",
+  apresenta: "apresenta",
+  votosContados: "Os votos foram contados",
+  chegouAHora: "Chegou a hora do resultado",
 } as const;
+
+export function disputaPelo(posicao: number): string {
+  return `Disputa pelo ${posicao}º lugar`;
+}
 
 export function lugar(posicao: number, empate = false): string {
   return empate ? `${posicao}º lugar — empate` : `${posicao}º lugar`;

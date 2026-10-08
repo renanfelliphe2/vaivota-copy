@@ -2,13 +2,13 @@
 
 import { useMemo, type ReactNode } from "react";
 import { montarProps } from "@/dominio/apresentacao/roteiro";
-import { interpretarLinkTrailer } from "@/dominio/apresentacao/trailer";
 import type { AcaoMotor, CandidatoPalco, Cena, DadosRevelacao, EstadoMotor } from "@/dominio/apresentacao/tipos";
 import type { Grupo } from "@/dominio/tipos";
 import { lugar, TEXTOS_PALCO } from "@/lib/textosPalco";
 import { CenaEncerrada } from "./cenas/CenasFase";
 import { CenaRevelacao } from "./cenas/CenasRevelacao";
 import { CenaTrailer } from "./cenas/CenaTrailer";
+import { Cortina } from "./Cinema";
 
 // Etapa 8 (D1): desenha só a cena e o passo atuais a partir de montarProps. O ao vivo do ensaio vem pronto
 // do PalcoEnsaio (slot `aoVivoEnsaio`).
@@ -69,7 +69,7 @@ export function CenaAtual({
   const catalogo = useCatalogo(dados.candidatos);
   const cena = roteiro[estado.cena];
   if (!cena) return null;
-  const chave = `${estado.cena}:${estado.passo}`;
+  const naDisputa = dados.candidatos.filter((c) => !dados.dados.desqualificados.includes(c.id));
 
   if (cena.tipo === "AO_VIVO_ENSAIO") return <>{aoVivoEnsaio}</>;
   if (cena.tipo === "ENCERRADA_ENSAIO")
@@ -77,7 +77,7 @@ export function CenaAtual({
       <CenaEncerrada
         nome={nome}
         logoUrl={logoUrl}
-        candidatos={dados.candidatos.filter((c) => !dados.dados.desqualificados.includes(c.id))}
+        candidatos={naDisputa}
         totalGeral={
           dados.dados.totais.POPULAR + (dados.modulos.juri ? dados.dados.totais.JURI : 0) + (dados.modulos.infantil ? dados.dados.totais.INFANTIL : 0)
         }
@@ -86,23 +86,30 @@ export function CenaAtual({
   if (cena.tipo === "TRAILER") {
     const { config } = dados;
     return (
-      <CenaTrailer
-        key={estado.cena}
-        estado={estado.trailer}
-        embedUrl={interpretarLinkTrailer(config.trailerUrl)}
-        forcarGerado={config.usarTrailerGerado || simularTrailerFalha}
-        nome={nome}
-        logoUrl={logoUrl}
-        data={dataEvento}
-        candidatos={config.incluirCandidatosTrailer ? dados.candidatos.filter((c) => !dados.dados.desqualificados.includes(c.id)) : []}
-        aoPronto={() => despachar({ tipo: "TRAILER_PRONTO" })}
-        aoFalhar={() => despachar({ tipo: "TRAILER_FALHOU" })}
-      />
+      <div key={estado.cena} className="relative h-full">
+        <CenaTrailer
+          estado={estado.trailer}
+          linkTrailer={config.trailerUrl}
+          forcarGerado={config.usarTrailerGerado || simularTrailerFalha}
+          nome={nome}
+          logoUrl={logoUrl}
+          data={dataEvento}
+          candidatos={config.incluirCandidatosTrailer ? naDisputa : []}
+          aoPronto={() => despachar({ tipo: "TRAILER_PRONTO" })}
+          aoFalhar={() => despachar({ tipo: "TRAILER_FALHOU" })}
+        />
+        <Cortina />
+      </div>
     );
   }
+  // 08/10/2026: a chave é só a cena; os passos acontecem sobre a cena montada (CenasRevelacao). Cada cena sai do
+  // preto, menos quando o pódio continua (pódio → pódio, pódio → final).
+  const anterior = roteiro[estado.cena - 1];
+  const continuaPodio = anterior?.tipo === "PODIO" && (cena.tipo === "PODIO" || cena.tipo === "FINAL");
   return (
-    <div key={chave} className="palco-entrada h-full">
-      <CenaRevelacao props={montarProps(dados.dados, cena, estado.passo)} catalogo={catalogo} config={dados.config} />
+    <div key={estado.cena} className="relative h-full">
+      <CenaRevelacao props={montarProps(dados.dados, cena, estado.passo)} catalogo={catalogo} config={dados.config} candidatos={naDisputa} />
+      {!continuaPodio && <Cortina />}
     </div>
   );
 }

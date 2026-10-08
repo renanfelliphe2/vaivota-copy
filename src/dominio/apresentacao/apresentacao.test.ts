@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CENARIOS } from "@/mocks/cenarios";
 import { criarEstadoInicial } from "@/mocks/criarEstadoInicial";
 import { T0_MS } from "@/lib/tempo";
+import { apurar } from "../apuracao";
 import { verificarInvariantes } from "../invariantes";
 import { resultadoAtual } from "../resultado";
 import { assinaturaDoResultado } from "./assinatura";
@@ -9,6 +10,7 @@ import { conferirFixturesFestival, conferirMotor, conferirRoteiro, FIXTURES_FEST
 import { CENARIOS_ENSAIO } from "./cenariosEnsaio";
 import { resolverFasePalco } from "./fasePalco";
 import { lerRevelacao } from "./revelacao";
+import { montarFinal, montarProps } from "./roteiro";
 import { interpretarLinkTrailer } from "./trailer";
 
 // Etapa 8 (D19 rev. 3): roteiro, motor, fase, trailer, assinatura e revelação.
@@ -95,5 +97,40 @@ describe("cenários do Festival (5.11)", () => {
 
   it("todo cenário do ensaio existe no registro", () => {
     for (const ids of Object.values(CENARIOS_ENSAIO)) for (const id of ids) expect(CENARIOS.some((c) => c.id === id)).toBe(true);
+  });
+});
+
+describe("revelação cinematográfica (08/10/2026)", () => {
+  const dados = apurar(FIXTURES_FESTIVAL.FESTIVAL_EMPATE_RESOLVIDO.entrada);
+
+  it("trailer mudo: o embed pede início mudo e liga a API do player", () => {
+    expect(interpretarLinkTrailer("https://youtu.be/aqz-KE-bpKQ", { mudo: true })).toBe(
+      "https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?autoplay=1&rel=0&mute=1&playsinline=1&enablejsapi=1",
+    );
+    expect(interpretarLinkTrailer("https://vimeo.com/76979871", { mudo: true })).toBe("https://player.vimeo.com/video/76979871?autoplay=1&muted=1&playsinline=1");
+  });
+
+  it("o pódio de uma posição só traz os nomes já revelados (ela e as piores)", () => {
+    const props = montarProps(dados, { tipo: "PODIO", posicao: 2, passos: 3 }, 0);
+    if (props.tipo !== "PODIO") throw new Error("esperava PODIO");
+    expect(props.degraus.map((d) => [d.posicao, d.candidatos?.itens.map((c) => c.candidatoId) ?? null])).toEqual([
+      [1, null],
+      [2, ["c02"]],
+      [3, ["c03"]],
+    ]);
+  });
+
+  it("o final traz votos, percentuais e selos de cada candidato do pódio", () => {
+    const final = montarFinal(dados);
+    const c01 = final.podio[0].candidatos.itens[0];
+    expect(c01.candidatoId).toBe("c01");
+    expect(c01.detalhe.selos).toEqual(["INFANTIL", "JURI"]);
+    expect(c01.detalhe.votos.map((v) => [v.grupo, v.votos, Math.round(v.percentual * 10) / 10])).toEqual([
+      ["POPULAR", 40, 16.7],
+      ["INFANTIL", 60, 43.5],
+      ["JURI", 1, 50],
+    ]);
+    expect(final.podio[2].candidatos.itens[0].detalhe.selos).toEqual(["POPULAR"]);
+    expect(final.destaques).toEqual([]);
   });
 });

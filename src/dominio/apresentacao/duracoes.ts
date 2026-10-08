@@ -1,7 +1,8 @@
 // Etapa 8 (seção 5.5, P3): durações em ms, ajustáveis.
 
 export const DURACOES = {
-  suspense: 2500,
+  /** 08/10/2026: roleta de suspense da categoria (era 2500). */
+  suspense: 3500,
   nome: 4000,
   detalhe: 4000,
   desempatePasso: 5000,
@@ -17,6 +18,8 @@ export const DURACOES = {
   ensaioEncerrada: 8000,
   /** Aviso grande "Votação encerrada" no meio da tela, ao entrar na tela inicial da revelação. */
   avisoEncerrada: 4000,
+  /** Final da revelação: o pódio só com os vencedores, antes dos cards com o detalhamento (08/10/2026). */
+  finalPodio: 7000,
   hudVisivel: 3000,
   ajudaVisivel: 8000,
 } as const;

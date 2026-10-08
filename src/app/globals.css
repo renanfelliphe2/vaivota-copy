@@ -116,6 +116,391 @@ dialog::backdrop {
   animation: palco-entrada 600ms ease-out both;
 }
 
+/*
+ * Revelação cinematográfica (08/10/2026): palco escuro tingido pela primária do tema, luz na secundária. O fundo
+ * quase preto e as medalhas são cores fixas de cena (como a placa do QR), declaradas aqui no próprio palco para
+ * derivarem dos tokens que o <TemaEvento> aplica no contêiner.
+ */
+.palco-cinema {
+  --cinema-fundo: color-mix(in srgb, var(--tema-primaria) 18%, #04050a);
+  --cinema-fundo-luz: color-mix(in srgb, var(--tema-primaria) 42%, #04050a);
+  --cinema-texto: #f8fafc;
+  --cinema-suave: #c3cad6;
+  --cinema-destaque: color-mix(in srgb, var(--tema-secundaria) 60%, #ffffff);
+  --cinema-luz: color-mix(in srgb, var(--tema-secundaria) 40%, #ffffff);
+  --cinema-vidro: color-mix(in srgb, #ffffff 8%, transparent);
+  --cinema-linha: color-mix(in srgb, #ffffff 16%, transparent);
+  --medalha-ouro: #f5c84c;
+  --medalha-prata: #d9e0ea;
+  --medalha-bronze: #dc9560;
+  background: radial-gradient(ellipse 80% 70% at 50% 35%, var(--cinema-fundo-luz), var(--cinema-fundo) 72%);
+  color: var(--cinema-texto);
+}
+
+@theme inline {
+  --color-cinema-fundo: var(--cinema-fundo);
+  --color-cinema-texto: var(--cinema-texto);
+  --color-cinema-suave: var(--cinema-suave);
+  --color-cinema-destaque: var(--cinema-destaque);
+  --color-cinema-luz: var(--cinema-luz);
+  --color-cinema-vidro: var(--cinema-vidro);
+  --color-cinema-linha: var(--cinema-linha);
+  --color-medalha-ouro: var(--medalha-ouro);
+  --color-medalha-prata: var(--medalha-prata);
+  --color-medalha-bronze: var(--medalha-bronze);
+}
+
+/* Atraso e duração por elemento: style={{ "--atraso": "400ms" }}. */
+.cinema-subir,
+.cinema-revelar,
+.cinema-pop,
+.cinema-cair,
+.cinema-carimbo,
+.cinema-tracking,
+.cinema-surgir,
+.cinema-barra,
+.cinema-janela,
+.cinema-degrau {
+  animation-delay: var(--atraso, 0ms);
+  animation-fill-mode: both;
+}
+
+@keyframes cinema-surgir {
+  from {
+    opacity: 0;
+  }
+}
+.cinema-surgir {
+  animation-name: cinema-surgir;
+  animation-duration: var(--dur, 900ms);
+  animation-timing-function: ease-out;
+}
+
+@keyframes cinema-subir {
+  from {
+    opacity: 0;
+    transform: translateY(48px);
+  }
+}
+.cinema-subir {
+  animation-name: cinema-subir;
+  animation-duration: var(--dur, 800ms);
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Nome do vencedor: sai do desfoque, com as letras se fechando. */
+@keyframes cinema-revelar {
+  from {
+    opacity: 0;
+    filter: blur(28px);
+    transform: scale(1.18);
+    letter-spacing: 0.18em;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    filter: blur(0);
+    transform: none;
+  }
+}
+.cinema-revelar {
+  animation-name: cinema-revelar;
+  animation-duration: var(--dur, 1200ms);
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cinema-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.cinema-pop {
+  animation-name: cinema-pop;
+  animation-duration: var(--dur, 900ms);
+  animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+/* Candidato pousando no degrau do pódio. */
+@keyframes cinema-cair {
+  0% {
+    opacity: 0;
+    transform: translateY(-260px) scale(0.9);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(14px) scale(1.02);
+  }
+  75% {
+    transform: translateY(-6px);
+  }
+  100% {
+    transform: none;
+  }
+}
+.cinema-cair {
+  animation-name: cinema-cair;
+  animation-duration: var(--dur, 1000ms);
+  animation-timing-function: cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+
+@keyframes cinema-degrau {
+  from {
+    transform: translateY(105%);
+  }
+}
+.cinema-degrau {
+  animation-name: cinema-degrau;
+  animation-duration: var(--dur, 1100ms);
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes cinema-carimbo {
+  0% {
+    opacity: 0;
+    transform: scale(2.6) rotate(-14deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(0.94) rotate(-5deg);
+  }
+  100% {
+    transform: scale(1) rotate(-5deg);
+  }
+}
+.cinema-carimbo {
+  animation-name: cinema-carimbo;
+  animation-duration: var(--dur, 650ms);
+  animation-timing-function: cubic-bezier(0.3, 0.6, 0.3, 1);
+}
+
+@keyframes cinema-tracking {
+  from {
+    opacity: 0;
+    letter-spacing: 0.7em;
+    filter: blur(8px);
+  }
+}
+.cinema-tracking {
+  animation-name: cinema-tracking;
+  animation-duration: var(--dur, 1600ms);
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cinema-barra {
+  from {
+    transform: scaleX(0);
+  }
+}
+.cinema-barra {
+  transform-origin: left;
+  animation-name: cinema-barra;
+  animation-duration: var(--dur, 1400ms);
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Camada do trailer gerado: entra, segura e sai dentro da sua janela de tempo. */
+@keyframes cinema-janela {
+  0% {
+    opacity: 0;
+    transform: scale(1.06);
+    filter: blur(10px);
+  }
+  14% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  86% {
+    opacity: 1;
+    transform: scale(0.99);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+.cinema-janela {
+  opacity: 0;
+  animation-name: cinema-janela;
+  animation-duration: var(--dur, 3000ms);
+  animation-timing-function: ease-in-out;
+}
+.cinema-janela-final {
+  animation-name: cinema-surgir;
+  animation-duration: 1200ms;
+}
+
+/* Abertura de cada cena: sai do preto. */
+@keyframes cinema-cortina {
+  0% {
+    opacity: 1;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.cinema-cortina {
+  animation: cinema-cortina 1100ms ease-out both;
+}
+
+@keyframes cinema-flash {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.cinema-flash {
+  animation: cinema-flash 900ms ease-out both;
+}
+
+@keyframes cinema-varrer {
+  from {
+    transform: rotate(var(--de, -28deg));
+  }
+  to {
+    transform: rotate(var(--ate, 28deg));
+  }
+}
+.cinema-holofote {
+  transform-origin: 50% 0;
+  animation: cinema-varrer var(--dur, 6s) ease-in-out infinite alternate;
+  animation-delay: var(--atraso, 0ms);
+}
+
+@keyframes cinema-poeira {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  20%,
+  70% {
+    opacity: var(--brilho, 0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--deriva, 0px), -520px, 0);
+  }
+}
+.cinema-poeira {
+  animation: cinema-poeira var(--dur, 12s) linear infinite;
+  animation-delay: var(--atraso, 0ms);
+}
+
+@keyframes cinema-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.cinema-raios {
+  animation: cinema-girar 48s linear infinite;
+}
+
+@keyframes cinema-confete {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, -60px, 0) rotate(0deg);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--deriva, 0px), 1160px, 0) rotate(var(--giro, 720deg));
+  }
+}
+.cinema-confete {
+  animation: cinema-confete var(--dur, 3.6s) cubic-bezier(0.25, 0.4, 0.5, 1) both;
+  animation-delay: var(--atraso, 0ms);
+}
+
+/* Suspense: pulsação que respira, para o "?" e o degrau da vez. */
+@keyframes cinema-pulsar {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.07);
+    opacity: 1;
+  }
+}
+.cinema-pulsar {
+  animation: cinema-pulsar var(--dur, 1.1s) ease-in-out infinite;
+}
+
+@keyframes cinema-brilho {
+  from {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(260%) skewX(-18deg);
+  }
+}
+.cinema-brilho {
+  animation: cinema-brilho 1400ms ease-in-out both;
+  animation-delay: var(--atraso, 300ms);
+}
+
+@keyframes cinema-zoom-lento {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.14) translate(-2%, -1%);
+  }
+}
+.cinema-zoom-lento {
+  animation: cinema-zoom-lento var(--dur, 6s) ease-out both;
+}
+
+@keyframes cinema-reticencias {
+  0%,
+  20% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+.cinema-reticencias > span {
+  animation: cinema-reticencias 1.2s ease-in-out infinite;
+}
+.cinema-reticencias > span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.cinema-reticencias > span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Texto dourado (1º lugar). */
+.cinema-ouro {
+  background: linear-gradient(180deg, #fff6d5 0%, var(--medalha-ouro) 45%, #b8860b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 /* Totem (rev. 4, A7): feedback imediato para crianças (desligado por prefers-reduced-motion acima). */
 @keyframes totem-pulso {
   0%,

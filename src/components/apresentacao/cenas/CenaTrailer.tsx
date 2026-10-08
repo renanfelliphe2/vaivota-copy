@@ -1,42 +1,171 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
 import { LogoEvento } from "@/components/evento/LogoEvento";
-import { CANDIDATOS_POR_PAGINA, DURACOES } from "@/dominio/apresentacao/duracoes";
+import { DURACOES } from "@/dominio/apresentacao/duracoes";
 import type { CandidatoPalco, EstadoTrailer } from "@/dominio/apresentacao/tipos";
-import { usePaginaRotativa } from "../hooks";
-import { CartaoCandidatoPalco } from "../Pecas";
+import { comandoTirarMudo, interpretarLinkTrailer } from "@/dominio/apresentacao/trailer";
+import { TEXTOS_PALCO } from "@/lib/textosPalco";
+import { atraso, FundoCinema, PalcoCinema, vars } from "../Cinema";
+import { useMovimentoReduzido } from "../hooks";
+import { MaisNomes } from "../Pecas";
 
 // Etapa 8 (D11, 5.8): trailer único do evento por link/embed, com fallback gerado em CSS. Nunca armazena
 // vídeo. O iframe começa sem mudo (o clique em Apresentar liberou o áudio, C19).
+// 08/10/2026: o telão é uma aba própria e pode nunca ter recebido um toque; aí o vídeo começa mudo (única forma de
+// o navegador deixar rodar sozinho) e o som volta no primeiro clique ou tecla no telão. O gerado virou uma
+// sequência de títulos: logo → nome e data → candidatos (ou "os votos foram contados") → chamada do resultado.
+
+const MAX_CANDIDATOS_TRAILER = 12;
+
+/** Janelas de tempo (ms) do trailer gerado, proporcionais a DURACOES.trailerGerado. */
+function janelas(total: number) {
+  const t = (f: number) => Math.round(total * f);
+  return {
+    logo: { atraso: t(0.02), dur: t(0.28) },
+    nome: { atraso: t(0.27), dur: t(0.36) },
+    meio: { atraso: t(0.61), dur: t(0.27) },
+    chamada: { atraso: t(0.86) },
+  };
+}
+
+function PlacaLogo({ nome, logoUrl }: { nome: string; logoUrl: string | null }) {
+  return (
+    <div className="rounded-[36px] bg-tema-fundo px-12 py-8 text-tema-texto shadow-[0_0_120px_color-mix(in_srgb,var(--cinema-luz)_45%,transparent)] [&_span]:text-[64px] [&_img]:h-36">
+      <LogoEvento nome={nome} logoUrl={logoUrl} className="h-36" />
+    </div>
+  );
+}
+
+function TrailerEstatico({ nome, logoUrl, data, candidatos }: { nome: string; logoUrl: string | null; data: string; candidatos: CandidatoPalco[] }) {
+  const visiveis = candidatos.slice(0, MAX_CANDIDATOS_TRAILER);
+  return (
+    <PalcoCinema fundo={<FundoCinema holofotes={false} poeira={false} />}>
+      <div className="flex h-full flex-col items-center justify-center gap-12 p-20 text-center">
+        <PlacaLogo nome={nome} logoUrl={logoUrl} />
+        <p className="text-[96px] font-black leading-tight">{nome}</p>
+        {data && <p className="text-[48px] font-semibold text-cinema-suave">{data}</p>}
+        {visiveis.length > 0 && (
+          <div className="grid w-full grid-cols-6 gap-5">
+            {visiveis.map((c) => (
+              <ImagemCandidato key={c.id} titulo={c.titulo} imagemUrl={c.imagemUrl} proporcao="16/9" className="rounded-2xl" sizes="280px" />
+            ))}
+          </div>
+        )}
+      </div>
+    </PalcoCinema>
+  );
+}
 
 function TrailerGerado({ nome, logoUrl, data, candidatos }: { nome: string; logoUrl: string | null; data: string; candidatos: CandidatoPalco[] }) {
-  const paginas = Math.ceil(candidatos.length / CANDIDATOS_POR_PAGINA);
-  const pagina = usePaginaRotativa(paginas, DURACOES.trailerGerado / Math.max(1, paginas + 1));
-  const visiveis = candidatos.slice(pagina * CANDIDATOS_POR_PAGINA, (pagina + 1) * CANDIDATOS_POR_PAGINA);
+  const reduzido = useMovimentoReduzido();
+  if (reduzido) return <TrailerEstatico nome={nome} logoUrl={logoUrl} data={data} candidatos={candidatos} />;
+  const j = janelas(DURACOES.trailerGerado);
+  const visiveis = candidatos.slice(0, MAX_CANDIDATOS_TRAILER);
+  const camada = (w: { atraso: number; dur: number }) => vars({ "--atraso": `${w.atraso}ms`, "--dur": `${w.dur}ms` });
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-12 bg-tema-primaria p-20 text-tema-sobre-primaria">
-      <div className="palco-entrada flex flex-col items-center gap-8 text-center">
-        <div className="rounded-3xl bg-tema-fundo px-10 py-6 text-tema-texto [&_span]:text-[64px] [&_img]:h-32">
-          <LogoEvento nome={nome} logoUrl={logoUrl} className="h-32" />
+    <PalcoCinema>
+      {/* 1. Logo */}
+      <div className="cinema-janela absolute inset-0 flex flex-col items-center justify-center gap-10" style={camada(j.logo)}>
+        <div className="cinema-pop" style={atraso(j.logo.atraso + 200)}>
+          <PlacaLogo nome={nome} logoUrl={logoUrl} />
         </div>
-        <p className="text-[96px] font-black leading-tight">{nome}</p>
-        <p className="text-[48px] font-semibold">{data}</p>
+        <p className="cinema-tracking text-[40px] font-semibold uppercase tracking-[0.5em] text-cinema-suave" style={atraso(j.logo.atraso + 900)}>
+          {TEXTOS_PALCO.apresenta}
+        </p>
       </div>
-      {visiveis.length > 0 && (
-        <div key={pagina} className="palco-entrada grid w-full grid-cols-4 gap-6 text-tema-texto">
-          {visiveis.map((c) => (
-            <CartaoCandidatoPalco key={c.id} candidato={c} />
-          ))}
-        </div>
-      )}
+
+      {/* 2. Nome e data */}
+      <div className="cinema-janela absolute inset-0 flex flex-col items-center justify-center gap-10 px-24 text-center" style={camada(j.nome)}>
+        <p className="cinema-tracking text-[120px] font-black uppercase leading-[1.02] tracking-[0.04em]" style={atraso(j.nome.atraso + 100)}>
+          {nome}
+        </p>
+        <span className="cinema-barra h-[4px] w-[900px] bg-linear-to-r from-transparent via-cinema-destaque to-transparent" style={atraso(j.nome.atraso + 700)} />
+        {data && (
+          <p className="cinema-subir text-[52px] font-semibold text-cinema-destaque" style={atraso(j.nome.atraso + 1100)}>
+            {data}
+          </p>
+        )}
+      </div>
+
+      {/* 3. Candidatos (ou a frase de transição) */}
+      <div className="cinema-janela absolute inset-0 flex flex-col items-center justify-center gap-8 px-20" style={camada(j.meio)}>
+        {visiveis.length > 0 ? (
+          <>
+            <div className="grid w-full grid-cols-6 gap-5">
+              {visiveis.map((c, i) => (
+                <div key={c.id} className="cinema-pop overflow-hidden rounded-2xl" style={atraso(j.meio.atraso + 150 + i * 90)}>
+                  <div className="cinema-zoom-lento" style={vars({ "--dur": `${j.meio.dur}ms` })}>
+                    <ImagemCandidato titulo={c.titulo} imagemUrl={c.imagemUrl} proporcao="16/9" sizes="280px" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <MaisNomes mais={candidatos.length - visiveis.length} />
+          </>
+        ) : (
+          <p className="cinema-revelar text-center text-[110px] font-black leading-tight" style={atraso(j.meio.atraso + 100)}>
+            {TEXTOS_PALCO.votosContados}
+          </p>
+        )}
+      </div>
+
+      {/* 4. Chamada do resultado (fica até o fim) */}
+      <div className="absolute inset-0 flex items-center justify-center px-24">
+        <p className="cinema-revelar cinema-ouro text-center text-[130px] font-black uppercase leading-[1.02]" style={atraso(j.chamada.atraso)}>
+          {TEXTOS_PALCO.chegouAHora}
+        </p>
+      </div>
+    </PalcoCinema>
+  );
+}
+
+/** O telão já recebeu um toque? Sem isso, o navegador bloqueia vídeo com som (só deixa mudo). */
+function telaoAtivado(): boolean {
+  if (typeof navigator === "undefined") return true;
+  return navigator.userActivation?.hasBeenActive ?? true;
+}
+
+function TrailerLink({ embed, mudo, nome, aoPronto }: { embed: string; mudo: boolean; nome: string; aoPronto: () => void }) {
+  const quadro = useRef<HTMLIFrameElement>(null);
+
+  // Mudo: o primeiro clique ou tecla no telão devolve o som (o gesto libera o áudio na aba).
+  useEffect(() => {
+    if (!mudo) return;
+    const comando = comandoTirarMudo(embed);
+    if (!comando) return;
+    const tirarMudo = () => {
+      quadro.current?.contentWindow?.postMessage(comando, "*");
+      window.removeEventListener("pointerdown", tirarMudo);
+      window.removeEventListener("keydown", tirarMudo);
+    };
+    window.addEventListener("pointerdown", tirarMudo);
+    window.addEventListener("keydown", tirarMudo);
+    return () => {
+      window.removeEventListener("pointerdown", tirarMudo);
+      window.removeEventListener("keydown", tirarMudo);
+    };
+  }, [mudo, embed]);
+
+  return (
+    <div className="relative h-full bg-black">
+      <iframe
+        ref={quadro}
+        src={embed}
+        title={`Trailer: ${nome}`}
+        allow="autoplay; fullscreen; encrypted-media"
+        referrerPolicy="strict-origin-when-cross-origin"
+        className="absolute inset-0 size-full border-0"
+        onLoad={aoPronto}
+      />
     </div>
   );
 }
 
 export function CenaTrailer({
   estado,
-  embedUrl,
+  linkTrailer,
   forcarGerado,
   nome,
   logoUrl,
@@ -46,8 +175,8 @@ export function CenaTrailer({
   aoFalhar,
 }: {
   estado: EstadoTrailer;
-  /** null = sem link válido (vai direto ao gerado). */
-  embedUrl: string | null;
+  /** Link cadastrado (YouTube ou Vimeo); sem link válido vai direto ao gerado. */
+  linkTrailer: string | null;
   /** usarTrailerGerado ou dev.simularTrailerFalha (o iframe nem é montado). */
   forcarGerado: boolean;
   nome: string;
@@ -61,7 +190,10 @@ export function CenaTrailer({
   useEffect(() => {
     falhar.current = aoFalhar;
   });
-  const usarLink = Boolean(embedUrl) && !forcarGerado;
+  // Decidido na entrada da cena: trocar a URL no meio recarregaria o vídeo.
+  const [mudo] = useState(() => !telaoAtivado());
+  const embed = interpretarLinkTrailer(linkTrailer, { mudo });
+  const usarLink = Boolean(embed) && !forcarGerado;
 
   useEffect(() => {
     if (estado !== "CARREGANDO") return;
@@ -69,19 +201,6 @@ export function CenaTrailer({
     return () => clearTimeout(timer);
   }, [estado, usarLink]);
 
-  if (usarLink && estado !== "GERADO") {
-    return (
-      <div className="relative h-full bg-tema-texto">
-        <iframe
-          src={embedUrl!}
-          title={`Trailer: ${nome}`}
-          allow="autoplay; fullscreen"
-          referrerPolicy="strict-origin-when-cross-origin"
-          className="absolute inset-0 size-full border-0"
-          onLoad={aoPronto}
-        />
-      </div>
-    );
-  }
+  if (usarLink && embed && estado !== "GERADO") return <TrailerLink embed={embed} mudo={mudo} nome={nome} aoPronto={aoPronto} />;
   return <TrailerGerado nome={nome} logoUrl={logoUrl} data={data} candidatos={candidatos} />;
 }

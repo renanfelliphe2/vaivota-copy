@@ -90,6 +90,7 @@ O botão **Apresentar** abre a tela conforme o estado do evento:
 - Se o link falhar (removido, sem internet, embed bloqueado), cai no trailer gerado após um **tempo limite**.
 - **Pular trailer** disponível a qualquer momento.
 - O clique em **Apresentar** libera o áudio (navegadores bloqueiam som automático sem interação).
+- **Rev. 08/10/2026:** o trailer de link começa sozinho ao entrar na cena. Como o telão é uma aba própria, se ela ainda não recebeu nenhum clique ou tecla o vídeo começa **mudo** (única forma de o navegador deixar rodar); o som volta no primeiro clique ou tecla no telão. Clicar uma vez no telão (ou apertar F para a tela cheia) antes da cerimônia garante o som desde o início.
 - **Nunca se armazena vídeo; o trailer é sempre link/embed.** Não existe trailer por candidato.
 
 ## 8. Controle e operação no dia
@@ -134,6 +135,6 @@ O botão **Apresentar** abre a tela conforme o estado do evento:
 
 - **Resolvida (rev. 3/4):** modo de avanço padrão automático com pausa (DD §8.4), configurável por evento.
 - **Resolvida (rev. 4, E21):** durações de cada etapa e do trailer gerado mantidas nas constantes do planner (Etapa 8), ajustadas no ensaio.
-- Direção visual das animações (incluindo o efeito de desempate).
+- **Resolvida (08/10/2026):** direção visual cinematográfica. Palco escuro tingido pela cor primária, com holofotes e poeira de luz; cada cena abre saindo do preto. Categoria: roleta de suspense → clarão, raios e confete → contagem de votos. Desempate: carimbo "Empate!" → barras de votos do critério → vencedor iluminado. Pódio físico montado do 3º ao 1º (degraus sobem, o candidato pousa no degrau, a pontuação conta). Final em dois atos: o pódio só com os vencedores e, depois de alguns segundos, cards com pontuação, votos e percentual por grupo e selos das categorias vencidas. O resultado estático abre direto nos cards.
 - Tela pública de resultado estático após o evento (futuro).
 - Trilha sonora e efeitos (futuro, por licenciamento).

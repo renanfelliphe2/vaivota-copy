@@ -90,14 +90,31 @@ export type PropsCena =
       vencedorId: string | null;
       passo: number;
     }
-  | { tipo: "PODIO"; posicao: number; candidatos: ListaLimitada<{ candidatoId: string; pontuacao: number }>; compartilhada: boolean; casas: 2 | 4; passo: number }
+  | {
+      tipo: "PODIO";
+      posicao: number;
+      candidatos: ListaLimitada<{ candidatoId: string; pontuacao: number }>;
+      compartilhada: boolean;
+      casas: 2 | 4;
+      passo: number;
+      /** 08/10/2026: o pódio inteiro, montado de baixo para cima; posições ainda não reveladas vêm sem candidatos. */
+      degraus: { posicao: number; candidatos: ListaLimitada<{ candidatoId: string; pontuacao: number }> | null }[];
+    }
   | { tipo: "CLASSIFICACAO"; linhas: { candidatoId: string; posicao: number; pontuacao: number }[]; pagina: number; paginas: number; casas: 2 | 4 }
   | { tipo: "FINAL" } & PropsFinal
   | { tipo: "OUTRA" };
 
+/** Detalhe do candidato nos cards do final (08/10/2026): votos e fatia de cada grupo, e as categorias vencidas (selos). */
+export type DetalheFinal = {
+  votos: { grupo: Grupo; votos: number; percentual: number }[];
+  selos: Grupo[];
+};
+
 export type PropsFinal = {
-  podio: { posicao: number; candidatos: ListaLimitada<{ candidatoId: string; pontuacao: number }> }[];
+  podio: { posicao: number; candidatos: ListaLimitada<{ candidatoId: string; pontuacao: number; detalhe: DetalheFinal }> }[];
   categorias: { grupo: Grupo; vencedores: { candidatoId: string; votos: number }[] }[];
+  /** Vencedores de categoria que ficaram fora do pódio (os do pódio levam o selo no próprio card). */
+  destaques: { grupo: Grupo; candidatoId: string }[];
   casas: 2 | 4;
   vazio: boolean;
 };
@@ -106,15 +123,37 @@ function candidatosDaPosicao(dados: DadosResultado, posicao: number) {
   return dados.ranking.filter((r) => r.posicao === posicao).map((r) => ({ candidatoId: r.candidatoId, pontuacao: r.pontuacao }));
 }
 
+function posicoesDoPodio(dados: DadosResultado): number[] {
+  return [...new Set(dados.ranking.map((r) => r.posicao))].filter((p) => p <= 3).sort((a, b) => a - b);
+}
+
+function detalheDoCandidato(dados: DadosResultado, candidatoId: string): DetalheFinal {
+  const grupos = ORDEM_CATEGORIAS.filter((g) => gruposDoResultado(dados).includes(g));
+  return {
+    votos: grupos.map((grupo) => {
+      const votos = dados.placares[grupo].find((p) => p.candidatoId === candidatoId)?.votos ?? 0;
+      const total = dados.totais[grupo];
+      return { grupo, votos, percentual: total > 0 ? (votos / total) * 100 : 0 };
+    }),
+    selos: grupos.filter((g) => dados.categorias.some((c) => c.grupo === g && c.vencedores.some((v) => v.candidatoId === candidatoId))),
+  };
+}
+
 export function montarFinal(dados: DadosResultado): PropsFinal {
   const casas = casasDaPontuacao(dados.ranking);
-  const posicoes = [...new Set(dados.ranking.map((r) => r.posicao))].filter((p) => p <= 3).sort((a, b) => a - b);
+  const podio = posicoesDoPodio(dados).map((posicao) => ({
+    posicao,
+    candidatos: limitar(candidatosDaPosicao(dados, posicao).map((c) => ({ ...c, detalhe: detalheDoCandidato(dados, c.candidatoId) }))),
+  }));
+  const noPodio = new Set(podio.flatMap((p) => p.candidatos.itens.map((c) => c.candidatoId)));
+  const categorias = ORDEM_CATEGORIAS.flatMap((g) => {
+    const c = dados.categorias.find((x) => x.grupo === g);
+    return c && c.vencedores.length > 0 ? [{ grupo: g, vencedores: c.vencedores }] : [];
+  });
   return {
-    podio: posicoes.map((posicao) => ({ posicao, candidatos: limitar(candidatosDaPosicao(dados, posicao)) })),
-    categorias: ORDEM_CATEGORIAS.flatMap((g) => {
-      const c = dados.categorias.find((x) => x.grupo === g);
-      return c && c.vencedores.length > 0 ? [{ grupo: g, vencedores: c.vencedores }] : [];
-    }),
+    podio,
+    categorias,
+    destaques: categorias.flatMap((c) => c.vencedores.filter((v) => !noPodio.has(v.candidatoId)).map((v) => ({ grupo: c.grupo, candidatoId: v.candidatoId }))),
     casas,
     vazio: dados.ranking.length === 0,
   };
@@ -144,7 +183,9 @@ export function montarProps(dados: DadosResultado, cena: Cena, passo: number): P
     }
     case "PODIO": {
       const lista = candidatosDaPosicao(dados, cena.posicao);
-      return { tipo: "PODIO", posicao: cena.posicao, candidatos: limitar(lista), compartilhada: lista.length > 1, casas, passo };
+      // A revelação vai do 3º ao 1º: só as posições iguais ou piores que a da cena já têm nome no DOM.
+      const degraus = posicoesDoPodio(dados).map((p) => ({ posicao: p, candidatos: p >= cena.posicao ? limitar(candidatosDaPosicao(dados, p)) : null }));
+      return { tipo: "PODIO", posicao: cena.posicao, candidatos: limitar(lista), compartilhada: lista.length > 1, casas, passo, degraus };
     }
     case "CLASSIFICACAO": {
       const inicio = passo * LINHAS_CLASSIFICACAO;

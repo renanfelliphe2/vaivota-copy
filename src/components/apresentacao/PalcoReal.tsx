@@ -248,7 +248,7 @@ export function PalcoReal({
   } else if (fasePalco === "ENCERRADA_AGUARDANDO" || !dados) {
     conteudo = <CenaEncerrada nome={nome} logoUrl={tema.logoUrl} candidatos={candidatos} totalGeral={aoVivo.dados?.totalGeral ?? null} />;
   } else if (fasePalco === "FINAL_ESTATICO") {
-    conteudo = <CenaFinal final={montarFinal(dados.dados)} catalogo={catalogo} config={dados.config} />;
+    conteudo = <CenaFinal final={montarFinal(dados.dados)} catalogo={catalogo} config={dados.config} direto />;
   } else {
     conteudo = (
       <CenaAtual
