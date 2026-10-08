@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import type { EstadoDev, EstadoEvento, EstadoUrna, ModoFalha } from "@/dominio/tipos";
 import { paraMs, formatarDataHora, HORA, MINUTO, SEGUNDO } from "@/lib/tempo";
@@ -13,7 +11,7 @@ import {
   definirErroRede,
   definirFalhaProxima,
   definirLatencia,
-  definirSlugPadrao,
+  definirToolbarAvancadas,
   definirToolbarModo,
   definirToolbarRecolhida,
   forcarEstadoEvento,
@@ -23,13 +21,14 @@ import {
   resetarMock,
 } from "@/store/acoes";
 import { useDev, useUi } from "@/store/seletores/dev";
-import { useEventoAtivo, useEventos } from "@/store/seletores/evento";
+import { useEventoAtivo } from "@/store/seletores/evento";
 import { useAgora, useRelogio, useRelogioPausado } from "@/store/seletores/relogio";
 import { useSessao, useUsuarios } from "@/store/seletores/sessao";
-import { InspetorEstado } from "./InspetorEstado";
+import { InspetorEstado, JsonEstado } from "./InspetorEstado";
 import { SECOES_TOOLBAR } from "./secoes";
 
 // Visual neutro, fora do TemaEvento (D17). Cores fixas permitidas em components/dev/.
+// Três grupos (08/10/2026): básico (sempre visível), "Opções avançadas" (sob demanda) e gerais (rodapé).
 
 const HABILITADA = process.env.NEXT_PUBLIC_DEV_TOOLBAR !== "false";
 
@@ -106,8 +105,8 @@ function DevToolbarInterna() {
   const dev = useDev();
   const ui = useUi();
 
-  // ?toolbar=0 grava OCULTA. Alt+D alterna: visível → OCULTA; oculta → FORCADA.
-  const visivel = dev.toolbarModo === "FORCADA" || (dev.toolbarModo === "AUTO" && !ui.palcoAtivo);
+  // ?toolbar=0 grava OCULTA. Alt+D alterna: visível → OCULTA; oculta → FORCADA. Em AUTO some no palco e no totem.
+  const visivel = dev.toolbarModo === "FORCADA" || (dev.toolbarModo === "AUTO" && !ui.palcoAtivo && !ui.totem.quiosqueAtivo);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("toolbar") === "0") definirToolbarModo("OCULTA");
@@ -140,53 +139,80 @@ function DevToolbarInterna() {
     );
   }
 
+  const secoes = (grupo: "BASICO" | "AVANCADO") =>
+    SECOES_TOOLBAR.filter((s) => s.grupo === grupo).map(({ id, titulo, Componente }) => (
+      <Secao key={id} titulo={titulo}>
+        <Componente />
+      </Secao>
+    ));
+
   return (
     <aside
       data-print="ocultar"
       aria-label="Dev toolbar"
       className="fixed inset-x-2 bottom-2 z-50 flex max-h-[80dvh] flex-col rounded-xl bg-zinc-900 font-sans text-zinc-100 shadow-2xl ring-1 ring-zinc-700 sm:inset-x-auto sm:right-3 sm:w-96"
     >
-      <div className="flex items-center justify-between border-b border-zinc-700 px-3 py-2">
+      <div className="border-b border-zinc-700 px-3 py-2">
         <p className="text-xs font-bold text-amber-300">Dev toolbar · protótipo</p>
-        <div className="flex gap-1">
-          <button type="button" onClick={() => definirToolbarModo("OCULTA")} className={CLASSE_BOTAO} title="Alt+D mostra de novo">
-            Ocultar
-          </button>
-          <button type="button" onClick={() => definirToolbarRecolhida(true)} aria-expanded className={CLASSE_BOTAO}>
-            Recolher ▼
-          </button>
-        </div>
       </div>
       <div className="flex flex-col gap-3 overflow-y-auto px-3 pb-3 pt-1">
-        <Controles />
-        {SECOES_TOOLBAR.map(({ id, titulo, Componente }) => (
-          <Secao key={id} titulo={titulo}>
-            <Componente />
-          </Secao>
-        ))}
-        <Secao titulo="Inspetor">
-          <InspetorEstado />
-        </Secao>
+        {/* Básico (08/10/2026): o que a demonstração usa. */}
+        <ControlesBasicos />
+        {secoes("BASICO")}
+
+        <button
+          type="button"
+          onClick={() => definirToolbarAvancadas(!dev.toolbarAvancadas)}
+          aria-expanded={dev.toolbarAvancadas}
+          aria-controls="toolbar-avancadas"
+          className="flex items-center justify-between rounded-md border border-zinc-600 px-2 py-1.5 text-xs font-semibold hover:bg-zinc-800"
+        >
+          Opções avançadas
+          <span aria-hidden>{dev.toolbarAvancadas ? "▲" : "▼"}</span>
+        </button>
+        {dev.toolbarAvancadas && (
+          <div id="toolbar-avancadas" className="flex flex-col gap-3">
+            <ControlesAvancados />
+            {secoes("AVANCADO")}
+            <Secao titulo="Inspetor">
+              <InspetorEstado />
+            </Secao>
+            <Secao titulo="Mostrar JSON">
+              <JsonEstado />
+            </Secao>
+          </div>
+        )}
+      </div>
+      {/* Gerais */}
+      <div className="flex items-center gap-1 border-t border-zinc-700 px-3 py-2">
+        <button
+          type="button"
+          onClick={() => resetarMock()}
+          className="rounded-md bg-red-900 px-2 py-1 text-xs font-semibold text-red-100 hover:bg-red-800"
+        >
+          Resetar mock
+        </button>
+        <span className="flex-1" />
+        <button type="button" onClick={() => definirToolbarModo("OCULTA")} className={CLASSE_BOTAO} title="Alt+D mostra de novo">
+          Ocultar
+        </button>
+        <button type="button" onClick={() => definirToolbarRecolhida(true)} aria-expanded className={CLASSE_BOTAO}>
+          Recolher ▼
+        </button>
       </div>
     </aside>
   );
 }
 
-function Controles() {
-  const dev = useDev();
-  const eventos = useEventos();
+/** Estado do evento, Urna, Sessão e Relógio. */
+function ControlesBasicos() {
   const ativo = useEventoAtivo();
-  const params = useParams<{ slug?: string }>();
   const sessao = useSessao();
   const usuarios = useUsuarios();
   const agora = useAgora();
   const pausado = useRelogioPausado();
   const relogio = useRelogio();
-  const cenarios = listarCenarios();
-  const [cenarioId, setCenarioId] = useState(cenarios[0]?.id ?? "");
-  const [avisoModulo, setAvisoModulo] = useState<string | null>(null);
 
-  const naRota = typeof params?.slug === "string";
   const evento = ativo?.evento;
   const fuso = evento?.fusoHorario;
 
@@ -198,35 +224,6 @@ function Controles() {
 
   return (
     <>
-      <Secao titulo="Evento">
-        <select
-          aria-label="Evento padrão"
-          className={CLASSE_SELECT}
-          value={dev.slugPadrao}
-          onChange={(e) => definirSlugPadrao(e.target.value)}
-        >
-          {eventos.map((e) => (
-            <option key={e.id} value={e.slug}>
-              {e.nome}
-            </option>
-          ))}
-        </select>
-        {naRota ? (
-          <p className="text-[11px] text-zinc-400">
-            Nesta rota vale o evento da URL ({ativo?.slug}).{" "}
-            {dev.slugPadrao !== ativo?.slug && (
-              <Link href={`/e/${dev.slugPadrao}`} className="underline">
-                Ir para /e/{dev.slugPadrao}
-              </Link>
-            )}
-          </p>
-        ) : (
-          <Link href={`/e/${dev.slugPadrao}`} className="text-[11px] text-zinc-300 underline">
-            Abrir /e/{dev.slugPadrao}
-          </Link>
-        )}
-      </Secao>
-
       {evento && (
         <>
           <Secao titulo="Estado do evento">
@@ -264,29 +261,6 @@ function Controles() {
         )}
       </Secao>
 
-      {evento && ativo && (
-        <Secao titulo="Módulos e pesos">
-          <div className="flex flex-wrap gap-3 text-xs">
-            <label className="flex items-center gap-1">
-              <input type="checkbox" checked={evento.moduloJuri} onChange={() => setAvisoModulo(alternarModulo(evento.id, "JURI"))} />
-              Júri
-            </label>
-            <label className="flex items-center gap-1">
-              <input type="checkbox" checked={evento.moduloInfantil} onChange={() => setAvisoModulo(alternarModulo(evento.id, "INFANTIL"))} />
-              Infantil
-            </label>
-            <span className="text-zinc-400">
-              {ativo.configPlacar.pesoPopular}/{ativo.configPlacar.pesoJuri}/{ativo.configPlacar.pesoInfantil}
-            </span>
-          </div>
-          {avisoModulo && (
-            <p role="status" className="text-[11px] text-amber-200">
-              {avisoModulo}
-            </p>
-          )}
-        </Secao>
-      )}
-
       <Secao titulo="Relógio">
         <p className="text-xs tabular-nums text-zinc-300">
           {formatarDataHora(agora, fuso)}:{String(Math.floor((agora / SEGUNDO) % 60)).padStart(2, "0")}
@@ -318,6 +292,43 @@ function Controles() {
           </button>
         </div>
       </Secao>
+    </>
+  );
+}
+
+/** Módulos e pesos, Rede e falhas, Cenários. */
+function ControlesAvancados() {
+  const dev = useDev();
+  const ativo = useEventoAtivo();
+  const cenarios = listarCenarios();
+  const [cenarioId, setCenarioId] = useState(cenarios[0]?.id ?? "");
+  const [avisoModulo, setAvisoModulo] = useState<string | null>(null);
+  const evento = ativo?.evento;
+
+  return (
+    <>
+      {evento && ativo && (
+        <Secao titulo="Módulos e pesos">
+          <div className="flex flex-wrap gap-3 text-xs">
+            <label className="flex items-center gap-1">
+              <input type="checkbox" checked={evento.moduloJuri} onChange={() => setAvisoModulo(alternarModulo(evento.id, "JURI"))} />
+              Júri
+            </label>
+            <label className="flex items-center gap-1">
+              <input type="checkbox" checked={evento.moduloInfantil} onChange={() => setAvisoModulo(alternarModulo(evento.id, "INFANTIL"))} />
+              Infantil
+            </label>
+            <span className="text-zinc-400">
+              {ativo.configPlacar.pesoPopular}/{ativo.configPlacar.pesoJuri}/{ativo.configPlacar.pesoInfantil}
+            </span>
+          </div>
+          {avisoModulo && (
+            <p role="status" className="text-[11px] text-amber-200">
+              {avisoModulo}
+            </p>
+          )}
+        </Secao>
+      )}
 
       <Secao titulo="Rede e falhas">
         <Opcoes
@@ -360,13 +371,6 @@ function Controles() {
           </button>
         </div>
         <p className="text-[11px] text-zinc-400">{cenarios.find((c) => c.id === cenarioId)?.descricao}</p>
-        <button
-          type="button"
-          onClick={() => resetarMock()}
-          className="self-start rounded-md bg-red-900 px-2 py-1 text-xs font-semibold text-red-100 hover:bg-red-800"
-        >
-          Resetar mock
-        </button>
       </Secao>
     </>
   );

@@ -33,7 +33,12 @@ export function resetarMock(): void {
     const inicial = criarEstadoInicial();
     return {
       ...inicial,
-      dev: { ...inicial.dev, toolbarModo: atual.dev.toolbarModo, toolbarRecolhida: atual.dev.toolbarRecolhida },
+      dev: {
+        ...inicial.dev,
+        toolbarModo: atual.dev.toolbarModo,
+        toolbarRecolhida: atual.dev.toolbarRecolhida,
+        toolbarAvancadas: atual.dev.toolbarAvancadas,
+      },
     };
   });
   relogio.reiniciar();
@@ -157,4 +162,8 @@ export function definirToolbarModo(toolbarModo: ToolbarModo): void {
 
 export function definirToolbarRecolhida(toolbarRecolhida: boolean): void {
   alterarDev({ toolbarRecolhida });
+}
+
+export function definirToolbarAvancadas(toolbarAvancadas: boolean): void {
+  alterarDev({ toolbarAvancadas });
 }

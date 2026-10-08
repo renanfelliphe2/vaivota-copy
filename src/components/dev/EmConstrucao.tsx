@@ -20,7 +20,7 @@ export function EmConstrucao({ titulo, rota, etapa }: EmConstrucaoProps) {
   const slug = ativo?.slug ?? "";
   const links = [
     { href: `/e/${slug}`, rotulo: "Entrada" },
-    { href: `/e/${slug}/votar`, rotulo: "Votar" },
+    { href: `/e/${slug}#candidatos`, rotulo: "Votar" },
     { href: `/e/${slug}/convite`, rotulo: "Convite" },
     { href: `/e/${slug}/admin`, rotulo: "Dashboard" },
     { href: `/e/${slug}/admin/configuracao`, rotulo: "Configuração" },

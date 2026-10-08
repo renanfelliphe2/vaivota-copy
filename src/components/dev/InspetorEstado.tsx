@@ -4,23 +4,31 @@ import { useMemo, useState } from "react";
 import { verificarInvariantes } from "@/dominio/invariantes";
 import { useEstadoCompleto } from "@/store/seletores/dev";
 
-/** JSON do estado e resultado de verificarInvariantes (só na toolbar; D4 não vale para a ferramenta de dev). */
+// Só na toolbar (D4 não vale para a ferramenta de dev).
+
+/** Resultado de verificarInvariantes. */
 export function InspetorEstado() {
   const estado = useEstadoCompleto();
-  const [aberto, setAberto] = useState(false);
   const violacoes = useMemo(() => verificarInvariantes(estado), [estado]);
+
+  return violacoes.length === 0 ? (
+    <p className="rounded-md bg-emerald-950 px-2 py-1 text-xs text-emerald-200">✓ Invariantes: nenhuma violação</p>
+  ) : (
+    <ul className="flex flex-col gap-1 rounded-md bg-red-950 px-2 py-1 text-xs text-red-200" aria-label="Violações de invariantes">
+      {violacoes.map((v) => (
+        <li key={v}>✗ {v}</li>
+      ))}
+    </ul>
+  );
+}
+
+/** JSON do estado inteiro, sob demanda. */
+export function JsonEstado() {
+  const estado = useEstadoCompleto();
+  const [aberto, setAberto] = useState(false);
 
   return (
     <div className="flex flex-col gap-2">
-      {violacoes.length === 0 ? (
-        <p className="rounded-md bg-emerald-950 px-2 py-1 text-xs text-emerald-200">✓ Invariantes: nenhuma violação</p>
-      ) : (
-        <ul className="flex flex-col gap-1 rounded-md bg-red-950 px-2 py-1 text-xs text-red-200" aria-label="Violações de invariantes">
-          {violacoes.map((v) => (
-            <li key={v}>✗ {v}</li>
-          ))}
-        </ul>
-      )}
       <button
         type="button"
         onClick={() => setAberto((a) => !a)}
