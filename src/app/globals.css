@@ -101,6 +101,20 @@ dialog::backdrop {
 }
 
 /* Etapa 8: animações do palco (desligadas por prefers-reduced-motion acima). */
+/* 08/10/2026: faixa de parceiros em loop (duas cópias lado a lado; -50% é exatamente uma cópia). */
+@keyframes palco-faixa {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.palco-faixa {
+  animation: palco-faixa linear infinite;
+}
+
 @keyframes palco-entrada {
   from {
     opacity: 0;

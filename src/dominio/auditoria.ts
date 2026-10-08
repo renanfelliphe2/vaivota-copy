@@ -85,6 +85,14 @@ export const CATALOGO_AUDITORIA: Record<AcaoAuditoria, ItemCatalogo> = {
     },
   },
   TEMA_ALTERADO: { rotulo: "Tema alterado", grupo: "CONFIGURACAO", descrever: () => "Tema alterado" },
+  PARCEIROS_ALTERADOS: {
+    rotulo: "Parceiros alterados",
+    grupo: "CONFIGURACAO",
+    descrever: (d) => {
+      const n = numero(d?.quantidade);
+      return n === null ? "Parceiros alterados" : `Parceiros alterados: ${n} na lista`;
+    },
+  },
   CONVITES_GERADOS: {
     rotulo: "Convites gerados",
     grupo: "CONFIGURACAO",

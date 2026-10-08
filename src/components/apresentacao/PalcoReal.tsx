@@ -26,6 +26,7 @@ import { useVersaoResultado } from "@/store/seletores/resultado";
 import { useSituacaoEvento } from "@/store/seletores/situacao";
 import { CenaAtual, nomeDaCena, useCatalogo } from "./CenaAtual";
 import { CenaAoVivo, CenaEncerrada, CenaMensagem, CenaPreVotacao, type SubestadoAoVivo } from "./cenas/CenasFase";
+import { FaixaParceiros } from "./Pecas";
 import { CenaFinal } from "./cenas/CenasRevelacao";
 import { usePalcoTeclado, useTemporizadorDoPasso } from "./hooks";
 import { Palco } from "./Palco";
@@ -260,6 +261,8 @@ export function PalcoReal({
 
   const erroLeitura = aoVivo.erro || status.erro || consultaResultado.erro;
   const revelando = fasePalco === "REVELACAO";
+  // Parceiros só enquanto a revelação não começou (08/10/2026).
+  const antesDaRevelacao = fasePalco !== "REVELACAO" && fasePalco !== "FINAL_ESTATICO";
   return (
     <>
       <Palco
@@ -268,6 +271,8 @@ export function PalcoReal({
         progresso={revelando ? { cena: estadoMotor.cena + 1, total: roteiro.length } : null}
         proximoAvancoEm={revelando ? proximoAvancoEm : null}
         aoDesligar={desligar}
+        rodape={antesDaRevelacao ? <FaixaParceiros parceiros={ativo.parceiros} /> : null}
+        chaveTransicao={cenaAtual?.tipo === "TRAILER" ? "trailer" : "cena"}
         mensagem={mensagemHud ?? (erroLeitura ? `Falha de leitura: ${erroLeitura.mensagem}. Mostrando o último dado.` : null)}
         ajudaVisivel={ajuda}
         controles={{

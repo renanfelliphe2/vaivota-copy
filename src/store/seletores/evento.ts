@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
 import { criteriosDoEvento } from "@/dominio/avaliacaoJuri";
-import type { CampoCandidato, Candidato, ConfigApresentacao, ConfigPlacar, CriterioJuri, Evento, Tema } from "@/dominio/tipos";
+import type { CampoCandidato, Candidato, ConfigApresentacao, ConfigPlacar, CriterioJuri, Evento, Parceiro, Tema } from "@/dominio/tipos";
 import { useStore } from "../AppProvider";
 
 export type EventoAtivo = {
@@ -16,6 +16,8 @@ export type EventoAtivo = {
   candidatos: Candidato[];
   /** Critérios do júri (08/10/2026), ordenados. Configuração pública, como os campos extras. */
   criteriosJuri: CriterioJuri[];
+  /** Parceiros (08/10/2026), ordenados. */
+  parceiros: Parceiro[];
 };
 
 /** Slug da rota (/e/[slug]) ou, fora dela, dev.slugPadrao. */
@@ -39,6 +41,7 @@ export function useEventoAtivo(): EventoAtivo | null {
   const camposCandidato = useStore((e) => e.banco.camposCandidato);
   const candidatos = useStore((e) => e.banco.candidatos);
   const criteriosJuri = useStore((e) => e.banco.criteriosJuri);
+  const parceiros = useStore((e) => e.banco.parceiros);
 
   return useMemo(() => {
     const evento = eventos.find((e) => e.slug === slug);
@@ -56,8 +59,9 @@ export function useEventoAtivo(): EventoAtivo | null {
       camposCandidato: camposCandidato.filter((c) => c.eventoId === evento.id).sort((a, b) => a.ordem - b.ordem),
       candidatos: candidatos.filter((c) => c.eventoId === evento.id),
       criteriosJuri: criteriosDoEvento({ criteriosJuri }, evento.id),
+      parceiros: parceiros.filter((p) => p.eventoId === evento.id).sort((a, b) => a.ordem - b.ordem),
     };
-  }, [slug, eventos, temas, configsPlacar, configsApresentacao, camposCandidato, candidatos, criteriosJuri]);
+  }, [slug, eventos, temas, configsPlacar, configsApresentacao, camposCandidato, candidatos, criteriosJuri, parceiros]);
 }
 
 /** Temas de todos os eventos (galeria /dev/ui). */

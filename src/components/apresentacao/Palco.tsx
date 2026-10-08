@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ModoAvanco } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 import { useTelaoPublicado, type ComandoDoPalco } from "@/store/canalTelao";
+import { DURACOES } from "@/dominio/apresentacao/duracoes";
+import { PassagemPeloPreto } from "./Cinema";
 import { ALTURA_PALCO, LARGURA_PALCO, useEscalaPalco } from "./hooks";
 import { SeloEnsaio } from "./Pecas";
 
@@ -60,6 +62,8 @@ export function Palco({
   progresso = null,
   proximoAvancoEm = null,
   aoDesligar,
+  rodape = null,
+  chaveTransicao = "",
   children,
 }: {
   ensaio: boolean;
@@ -74,6 +78,10 @@ export function Palco({
   proximoAvancoEm?: number | null;
   /** "Desligar" do controle remoto. */
   aoDesligar: () => void;
+  /** Faixa fixa no pé do canvas (08/10/2026: parceiros, fora da revelação); a cena ocupa o resto. */
+  rodape?: ReactNode;
+  /** Quando muda, a cena (com o rodapé) escurece até o preto antes da próxima (08/10/2026: entrada e saída do trailer). */
+  chaveTransicao?: string;
   children: ReactNode;
 }) {
   const area = useRef<HTMLDivElement>(null);
@@ -123,10 +131,13 @@ export function Palco({
     <div className="fixed inset-0 z-40 flex flex-col bg-tema-fundo text-tema-texto font-tema">
       <div ref={area} className="relative flex flex-1 items-center justify-center overflow-hidden">
         <div
-          className="relative shrink-0 overflow-hidden bg-tema-fundo"
+          className="relative flex shrink-0 flex-col overflow-hidden bg-tema-fundo"
           style={{ width: LARGURA_PALCO, height: ALTURA_PALCO, transform: `scale(${escala})` }}
         >
-          {children}
+          <PassagemPeloPreto chave={chaveTransicao} duracaoMs={DURACOES.passagemPreto} montarAntes={chaveTransicao === "trailer"}>
+            <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
+            {rodape}
+          </PassagemPeloPreto>
           {ensaio && <SeloEnsaio />}
         </div>
       </div>

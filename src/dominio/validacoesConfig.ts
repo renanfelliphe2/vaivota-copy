@@ -17,6 +17,8 @@ export const LIMITES = {
   maxCampos: 6,
   nomeCriterio: [2, 30],
   maxCriterios: 8,
+  nomeParceiro: [2, 60],
+  maxParceiros: 20,
   motivoExcepcional: 10,
   convitesPorLote: 50,
   rotuloBaseConvite: 40,
@@ -212,6 +214,22 @@ export function validarCriteriosJuri(nomes: readonly string[], porCriterio: bool
     if (!t) erros[`criterio-${i}`] = "Informe o nome do critério.";
     else if (!entre(t, LIMITES.nomeCriterio)) erros[`criterio-${i}`] = "Use de 2 a 30 caracteres.";
     else if (vistos.has(chave)) erros[`criterio-${i}`] = "Já existe um critério com este nome.";
+    vistos.add(chave);
+  });
+  return erros;
+}
+
+/** Parceiros (08/10/2026): nome obrigatório e único; o logo é opcional. */
+export function validarParceiros(nomes: readonly string[]): Erros {
+  const erros: Erros = {};
+  if (nomes.length > LIMITES.maxParceiros) erros.parceiros = `Use até ${LIMITES.maxParceiros} parceiros.`;
+  const vistos = new Set<string>();
+  nomes.forEach((nome, i) => {
+    const t = nome.trim();
+    const chave = t.toLocaleLowerCase("pt-BR");
+    if (!t) erros[`parceiro-${i}`] = "Informe o nome do parceiro.";
+    else if (!entre(t, LIMITES.nomeParceiro)) erros[`parceiro-${i}`] = "Use de 2 a 60 caracteres.";
+    else if (vistos.has(chave)) erros[`parceiro-${i}`] = "Já existe um parceiro com este nome.";
     vistos.add(chave);
   });
   return erros;

@@ -45,6 +45,7 @@ export type AcaoAuditoria =
   // Etapa 6 (configuração)
   | "CONFIG_ALTERADA"
   | "TEMA_ALTERADO"
+  | "PARCEIROS_ALTERADOS"
   | "CONVITES_GERADOS"
   | "CONVITE_REVOGADO"
   | "CANDIDATO_DESQUALIFICADO"
@@ -238,6 +239,15 @@ export type VotoJuri = {
   atualizadoEm: Instante;
 };
 
+/** 08/10/2026: parceiro do evento (patrocinador, apoio), na faixa do telão e na página do evento. Sem logo, o nome em texto. */
+export type Parceiro = {
+  id: string;
+  eventoId: string;
+  nome: string;
+  logoUrl: string | null;
+  ordem: number;
+};
+
 /** Mock-only (08/10/2026): critério de avaliação do júri (ex.: Direção, Roteiro). Vale para os dois modos por critério. */
 export type CriterioJuri = {
   id: string;
@@ -376,6 +386,7 @@ export type Banco = {
   criteriosJuri: CriterioJuri[];
   notasJuri: NotaJuri[];
   escolhasCriterioJuri: EscolhaCriterioJuri[];
+  parceiros: Parceiro[];
   dispositivos: Dispositivo[];
   votosInfantis: VotoInfantil[];
   resultados: ResultadoOficial[];

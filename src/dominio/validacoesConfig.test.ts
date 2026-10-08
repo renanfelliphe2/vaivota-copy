@@ -10,6 +10,7 @@ import {
   validarCandidato,
   validarExtensaoFim,
   validarGeracaoConvites,
+  validarParceiros,
   validarJanela,
   validarMotivo,
   validarNomeEvento,
@@ -150,5 +151,25 @@ describe("Tema", () => {
     expect(validarTema(dados, ["Inter"])).toEqual({});
     expect(validarTema({ ...dados, rotuloCandidato: "", corFundo: "branco" }, ["Inter"])).toHaveProperty("rotuloCandidato");
     expect(validarTema({ ...dados, fonte: "Comic" }, ["Inter"])).toHaveProperty("fonte");
+  });
+});
+
+describe("parceiros", () => {
+  it("validarParceiros: nome obrigatório, tamanho, duplicado e limite", () => {
+    expect(validarParceiros([])).toEqual({});
+    expect(validarParceiros(["Energisa", "energisa ", "", "X"])).toEqual({
+      "parceiro-1": "Já existe um parceiro com este nome.",
+      "parceiro-2": "Informe o nome do parceiro.",
+      "parceiro-3": "Use de 2 a 60 caracteres.",
+    });
+    const muitos = Array.from({ length: LIMITES.maxParceiros + 1 }, (_, i) => `Parceiro ${i + 1}`);
+    expect(validarParceiros(muitos)).toEqual({ parceiros: `Use até ${LIMITES.maxParceiros} parceiros.` });
+  });
+
+  it("seed: os parceiros do Festival passam na validação e estão em ordem", () => {
+    const { parceiros } = criarEstadoInicial().banco;
+    expect(parceiros.length).toBeGreaterThan(0);
+    expect(validarParceiros(parceiros.map((p) => p.nome))).toEqual({});
+    expect(parceiros.map((p) => p.ordem)).toEqual(parceiros.map((_, i) => i + 1));
   });
 });

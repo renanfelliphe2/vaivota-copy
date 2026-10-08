@@ -1,4 +1,4 @@
-import type { CampoCandidato, ConfigApresentacao, ConfigPlacar, CriterioJuri } from "@/dominio/tipos";
+import type { CampoCandidato, ConfigApresentacao, ConfigPlacar, CriterioJuri, Parceiro } from "@/dominio/tipos";
 import { ID_FESTIVAL } from "./eventos";
 
 export const seedConfigsPlacar = [
@@ -42,3 +42,15 @@ export const seedCriteriosJuri = [
   { id: "crit-fv-fotografia", eventoId: ID_FESTIVAL, nome: "Fotografia", ordem: 3 },
   { id: "crit-fv-som", eventoId: ID_FESTIVAL, nome: "Som", ordem: 4 },
 ] satisfies CriterioJuri[];
+
+// 08/10/2026: parceiros do Festival (logos em public/parceiros).
+export const seedParceiros = [
+  { id: "parc-fv-icc", eventoId: ID_FESTIVAL, nome: "Instituto Cidade de Cataguases", logoUrl: "/parceiros/instituto-cidade-de-cataguases.png", ordem: 1 },
+  { id: "parc-fv-fabrica", eventoId: ID_FESTIVAL, nome: "Instituto Fábrica do Futuro", logoUrl: "/parceiros/instituto-fabrica-do-futuro.png", ordem: 2 },
+  { id: "parc-fv-animaparque", eventoId: ID_FESTIVAL, nome: "Animaparque", logoUrl: "/parceiros/animaparque.png", ordem: 3 },
+  { id: "parc-fv-inst-energisa", eventoId: ID_FESTIVAL, nome: "Instituto Energisa", logoUrl: "/parceiros/instituto-energisa.png", ordem: 4 },
+  { id: "parc-fv-energisa", eventoId: ID_FESTIVAL, nome: "Energisa", logoUrl: "/parceiros/energisa.png", ordem: 5 },
+  { id: "parc-fv-mg", eventoId: ID_FESTIVAL, nome: "Cultura e Turismo de Minas Gerais", logoUrl: "/parceiros/cultura-e-turismo-mg.png", ordem: 6 },
+  // A plataforma como parceira de tecnologia do Festival; a organização pode tirar em Configuração → Parceiros.
+  { id: "parc-fv-vaivota", eventoId: ID_FESTIVAL, nome: "VaiVota", logoUrl: "/vaivota-logo.png", ordem: 7 },
+] satisfies Parceiro[];

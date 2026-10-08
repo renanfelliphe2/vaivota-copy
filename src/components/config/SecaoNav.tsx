@@ -1,6 +1,6 @@
 "use client";
 
-import { Gavel, ListChecks, Palette, Power, Scale, Settings2 } from "lucide-react";
+import { Gavel, Handshake, ListChecks, Palette, Power, Scale, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SecaoConfig } from "@/dominio/checklistAtivacao";
@@ -13,6 +13,7 @@ export const SECOES: { id: SecaoConfig; rotulo: string; icone: typeof Gavel }[] 
   { id: "juri", rotulo: "Júri", icone: Gavel },
   { id: "placar", rotulo: "Placar", icone: Scale },
   { id: "tema", rotulo: "Tema", icone: Palette },
+  { id: "parceiros", rotulo: "Parceiros", icone: Handshake },
   { id: "operacao", rotulo: "Operação", icone: Power },
 ];
 

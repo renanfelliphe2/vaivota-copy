@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { ComoFunciona } from "@/components/landing/ComoFunciona";
 import { LandingHero } from "@/components/landing/LandingHero";
+import { Parceiros } from "@/components/landing/Parceiros";
 import { SecaoVotacao } from "@/components/votacao/SecaoVotacao";
 import { ehRotaInterna } from "@/dominio/acesso";
 import { useVisaoEvento } from "@/store/seletores/visao";
@@ -13,7 +14,7 @@ import { UrnaStatusCard } from "./UrnaStatusCard";
 
 /**
  * Página do evento /e/[slug] (Etapa 2; 08/10/2026: absorveu a landing que ficava em "/", que agora é a do VaiVota).
- * Hero, "Como funciona" e a votação (SecaoVotacao). A faixa de status fica presa no cabeçalho (CabecalhoEvento).
+ * Hero, "Como funciona", a votação (SecaoVotacao) e os parceiros. A faixa de status fica presa no cabeçalho (CabecalhoEvento).
  * Mesmo desenho para todos, logado ou não (08/10/2026: o da visita); muda só o que cada botão consegue fazer. As
  * diferenças por papel virão depois. Nunca mostra resultado. `?de=`/`?acesso=` (volta de login) abrem o acesso.
  */
@@ -43,6 +44,7 @@ export function EntradaEvento() {
       {!logado && <AbrirAcessoAutomatico de={deInterno} intencao={intencao} />}
       <ComoFunciona />
       <SecaoVotacao />
+      <Parceiros />
     </>
   );
 }

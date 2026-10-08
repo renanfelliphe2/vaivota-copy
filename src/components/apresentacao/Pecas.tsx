@@ -1,9 +1,12 @@
 "use client";
 
 import { FlaskConical } from "lucide-react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
+import { LogoParceiro } from "@/components/evento/LogoParceiro";
 import type { CandidatoPalco } from "@/dominio/apresentacao/tipos";
+import type { Parceiro } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 
 // Etapa 8 (5.7, 5.9): peças do palco. Texto mínimo de 36 px no canvas (1920×1080 lógicos).
@@ -53,4 +56,46 @@ export function SeloEnsaio() {
 export function MaisNomes({ mais }: { mais: number }) {
   if (mais <= 0) return null;
   return <p className="text-[40px] font-semibold text-tema-texto-suave">+{mais}</p>;
+}
+
+/**
+ * Faixa de parceiros no pé do telão (08/10/2026), só antes da revelação. Parada e centralizada quando cabe; quando
+ * não cabe, rola em loop (duas cópias, a segunda só visual). Mede de novo quando um logo carrega. Sem parceiros, nada.
+ */
+export function FaixaParceiros({ parceiros }: { parceiros: readonly Parceiro[] }) {
+  const area = useRef<HTMLDivElement>(null);
+  const primeira = useRef<HTMLUListElement>(null);
+  const [rolando, setRolando] = useState(false);
+  useLayoutEffect(() => {
+    const caixa = area.current;
+    const lista = primeira.current;
+    if (!caixa || !lista) return;
+    const medir = () => setRolando(lista.offsetWidth > caixa.clientWidth);
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(caixa);
+    observador.observe(lista);
+    return () => observador.disconnect();
+  }, [parceiros]);
+  if (parceiros.length === 0) return null;
+  const lista = (copia: boolean) => (
+    <ul ref={copia ? undefined : primeira} aria-hidden={copia || undefined} className={cx("flex shrink-0 items-center gap-24", rolando && "pr-24")}>
+      {parceiros.map((p) => (
+        <li key={p.id} className="flex h-[88px] shrink-0 items-center">
+          {/* Largura limitada: logo largo e sem margem (como o do VaiVota) não domina a faixa. */}
+          <LogoParceiro parceiro={p} className="max-h-[88px] max-w-[200px]" classeNome="text-[40px] font-bold" />
+        </li>
+      ))}
+    </ul>
+  );
+  return (
+    <footer aria-label="Parceiros" className="flex h-32 shrink-0 items-center border-t-2 border-tema-borda bg-tema-fundo px-20">
+      <div ref={area} className={cx("flex min-w-0 flex-1 overflow-hidden", !rolando && "justify-center")}>
+        <div className={cx("flex", rolando && "palco-faixa")} style={rolando ? { animationDuration: `${parceiros.length * 5}s` } : undefined}>
+          {lista(false)}
+          {rolando && lista(true)}
+        </div>
+      </div>
+    </footer>
+  );
 }

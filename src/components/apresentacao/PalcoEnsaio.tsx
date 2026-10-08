@@ -11,6 +11,7 @@ import { useDev } from "@/store/seletores/dev";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { CenaAtual, nomeDaCena } from "./CenaAtual";
 import { CenaAoVivo } from "./cenas/CenasFase";
+import { FaixaParceiros } from "./Pecas";
 import { usePalcoTeclado, useTemporizadorDoPasso, useTique } from "./hooks";
 import { Palco } from "./Palco";
 
@@ -85,6 +86,8 @@ export function PalcoEnsaio({
       progresso={{ cena: estado.cena + 1, total: roteiro.length }}
       proximoAvancoEm={proximoAvancoEm}
       aoDesligar={aoDesligar}
+      rodape={cena?.tipo === "AO_VIVO_ENSAIO" || cena?.tipo === "ENCERRADA_ENSAIO" ? <FaixaParceiros parceiros={ativo.parceiros} /> : null}
+      chaveTransicao={cena?.tipo === "TRAILER" ? "trailer" : "cena"}
       mensagem={null}
       ajudaVisivel={ajuda}
       controles={{

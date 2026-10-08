@@ -7,7 +7,7 @@ import type { EstadoApp } from "./tipos";
 // Etapa 6 (D19, seção 5.7): checklist de ativação. Função pura sobre valores públicos e contagens;
 // o seletor (tela) e o serviço de operação (revalidação) usam a mesma montagem e a mesma avaliação.
 
-export type SecaoConfig = "geral" | "candidatos" | "juri" | "placar" | "tema" | "operacao";
+export type SecaoConfig = "geral" | "candidatos" | "juri" | "placar" | "tema" | "parceiros" | "operacao";
 
 export type EntradaChecklist = {
   agoraMs: number;

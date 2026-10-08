@@ -1,6 +1,6 @@
 export { ID_FESTIVAL, seedEventos } from "./eventos";
 export { PRESET_TEMA_ESCURO, seedTemas } from "./temas";
-export { seedCamposCandidato, seedConfigsApresentacao, seedConfigsPlacar, seedCriteriosJuri } from "./configs";
+export { seedCamposCandidato, seedConfigsApresentacao, seedConfigsPlacar, seedCriteriosJuri, seedParceiros } from "./configs";
 export { seedCandidatos } from "./candidatos";
 export { SENHA_SEED, seedParticipacoes, seedUsuarios } from "./usuarios";
 export { seedConvites } from "./convites";
