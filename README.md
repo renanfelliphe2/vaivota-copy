@@ -2,12 +2,13 @@
 
 Plataforma web **white-label de votação para eventos**. Um mesmo software atende festivais, torneios e campeonatos: cada evento tem seus candidatos, regras e identidade visual, sem alterar código.
 
-> **Status:** em desenvolvimento. O planejamento e o modelo de dados estão concluídos (ver [Documentação](#documentação)); a implementação está começando. Os comandos de instalação abaixo descrevem o fluxo previsto e devem ser ajustados conforme o projeto for criado.
+> **Status:** protótipo da Fase 1 concluído (Etapas 0 a 9, sem banco). Próximo passo: trilha de produção (Prisma + Supabase). Ver [`docs/`](docs/).
 
 ---
 
 ## Sumário
 
+- [Fase 1 — protótipo (sem banco)](#fase-1--protótipo-sem-banco)
 - [O que é](#o-que-é)
 - [Recursos](#recursos)
 - [Conceitos](#conceitos)
@@ -22,6 +23,96 @@ Plataforma web **white-label de votação para eventos**. Um mesmo software aten
 - [Documentação](#documentação)
 - [Roadmap](#roadmap)
 - [Licença](#licença)
+
+## Fase 1 — protótipo (sem banco)
+
+O protótipo navegável roda **só no navegador**: todo o estado fica em memória (store no layout raiz) e **o F5 ou uma nova aba voltam ao seed**. A navegação entre telas preserva o estado. Todas as etapas da Fase 1 estão implementadas (0 a 9). O que é fake, a fronteira de dados e o roteiro de demonstração estão em [`docs/`](docs/).
+
+### Como rodar
+
+```bash
+pnpm install
+pnpm dev          # http://localhost:3000
+pnpm lint
+pnpm typecheck    # next typegen + tsc --noEmit
+pnpm test         # Vitest (só src/dominio e src/lib)
+pnpm build
+```
+
+Copie `.env.example` para `.env.local` se quiser mudar a flag `NEXT_PUBLIC_DEV_TOOLBAR` (padrão `true`; `false` remove a toolbar e a galeria `/dev/ui` do build).
+
+### Rotas
+
+| Rota | Tela |
+|---|---|
+| `/` | Landing do evento padrão (`dev.slugPadrao`, inicial: Festival) |
+| `/e/semana-tech`, `/e/ver-e-fazer-filmes` | Entrada do evento, com acesso (entrar / criar conta) |
+| `/e/[slug]/verificar-email` | Tela do código de login |
+| `/e/[slug]/convite` | "Tenho um código de convite" (exige e-mail verificado) |
+| `/e/[slug]/votar` | Lista, detalhe e voto (público e júri; exige e-mail verificado) |
+| `/e/[slug]/admin` | Painel: abas Operação e Resultado, exportação CSV (exige `ADMIN` no evento) |
+| `/e/[slug]/admin/configuracao` | Configuração do evento (seções Geral, Candidatos, Júri, Placar, Tema, Operação) |
+| `/e/[slug]/admin/relatorio` | Relatório imprimível (só com resultado oficial) |
+| `/e/[slug]/admin/apresentar` | Sala de controle e palco do telão (real e ensaio) |
+| `/dev/ui` | Galeria de componentes nos dois temas |
+
+### Dev toolbar
+
+Botão **Dev ▲** no canto da tela (visual neutro, fora do tema). Age sobre o **evento ativo** (o da URL ou o padrão) e pode forçar combinações que o fluxo real não permitiria: evento padrão, estado do evento e da urna, **Entrar como** (os oito usuários seed), e-mail verificado, módulos júri/infantil (redistribui os pesos), relógio simulado (+15 min, +1 h, reta final, fim da janela, pausar, voltar a T0), latência (0/400/1500 ms), erro de rede, falha no próximo envio, cenários e **Resetar mock**. O **Inspetor** mostra o JSON do estado e as invariantes. `?toolbar=0` oculta; `Alt+D` alterna (oculta ↔ forçada, inclusive no telão).
+
+Seções acrescentadas pelas etapas:
+
+- **Votação** (Etapa 5): "Resetar meu voto" e "Enviar direto" (chama o serviço sem a tela).
+- **Dashboard** (Etapa 7): "Simular votos entrando" (1 a 3 votos a cada 3 s, só com a urna aberta e a aba visível; roda em qualquer tela do evento), "Adicionar votos agora" (+10, +50, +200), "Mostrar parcial por candidato" (`ConfigApresentacao.parcialAoVivo`) e "Conferir apuração" (autoteste + invariantes).
+- **Apresentação** (Etapa 8): toolbar no palco (`AUTO`/`FORCADA`), link do trailer (válido, inválido, ausente), trailer gerado, candidatos no trailer, classificação completa, avanço padrão, limiar da reta final, simular falha do trailer, "Resetar apresentação" e "Conferir roteiro e motor".
+
+O seed já abre a Semana Tech com volume (511 públicos, 412 votos, 9 jurados com 7 votos, 27 entradas de auditoria). Os cenários do grupo **Resultado** (`RESULTADO_*`, `FESTIVAL_*`) montam eventos encerrados com resultado congelado, inclusive empates.
+
+### Build sem toolbar (público)
+
+A flag `NEXT_PUBLIC_DEV_TOOLBAR` é embutida no build. Para o público, gere um build sem ela:
+
+```bash
+NEXT_PUBLIC_DEV_TOOLBAR=false pnpm build && pnpm start
+```
+
+Sem a toolbar não há como forçar estado, reabrir a urna nem abrir `/dev/ui` (404). O roteiro completo (com toolbar) é só para ensaio: ver [`docs/ROTEIRO-DEMO.md`](docs/ROTEIRO-DEMO.md).
+
+O relógio começa em **22/10/2026 14:00 (-03:00)**: uma hora dentro da janela da Semana Tech e ~34 dias antes do Festival.
+
+### Convenção de navegação
+
+Rotas internas só com `next/link` (ou o componente `Botao` com `href`) e `useRouter`. Um `<a href>` comum recarrega a página e **perde o estado**.
+
+### Contas seed
+
+Login **sem senha**: digite o e-mail, clique em "Enviar código" e use o código **`123456`** (protótipo). O "Entrar com Google" abre um seletor fake (Ana, Gabi ou Marina, que cria conta nova).
+
+| Usuário | E-mail | Participações |
+|---|---|---|
+| Ana Souza | `publico@demo.com` | Semana Tech: público, não votou |
+| Bruno Lima | `jurado@demo.com` | Semana Tech: jurado, não votou |
+| Carla Mendes | `admin@demo.com` | Admin nos dois eventos |
+| Davi Rocha | `naoverificado@demo.com` | Nenhuma; e-mail não verificado |
+| Eva Santos | `votou@demo.com` | Semana Tech: público, já votou |
+| Fábio Nunes | `jurado.votou@demo.com` | Semana Tech: jurado, já votou |
+| Gabi Torres | `equipe@demo.com` | Semana Tech: público; candidata vinculada nos dois eventos |
+| Hugo Pires | `admin.festival@demo.com` | Admin só do Festival |
+
+### Códigos de convite de jurado
+
+Só o hash fica no estado; os códigos legíveis existem apenas no seed e aqui.
+
+| Evento | Código | Estado |
+|---|---|---|
+| Semana Tech | `K7M3-QX9P` | Disponível |
+| Semana Tech | `H4TR-9WNB` | Usado (Bruno) |
+| Semana Tech | `F3WJ-8RNK` | Usado (Fábio) |
+| Semana Tech | `P8CD-2VXF` | Revogado |
+| Semana Tech | `M6ZQ-4KTA` | Disponível, mas expirado |
+| Festival | `R5HN-7DCW`, `T9VB-3JXG` | Disponíveis |
+
+Qualquer código recusado mostra a mesma mensagem; o motivo exato fica só na auditoria (visível no Inspetor). Cinco recusas seguidas bloqueiam o campo por 60 s do relógio simulado (um contador para registro e convite; outro para o código de login).
 
 ## O que é
 
