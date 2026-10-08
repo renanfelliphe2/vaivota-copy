@@ -8,6 +8,9 @@ import type { FotoRelogio } from "./relogio";
 // Protocolo: a aba que abre pede uma foto; quem já está pronta responde só para ela. Depois, cada mudança local vai
 // inteira para as outras (a última escrita vale). Sem resposta na espera, a aba é a primeira e segue com o seed.
 // Atualizar uma aba com outra aberta recupera o estado; fechar todas volta ao seed, como antes.
+// Aba mãe (08/10/2026): a aba aberta por outra (o telão, aberto pelo "Apresentar") prefere a foto de quem a abriu.
+// Todas as abas respondem ao pedido, e a primeira foto podia vir de uma aba deslogada: o telão nascia sem sessão e
+// o RotaGuard o mandava para o login. A mãe vem no #mae= da URL (abrirPalco) ou pela janela que a abriu.
 
 const CANAL = "vaivota-prototipo";
 /** Aba aberta sozinha: quase sempre é a única, então espera pouco. */
@@ -20,6 +23,25 @@ type Mensagem =
   | { tipo: "FOTO"; de: string; para: string; estado: EstadoApp; relogio: FotoRelogio }
   | { tipo: "MUDANCA"; de: string; estado: EstadoApp }
   | { tipo: "RELOGIO"; de: string; relogio: FotoRelogio };
+
+const CHAVE_ID = "__vaivotaAba";
+type JanelaComAba = Window & { [CHAVE_ID]?: string };
+
+/** Id desta aba no canal (null antes de sincronizar). */
+export function idDestaAba(): string | null {
+  return (window as JanelaComAba)[CHAVE_ID] ?? null;
+}
+
+/** Id da aba que abriu esta: o #mae= da URL ou, sem ele, o da janela que a abriu. */
+export function idDaAbaMae(): string | null {
+  const daUrl = /(?:^#|&)mae=([^&]+)/.exec(window.location.hash);
+  if (daUrl) return decodeURIComponent(daUrl[1]);
+  try {
+    return (window.opener as JanelaComAba | null)?.[CHAVE_ID] ?? null;
+  } catch {
+    return null;
+  }
+}
 
 function novoId(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `aba-${Date.now()}-${Math.random()}`;
@@ -35,14 +57,26 @@ export function sincronizarAbas({ store, relogio }: Ambiente, aoPronto: () => vo
     return () => clearTimeout(t);
   }
   const id = novoId();
+  const mae = idDaAbaMae();
+  (window as JanelaComAba)[CHAVE_ID] = id;
+  // O #mae= só serve à abertura: some da URL (um F5 no telão volta a valer pela janela que o abriu).
+  if (window.location.hash.includes("mae=")) window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
   const canal = new BroadcastChannel(CANAL);
   let pronto = false;
   let temFoto = false;
   let mudouLocal = false;
+  /** Foto de outra aba que não a mãe: usada só se a mãe não responder na espera. */
+  let reserva: { estado: EstadoApp; relogio: FotoRelogio } | null = null;
   // Mudança vinda de outra aba: aplicada sem reenviar (senão as abas ecoariam para sempre).
   let aplicandoRemoto = false;
 
   const enviar = (m: Mensagem) => canal.postMessage(m);
+  const aceitarFoto = (foto: { estado: EstadoApp; relogio: FotoRelogio }) => {
+    temFoto = true;
+    aplicar(foto.estado, true);
+    relogio.sincronizar(foto.relogio);
+    marcarPronto();
+  };
   const marcarPronto = () => {
     if (pronto) return;
     pronto = true;
@@ -65,10 +99,11 @@ export function sincronizarAbas({ store, relogio }: Ambiente, aoPronto: () => vo
     }
     if (data.tipo === "FOTO") {
       if (data.para !== id || temFoto || mudouLocal) return;
-      temFoto = true;
-      aplicar(data.estado, true);
-      relogio.sincronizar(data.relogio);
-      marcarPronto();
+      if (mae && data.de !== mae) {
+        reserva ??= data;
+        return;
+      }
+      aceitarFoto(data);
       return;
     }
     // Antes da foto, nada de mudanças avulsas: a foto já traz o estado inteiro.
@@ -87,7 +122,10 @@ export function sincronizarAbas({ store, relogio }: Ambiente, aoPronto: () => vo
   });
 
   enviar({ tipo: "PEDIR", de: id });
-  const espera = setTimeout(marcarPronto, esperaMs);
+  const espera = setTimeout(() => {
+    if (reserva && !temFoto && !mudouLocal) aceitarFoto(reserva);
+    marcarPronto();
+  }, esperaMs);
 
   return () => {
     clearTimeout(espera);

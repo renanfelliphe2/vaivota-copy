@@ -7,7 +7,7 @@ import { criarEstadoInicial } from "@/mocks/criarEstadoInicial";
 import { definirAmbiente, type Ambiente } from "./ambiente";
 import { criarStore } from "./criarStore";
 import { criarRelogio } from "./relogio";
-import { ESPERA_COM_MAE_MS, ESPERA_SOZINHA_MS, sincronizarAbas } from "./sincronizarAbas";
+import { ESPERA_COM_MAE_MS, ESPERA_SOZINHA_MS, idDaAbaMae, sincronizarAbas } from "./sincronizarAbas";
 import { fecharUrnasVencidas } from "./transicoes";
 
 const AmbienteContext = createContext<Ambiente | null>(null);
@@ -28,7 +28,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(
-    () => sincronizarAbas(ambiente, () => setPronto(true), window.opener ? ESPERA_COM_MAE_MS : ESPERA_SOZINHA_MS),
+    () => sincronizarAbas(ambiente, () => setPronto(true), idDaAbaMae() ? ESPERA_COM_MAE_MS : ESPERA_SOZINHA_MS),
     [ambiente],
   );
 
