@@ -1,3 +1,5 @@
+<p align="center"><img src="public/vaivota-logo.png" alt="VaiVota" width="360"></p>
+
 # VaiVota
 
 Plataforma web **white-label de votação para eventos**. Um mesmo software atende festivais, torneios e campeonatos: cada evento tem seus candidatos, regras e identidade visual, sem alterar código.

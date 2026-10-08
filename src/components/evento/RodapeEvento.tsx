@@ -1,6 +1,7 @@
 "use client";
 
 import { ExternalLink } from "lucide-react";
+import { LogoVaiVota } from "@/components/plataforma/LogoVaiVota";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { AvisoPrivacidade } from "./AvisoPrivacidade";
 
@@ -39,7 +40,9 @@ export function RodapeEvento() {
         <span aria-hidden className="hidden sm:inline">
           ·
         </span>
-        <p className="text-xs">Feito com VaiVota</p>
+        <p className="inline-flex items-center gap-1.5 text-xs">
+          Feito com <LogoVaiVota className="h-5" />
+        </p>
       </div>
     </footer>
   );

@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { TemaEvento } from "@/components/evento/TemaEvento";
 import type { CoresTema } from "@/lib/tema";
 import { useEventos, useTemas } from "@/store/seletores/evento";
+import { LogoVaiVota } from "./LogoVaiVota";
 
 /** Identidade da plataforma em "/": a única tela fora do tema de um evento. */
 const TEMA_VAIVOTA: CoresTema = {
@@ -58,14 +59,15 @@ export function LandingVaiVota() {
     <TemaEvento tema={TEMA_VAIVOTA} className="flex flex-1 flex-col">
       <header className="w-full border-b border-tema-borda">
         <div className="mx-auto flex max-w-6xl items-center px-4 py-3 sm:px-6">
-          <Link href="/" className="rounded-md text-xl font-bold tracking-tight">
-            Vai<span className="text-tema-primaria-texto">Vota</span>
+          <Link href="/" className="rounded-md">
+            <LogoVaiVota className="h-9 sm:h-10" prioridade />
           </Link>
         </div>
       </header>
 
       <main id="conteudo" className="flex flex-1 flex-col">
         <section className="w-full bg-gradient-to-b from-tema-primaria/10 to-tema-fundo px-4 py-20 text-center sm:px-6 sm:py-28">
+          <LogoVaiVota className="mx-auto mb-10 h-16 sm:h-24" />
           <h1 className="mx-auto max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-6xl">
             Votações em eventos, com a identidade de cada evento.
           </h1>
@@ -129,8 +131,9 @@ export function LandingVaiVota() {
         )}
       </main>
 
-      <footer className="w-full border-t border-tema-borda px-6 py-6 text-center text-sm text-tema-texto-suave">
-        VaiVota · Votações em eventos
+      <footer className="flex w-full flex-col items-center gap-2 border-t border-tema-borda px-6 py-6 text-center text-sm text-tema-texto-suave">
+        <LogoVaiVota className="h-7" />
+        Votações em eventos
       </footer>
     </TemaEvento>
   );
