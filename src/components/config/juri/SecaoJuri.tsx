@@ -13,11 +13,15 @@ import { BannerTrava } from "../BannerTrava";
 import { DicaTrava } from "../DicaTrava";
 import { useServico } from "../useServico";
 import { CodigosGeradosDialog } from "./CodigosGeradosDialog";
+import { FormAvaliacaoJuri } from "./FormAvaliacaoJuri";
 import { GerarConvitesForm } from "./GerarConvitesForm";
 import { RevogarConviteDialog } from "./RevogarConviteDialog";
 import { TabelaConvites } from "./TabelaConvites";
 
-/** Seção Júri (Etapa 6, CP5). A lista é lida por serviço (sem hash, D10) e recarregada depois de cada mutação. */
+/**
+ * Seção Júri (Etapa 6, CP5). A lista é lida por serviço (sem hash, D10) e recarregada depois de cada mutação.
+ * 08/10/2026: forma de votação do júri e critérios de avaliação no topo (FormAvaliacaoJuri).
+ */
 export function SecaoJuri({ travas }: { travas: Travas }) {
   const ativo = useEventoAtivo();
   const agora = useAgora();
@@ -47,8 +51,21 @@ export function SecaoJuri({ travas }: { travas: Travas }) {
       <h2 id="titulo-secao" tabIndex={-1} className="text-2xl font-bold">
         Júri
       </h2>
-      <BannerTrava travas={travas} acoes={["CONVITES_GERAR", "CONVITES_REVOGAR", "CONVITES_RENOMEAR"]} />
+      <BannerTrava travas={travas} acoes={["JURI_AVALIACAO", "CONVITES_GERAR", "CONVITES_REVOGAR", "CONVITES_RENOMEAR"]} />
       {!juriLigado && <Alerta variante="informacao">{motivoDesligado}</Alerta>}
+
+      {juriLigado && (
+        <FormAvaliacaoJuri
+          // Remonta quando o salvo muda (pelo admin ou pela toolbar).
+          key={`${ativo.configPlacar.modoVotoJuri}:${ativo.criteriosJuri.map((c) => `${c.id}=${c.nome}`).join("|")}`}
+          eventoId={eventoId}
+          modo={ativo.configPlacar.modoVotoJuri}
+          criterios={ativo.criteriosJuri}
+          travas={travas}
+        />
+      )}
+
+      <h3 className="text-lg font-bold">Convites de jurado</h3>
 
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {(
@@ -82,7 +99,7 @@ export function SecaoJuri({ travas }: { travas: Travas }) {
         </>
       )}
 
-      <h3 className="text-lg font-bold">Convites</h3>
+      <h4 className="font-bold">Lista de convites</h4>
       {consulta.carregando && !consulta.dados ? (
         <Carregando />
       ) : consulta.erro && !consulta.dados ? (
