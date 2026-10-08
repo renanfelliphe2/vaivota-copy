@@ -1,4 +1,5 @@
-// Validações de campo do acesso (Etapa 3). Sem regras de senha: não existe senha (rev. 4, C7).
+// Validações de campo do acesso (Etapa 3). Login por e-mail e senha; o código serve só para recuperar a senha
+// e confirmar o e-mail (08/10/2026).
 // Cada função devolve a mensagem de erro do campo, ou null se o valor é válido.
 
 export const CODIGO_LOGIN_PROTOTIPO = "123456";
@@ -31,4 +32,20 @@ export function limparCodigoLogin(codigo: string): string {
 
 export function validarCodigoLogin(codigo: string): string | null {
   return /^\d{6}$/.test(codigo.trim()) ? null : "Digite os 6 números do código.";
+}
+
+export const SENHA_MIN = 8;
+export const SENHA_MAX = 72;
+
+/** Regra de força simples: tamanho. Sem exigir símbolo (público amplo, inclusive idosos; requisito §4.3). */
+export function validarSenha(senha: string): string | null {
+  if (!senha) return "Informe a senha.";
+  if (senha.length < SENHA_MIN) return `Use pelo menos ${SENHA_MIN} caracteres.`;
+  if (senha.length > SENHA_MAX) return `Use no máximo ${SENHA_MAX} caracteres.`;
+  return null;
+}
+
+export function validarConfirmacaoSenha(senha: string, confirmacao: string): string | null {
+  if (!confirmacao) return "Repita a senha.";
+  return senha === confirmacao ? null : "As senhas não são iguais.";
 }

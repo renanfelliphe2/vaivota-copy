@@ -91,6 +91,11 @@ export type Usuario = {
   id: string;
   nome: string;
   email: string;
+  /**
+   * Login por e-mail e senha (decisão do dono do produto, 08/10/2026; revoga a A5 da rev. 4).
+   * null = conta criada pelo Google, sem senha (pode criar uma pela recuperação). Só o hash (D12).
+   */
+  senhaHash: string | null;
   emailVerificadoEm: Instante | null;
   anonimizadoEm: Instante | null;
   criadoEm: Instante;
@@ -384,9 +389,11 @@ export type EstadoUi = {
   // Etapa 3
   /** Código de convite (um só contador para registro e convite). */
   bloqueioCodigo: BloqueioTentativas;
-  /** Código de login (rev. 4, A5). */
+  /** Código de recuperação de senha e de confirmação de e-mail. */
   bloqueioLoginCodigo: BloqueioTentativas;
-  /** E-mail aguardando a confirmação do código (rev. 4, A5). */
+  /** Senha errada no login. */
+  bloqueioSenha: BloqueioTentativas;
+  /** E-mail aguardando o código de recuperação de senha. */
   loginPendente: LoginPendente | null;
   /** Cooldown de reenviarCodigo. */
   reenvioVerificacaoAteMs: number | null;
@@ -394,7 +401,17 @@ export type EstadoUi = {
   votacao: EstadoUiVotacao;
   // Etapa 7 (rev. 3, C17)
   dashboard: EstadoUiDashboard;
+  /** Diálogo de acesso do cabeçalho (08/10/2026): aba aberta e o `?de=` para voltar depois do login. */
+  acesso: { aba: "entrar" | "criar"; de?: string } | null;
+  // Totem (rev. 4, A7)
+  totem: EstadoUiTotem;
 };
+
+/**
+ * Totem (rev. 4, A7): este aparelho no protótipo. `dispositivoId` faz o papel do token guardado no tablet
+ * depois do pareamento; `quiosqueAtivo` esconde a toolbar em AUTO, como o palco.
+ */
+export type EstadoUiTotem = { dispositivoId: string | null; quiosqueAtivo: boolean };
 
 /** Etapa 7 (D7, C17): resultado já revelado na aba Resultado, por `eventoId:versao`; nova versão volta a ocultar. */
 export type EstadoUiDashboard = { resultadoVisivel: string | null };
@@ -421,6 +438,8 @@ export type EstadoDev = {
   simularVotosEntrando: boolean;
   toolbarModo: ToolbarModo;
   toolbarRecolhida: boolean;
+  /** "Opções avançadas" aberta na toolbar. */
+  toolbarAvancadas: boolean;
   /** Chave `${usuarioId}:${eventoId}` → Voto.id; só para "Resetar meu voto"; nunca lido por telas. */
   vinculosVoto: Record<string, number>;
   /** Etapa 8 usa; valor inicial: false. */

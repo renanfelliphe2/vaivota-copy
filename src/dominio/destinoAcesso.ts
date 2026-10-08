@@ -15,7 +15,12 @@ export type EntradaDestino = {
 
 const ACOES_DE_VOTO: AcaoEntrada[] = ["VOTAR", "VOTAR_JURADO", "ALTERAR_VOTO_JURADO", "VER_CONFIRMACAO"];
 
-/** Tela de código, mantendo `?de=` quando for interno. */
+/** Votação na própria página do evento (08/10/2026: /votar virou a seção #candidatos da entrada). */
+export function rotaVotacao(slug: string): string {
+  return `/e/${slug}#candidatos`;
+}
+
+/** Confirmação do e-mail por código (sessão sem e-mail verificado), mantendo `?de=` quando for interno. */
 export function rotaVerificarEmail(slug: string, de?: string | null): string {
   return ehRotaInterna(de) ? `/e/${slug}/verificar-email?de=${encodeURIComponent(de)}` : `/e/${slug}/verificar-email`;
 }
@@ -24,6 +29,11 @@ export function resolverDestinoAcesso({ slug, de, emailVerificado, papel, acao }
   if (!emailVerificado) return rotaVerificarEmail(slug, de);
   if (ehRotaInterna(de)) return de;
   if (papel === "ADMIN") return `/e/${slug}/admin`;
-  if (ACOES_DE_VOTO.includes(acao)) return `/e/${slug}/votar`;
+  if (ACOES_DE_VOTO.includes(acao)) return rotaVotacao(slug);
   return `/e/${slug}`;
+}
+
+/** Recuperação de senha, mantendo `?de=` quando for interno. */
+export function rotaRecuperarSenha(slug: string, de?: string | null): string {
+  return ehRotaInterna(de) ? `/e/${slug}/recuperar-senha?de=${encodeURIComponent(de)}` : `/e/${slug}/recuperar-senha`;
 }

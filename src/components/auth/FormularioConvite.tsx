@@ -43,7 +43,7 @@ export function FormularioConvite() {
   const { evento, tema } = ativo;
 
   if (destino) {
-    const votar = destino.endsWith("/votar");
+    const votar = destino.endsWith("#candidatos");
     return (
       <Cartao className="flex flex-col items-start gap-4">
         <CircleCheck aria-hidden className="size-10 text-tema-sucesso" />

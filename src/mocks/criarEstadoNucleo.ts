@@ -31,10 +31,13 @@ export function criarUiInicial(): EstadoUi {
     apresentacao: criarApresentacaoInicial(),
     bloqueioCodigo: { falhas: 0, ateMs: null },
     bloqueioLoginCodigo: { falhas: 0, ateMs: null },
+    bloqueioSenha: { falhas: 0, ateMs: null },
     loginPendente: null,
     reenvioVerificacaoAteMs: null,
     votacao: criarVotacaoInicial(),
     dashboard: { resultadoVisivel: null },
+    acesso: null,
+    totem: { dispositivoId: null, quiosqueAtivo: false },
   };
 }
 
@@ -47,6 +50,7 @@ function criarDevInicial(): EstadoDev {
     simularVotosEntrando: false,
     toolbarModo: "AUTO",
     toolbarRecolhida: true,
+    toolbarAvancadas: false,
     vinculosVoto: { ...seedVinculosVoto },
     simularTrailerFalha: false,
   };

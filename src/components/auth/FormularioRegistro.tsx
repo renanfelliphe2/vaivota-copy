@@ -8,20 +8,21 @@ import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Campo, Checkbox, Input } from "@/components/ui/Campo";
 import { validarFormatoCodigo } from "@/lib/codigos";
-import { validarEmail, validarNome } from "@/lib/validarAcesso";
+import { SENHA_MIN, validarConfirmacaoSenha, validarEmail, validarNome, validarSenha } from "@/lib/validarAcesso";
 import { registrar } from "@/servicos/auth";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { BotaoGoogle } from "./BotaoGoogle";
 import { CampoCodigoConvite } from "./CampoCodigoConvite";
+import { CampoSenha } from "./CampoSenha";
 import { SeletorPapel, type PapelRegistro } from "./SeletorPapel";
 
-type Erros = Partial<Record<"nome" | "email" | "codigo" | "aceite", string>>;
+type Erros = Partial<Record<"nome" | "email" | "senha" | "confirmacaoSenha" | "codigo" | "aceite", string>>;
 
 const ERROS_DE_CODIGO = ["CODIGO_INVALIDO", "CODIGO_USADO", "CODIGO_REVOGADO", "CODIGO_EXPIRADO", "LIMITE_TENTATIVAS"];
 const DICA_GOOGLE_JURADO =
   "Para entrar como jurado, crie a conta com seu e-mail, ou entre com Google e resgate o código depois em 'Tenho um código de convite'.";
 
-/** Registro sem senha (Etapa 3): Público ou Jurado (com código), seguido da tela de código. */
+/** Registro com senha (08/10/2026): Público ou Jurado (com código de convite). Já entra ao criar a conta. */
 export function FormularioRegistro({ de, aoConcluir }: { de?: string; aoConcluir?: () => void }) {
   const ativo = useEventoAtivo();
   const router = useRouter();
@@ -29,6 +30,8 @@ export function FormularioRegistro({ de, aoConcluir }: { de?: string; aoConcluir
   const [papel, setPapel] = useState<PapelRegistro>("PUBLICO");
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [confirmacaoSenha, setConfirmacaoSenha] = useState("");
   const [codigo, setCodigo] = useState("");
   const [aceite, setAceite] = useState(false);
   const [erros, setErros] = useState<Erros>({});
@@ -48,6 +51,10 @@ export function FormularioRegistro({ de, aoConcluir }: { de?: string; aoConcluir
     const e = validarEmail(email);
     if (n) novos.nome = n;
     if (e) novos.email = e;
+    const s = validarSenha(senha);
+    const c = s ? null : validarConfirmacaoSenha(senha, confirmacaoSenha);
+    if (s) novos.senha = s;
+    if (c) novos.confirmacaoSenha = c;
     if (jurado && !validarFormatoCodigo(codigo)) novos.codigo = "Digite o código completo, no formato XXXX-XXXX.";
     if (!aceite) novos.aceite = "Marque a caixa para continuar.";
     return novos;
@@ -61,7 +68,7 @@ export function FormularioRegistro({ de, aoConcluir }: { de?: string; aoConcluir
     setErroGeral(null);
     if (Object.keys(novos).length > 0) return;
     setEnviando(true);
-    const r = await registrar(evento.id, { nome, email, papel: jurado ? "JURADO" : "PUBLICO", codigo, aceite, de });
+    const r = await registrar(evento.id, { nome, email, senha, confirmacaoSenha, papel: jurado ? "JURADO" : "PUBLICO", codigo, aceite, de });
     setEnviando(false);
     if (!r.ok) {
       if (r.erro.campos) setErros(r.erro.campos as Erros);
@@ -107,7 +114,7 @@ export function FormularioRegistro({ de, aoConcluir }: { de?: string; aoConcluir
           onBlur={() => nome && setErros((x) => ({ ...x, nome: validarNome(nome) ?? undefined }))}
         />
       </Campo>
-      <Campo id={`${id}-email`} rotulo="E-mail" erro={erros.email} obrigatorio dica="Enviaremos um código de 6 números para confirmar.">
+      <Campo id={`${id}-email`} rotulo="E-mail" erro={erros.email} obrigatorio>
         <Input
           type="email"
           inputMode="email"
@@ -117,7 +124,30 @@ export function FormularioRegistro({ de, aoConcluir }: { de?: string; aoConcluir
           onBlur={() => email && setErros((x) => ({ ...x, email: validarEmail(email) ?? undefined }))}
         />
       </Campo>
-      {jurado && <CampoCodigoConvite id={`${id}-codigo`} valor={codigo} aoMudar={setCodigo} erro={erros.codigo} />}
+      <CampoSenha
+        id={`${id}-senha`}
+        rotulo="Senha"
+        valor={senha}
+        aoMudar={setSenha}
+        aoSair={() => senha && setErros((x) => ({ ...x, senha: validarSenha(senha) ?? undefined }))}
+        erro={erros.senha}
+        dica={`Pelo menos ${SENHA_MIN} caracteres.`}
+        autoComplete="new-password"
+        obrigatorio
+      />
+      <CampoSenha
+        id={`${id}-confirmacao`}
+        rotulo="Repita a senha"
+        valor={confirmacaoSenha}
+        aoMudar={setConfirmacaoSenha}
+        aoSair={() =>
+          confirmacaoSenha && setErros((x) => ({ ...x, confirmacaoSenha: validarConfirmacaoSenha(senha, confirmacaoSenha) ?? undefined }))
+        }
+        erro={erros.confirmacaoSenha}
+        autoComplete="new-password"
+        obrigatorio
+      />
+      {jurado &&<CampoCodigoConvite id={`${id}-codigo`} valor={codigo} aoMudar={setCodigo} erro={erros.codigo} />}
       <Checkbox
         id={`${id}-aceite`}
         checked={aceite}

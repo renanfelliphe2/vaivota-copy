@@ -1,5 +1,6 @@
 import { votaveis } from "@/dominio/candidatos";
-import { resolverDestinoAcesso, rotaVerificarEmail } from "@/dominio/destinoAcesso";
+import { resolverDestinoAcesso, rotaRecuperarSenha } from "@/dominio/destinoAcesso";
+import { hashSenha, senhaConfere } from "@/dominio/senha";
 import type {
   BloqueioTentativas,
   ConviteJurado,
@@ -17,15 +18,20 @@ import {
   CODIGO_LOGIN_PROTOTIPO,
   normalizarEmail,
   validarCodigoLogin,
+  validarConfirmacaoSenha,
   validarEmail,
   validarNome,
+  validarSenha,
 } from "@/lib/validarAcesso";
 import { obterAmbiente } from "@/store/ambiente";
 import { registrarAuditoria } from "@/store/auditoria";
 import { atraso, falha, simularFalha, sucesso, type CodigoErro, type Resultado } from "./resultado";
 
 // Etapa 3: toda regra de acesso mora aqui; as telas só chamam os serviços e seguem o `destino`.
-// Login sem senha (rev. 4, A5): e-mail → código (mock 123456) → sessão, ou Google fake.
+// Login por e-mail e senha, ou Google fake (08/10/2026; revoga o login sem senha da rev. 4, A5).
+// O código (mock 123456) serve só para recuperar a senha e para confirmar um e-mail não verificado.
+
+const MENSAGEM_LOGIN_RECUSADO = "E-mail ou senha incorretos.";
 
 const LIMITE_RECUSAS = 5;
 const BLOQUEIO_MS = 60_000;
@@ -42,7 +48,6 @@ export type ContaGoogle = { id: string; nome: string; email: string };
 
 const CONTAS_GOOGLE: ContaGoogle[] = [
   { id: "google-ana", nome: "Ana Souza", email: "publico@demo.com" },
-  { id: "google-gabi", nome: "Gabi Torres", email: "equipe@demo.com" },
   { id: "google-marina", nome: "Marina Lopes", email: "marina.lopes@demo.com" },
 ];
 
@@ -212,10 +217,11 @@ function eventoOuFalha(estado: EstadoApp, eventoId: string) {
 // ─────────────────────────────────────────────
 
 /**
- * Entrar por e-mail (D3): NÃO cria sessão. Guarda o e-mail pendente e leva à tela de código.
- * E-mail desconhecido tem o mesmo comportamento (não revela se a conta existe).
+ * Entrar com e-mail e senha: cria a sessão e a participação (PUBLICO) se faltar. Conta inexistente, conta
+ * só do Google e senha errada dão a mesma mensagem (não revela se a conta existe). Cinco recusas seguidas
+ * bloqueiam por 60 s do relógio simulado.
  */
-export async function entrar(eventoId: string, email: string, de?: string): Promise<Resultado<ComDestino>> {
+export async function entrar(eventoId: string, email: string, senha: string, de?: string): Promise<Resultado<ComDestino>> {
   await atraso();
   const erro = simularFalha();
   if (erro) return erro;
@@ -223,18 +229,47 @@ export async function entrar(eventoId: string, email: string, de?: string): Prom
   const r = eventoOuFalha(estado, eventoId);
   if (r.erro) return r.erro;
 
+  const campos: Record<string, string> = {};
   const erroEmail = validarEmail(email);
-  if (erroEmail) return falha("VALIDACAO", { campos: { email: erroEmail } });
+  if (erroEmail) campos.email = erroEmail;
+  if (!senha) campos.senha = "Informe a senha.";
+  if (Object.keys(campos).length > 0) return falha("VALIDACAO", { campos });
   if (r.evento.metodoIdentificacao === "SOMENTE_GOOGLE")
     return falha("VALIDACAO", { campos: { email: "Este evento aceita só a entrada com Google." } });
 
-  store.atualizar((e) =>
-    comUi(e, {
-      loginPendente: { email: normalizarEmail(email), eventoId, ...(de ? { de } : {}) },
-      reenvioVerificacaoAteMs: agoraMs + COOLDOWN_REENVIO_MS,
-    }),
-  );
-  return sucesso({ destino: rotaVerificarEmail(r.evento.slug, de) });
+  const restante = segundosBloqueado(estado.ui.bloqueioSenha, agoraMs);
+  if (restante !== null) return falha("LIMITE_TENTATIVAS", { parametros: { n: restante } });
+
+  const usuario = acharUsuarioPorEmail(estado, email);
+  if (!usuario || !senhaConfere(usuario, senha)) {
+    let bloqueou = false;
+    store.atualizar((e) => {
+      const contagem = contarRecusa(e.ui.bloqueioSenha, agoraMs);
+      bloqueou = contagem.bloqueou;
+      const proximo = comUi(e, { bloqueioSenha: contagem.bloqueio });
+      if (!bloqueou) return proximo;
+      return registrarAuditoria(proximo, {
+        eventoId,
+        usuarioId: null,
+        acao: "BLOQUEIO_RATE_LIMIT",
+        entidade: "login",
+        detalhes: { alvo: "SENHA", segundos: BLOQUEIO_MS / 1000 },
+        ipHash: IP_HASH,
+        criadoEm: instante(e, eventoId, agoraMs),
+      });
+    });
+    const motivo = !usuario ? "conta inexistente" : usuario.senhaHash === null ? "conta sem senha (Google)" : "senha incorreta";
+    return falha("CREDENCIAIS_INVALIDAS", {
+      mensagem: MENSAGEM_LOGIN_RECUSADO,
+      detalhe: `${motivo}${bloqueou ? " (bloqueio ligado)" : ""}`,
+    });
+  }
+
+  const usuarioId = usuario.id;
+  let proximo = comParticipacao({ ...estado, sessao: { usuarioId } }, usuarioId, eventoId);
+  proximo = comUi(proximo, { loginPendente: null, bloqueioSenha: { falhas: 0, ateMs: null } });
+  store.atualizar(() => proximo);
+  return sucesso({ destino: calcularDestino(proximo, eventoId, usuarioId, agoraMs, de) });
 }
 
 /** Google fake (D8): entra ou cria a conta com e-mail já verificado; cria a participação se faltar. */
@@ -258,6 +293,7 @@ export async function entrarComGoogle(eventoId: string, contaId: string, de?: st
       id: crypto.randomUUID(),
       nome: conta.nome,
       email: conta.email,
+      senhaHash: null, // pode criar uma senha pela recuperação
       emailVerificadoEm: quando,
       anonimizadoEm: null,
       criadoEm: quando,
@@ -284,6 +320,8 @@ export async function entrarComGoogle(eventoId: string, contaId: string, de?: st
 export type DadosRegistro = {
   nome: string;
   email: string;
+  senha: string;
+  confirmacaoSenha: string;
   papel: "PUBLICO" | "JURADO";
   codigo?: string;
   aceite: boolean;
@@ -292,8 +330,9 @@ export type DadosRegistro = {
 
 /**
  * Registro (seção 5.2): campos → evento ATIVO → urna (só Jurado) → e-mail já cadastrado (sem consumir
- * tentativa) → bloqueio (só Jurado) → código (só Jurado) → cria usuário (e-mail não verificado),
- * participação e, no Jurado, marca o convite como USADO. Não cria sessão: leva à tela de código.
+ * tentativa) → bloqueio (só Jurado) → código (só Jurado) → cria usuário, participação e, no Jurado, marca
+ * o convite como USADO. Já entra com a sessão criada (sem código de confirmação, 08/10/2026): o e-mail
+ * conta como verificado. Risco assumido: sem confirmar o e-mail, uma pessoa pode criar várias contas.
  */
 export async function registrar(eventoId: string, dados: DadosRegistro): Promise<Resultado<ComDestino>> {
   await atraso();
@@ -308,8 +347,12 @@ export async function registrar(eventoId: string, dados: DadosRegistro): Promise
   const campos: Record<string, string> = {};
   const erroNome = validarNome(dados.nome);
   const erroEmail = validarEmail(dados.email);
+  const erroSenha = validarSenha(dados.senha);
+  const erroConfirmacao = erroSenha ? null : validarConfirmacaoSenha(dados.senha, dados.confirmacaoSenha);
   if (erroNome) campos.nome = erroNome;
   if (erroEmail) campos.email = erroEmail;
+  if (erroSenha) campos.senha = erroSenha;
+  if (erroConfirmacao) campos.confirmacaoSenha = erroConfirmacao;
   if (!dados.aceite) campos.aceite = "Marque a caixa para continuar.";
   if (jurado && !evento.moduloJuri) campos.papel = "Este evento não tem votação do júri.";
   if (jurado && !validarFormatoCodigo(dados.codigo ?? "")) campos.codigo = "Digite o código completo, no formato XXXX-XXXX.";
@@ -331,27 +374,30 @@ export async function registrar(eventoId: string, dados: DadosRegistro): Promise
   }
 
   const quando = instante(estado, eventoId, agoraMs);
+  const id = crypto.randomUUID();
   const usuario: Usuario = {
-    id: crypto.randomUUID(),
+    id,
     nome: dados.nome.trim(),
     email: normalizarEmail(dados.email),
-    emailVerificadoEm: null,
+    senhaHash: hashSenha(id, dados.senha),
+    emailVerificadoEm: quando,
     anonimizadoEm: null,
     criadoEm: quando,
     atualizadoEm: quando,
   };
-  let proximo: EstadoApp = { ...estado, banco: { ...estado.banco, usuarios: [...estado.banco.usuarios, usuario] } };
-  proximo = comParticipacao(proximo, usuario.id, eventoId, jurado ? "JURADO" : "PUBLICO");
+  let proximo: EstadoApp = {
+    ...estado,
+    sessao: { usuarioId: id },
+    banco: { ...estado.banco, usuarios: [...estado.banco.usuarios, usuario] },
+  };
+  proximo = comParticipacao(proximo, id, eventoId, jurado ? "JURADO" : "PUBLICO");
   if (convite) {
-    const participacao = acharParticipacao(proximo, usuario.id, eventoId)!;
-    proximo = resgatar(proximo, convite, participacao.id, usuario.id, agoraMs);
+    const participacao = acharParticipacao(proximo, id, eventoId)!;
+    proximo = resgatar(proximo, convite, participacao.id, id, agoraMs);
   }
-  proximo = comUi(proximo, {
-    loginPendente: { email: usuario.email, eventoId, ...(dados.de ? { de: dados.de } : {}) },
-    reenvioVerificacaoAteMs: agoraMs + COOLDOWN_REENVIO_MS,
-  });
+  proximo = comUi(proximo, { loginPendente: null });
   store.atualizar(() => proximo);
-  return sucesso({ destino: rotaVerificarEmail(evento.slug, dados.de) });
+  return sucesso({ destino: calcularDestino(proximo, eventoId, id, agoraMs, dados.de) });
 }
 
 /** E-mail que aguarda o código: o de `ui.loginPendente` ou, sem ele, o do usuário da sessão (D3). */
@@ -361,9 +407,111 @@ function emailPendente(estado: EstadoApp): string | null {
   return usuario?.email ?? null;
 }
 
+/** Conta um código errado no contador de códigos e, na quinta recusa seguida, audita o bloqueio. */
+function recusarCodigoLogin(eventoId: string, detalhe: string) {
+  const { store, agoraMs } = ambiente();
+  let bloqueou = false;
+  store.atualizar((e) => {
+    const contagem = contarRecusa(e.ui.bloqueioLoginCodigo, agoraMs);
+    bloqueou = contagem.bloqueou;
+    const proximo = comUi(e, { bloqueioLoginCodigo: contagem.bloqueio });
+    if (!bloqueou) return proximo;
+    return registrarAuditoria(proximo, {
+      eventoId,
+      usuarioId: null,
+      acao: "BLOQUEIO_RATE_LIMIT",
+      entidade: "codigo_login",
+      detalhes: { alvo: "CODIGO_LOGIN", segundos: BLOQUEIO_MS / 1000 },
+      ipHash: IP_HASH,
+      criadoEm: instante(e, eventoId, agoraMs),
+    });
+  });
+  return falha("CREDENCIAIS_INVALIDAS", { detalhe: `${detalhe}${bloqueou ? " (bloqueio ligado)" : ""}` });
+}
+
 /**
- * Confirma o código de login (substitui `verificarEmail`): `123456` cria a sessão do e-mail pendente,
- * verifica o e-mail e cria a participação se faltar. Código errado ou conta inexistente: mesma mensagem.
+ * "Esqueci minha senha", passo 1: guarda o e-mail e "envia" o código (mock 123456). E-mail desconhecido tem o
+ * mesmo comportamento (não revela se a conta existe). Não cria sessão.
+ */
+export async function solicitarRecuperacao(eventoId: string, email: string, de?: string): Promise<Resultado<ComDestino>> {
+  await atraso();
+  const erro = simularFalha();
+  if (erro) return erro;
+  const { estado, agoraMs, store } = ambiente();
+  const r = eventoOuFalha(estado, eventoId);
+  if (r.erro) return r.erro;
+  const erroEmail = validarEmail(email);
+  if (erroEmail) return falha("VALIDACAO", { campos: { email: erroEmail } });
+
+  store.atualizar((e) =>
+    comUi(e, {
+      loginPendente: { email: normalizarEmail(email), eventoId, ...(de ? { de } : {}) },
+      reenvioVerificacaoAteMs: agoraMs + COOLDOWN_REENVIO_MS,
+    }),
+  );
+  return sucesso({ destino: rotaRecuperarSenha(r.evento.slug, de) });
+}
+
+/**
+ * "Esqueci minha senha", passo 2: código + nova senha. Grava a senha nova, confirma o e-mail e entra.
+ * Código errado ou conta inexistente: mesma mensagem e o mesmo contador de tentativas.
+ */
+export async function redefinirSenha(
+  eventoId: string,
+  dados: { codigo: string; senha: string; confirmacaoSenha: string; de?: string },
+): Promise<Resultado<ComDestino>> {
+  await atraso();
+  const erro = simularFalha();
+  if (erro) return erro;
+  const { estado, agoraMs, store } = ambiente();
+  const r = eventoOuFalha(estado, eventoId);
+  if (r.erro) return r.erro;
+  const pendente = estado.ui.loginPendente?.eventoId === eventoId ? estado.ui.loginPendente : null;
+  if (!pendente) return falha("NAO_AUTORIZADO", { detalhe: "sem e-mail pendente de recuperação" });
+
+  const restante = segundosBloqueado(estado.ui.bloqueioLoginCodigo, agoraMs);
+  if (restante !== null) return falha("LIMITE_TENTATIVAS", { parametros: { n: restante } });
+
+  const campos: Record<string, string> = {};
+  const erroCodigo = validarCodigoLogin(dados.codigo);
+  const erroSenha = validarSenha(dados.senha);
+  const erroConfirmacao = erroSenha ? null : validarConfirmacaoSenha(dados.senha, dados.confirmacaoSenha);
+  if (erroCodigo) campos.codigo = erroCodigo;
+  if (erroSenha) campos.senha = erroSenha;
+  if (erroConfirmacao) campos.confirmacaoSenha = erroConfirmacao;
+  if (Object.keys(campos).length > 0) return falha("VALIDACAO", { campos });
+
+  const usuario = acharUsuarioPorEmail(estado, pendente.email);
+  if (dados.codigo.trim() !== CODIGO_LOGIN_PROTOTIPO || !usuario)
+    return recusarCodigoLogin(eventoId, usuario ? "código de recuperação incorreto" : "recuperação de conta inexistente");
+
+  const quando = instante(estado, eventoId, agoraMs);
+  const usuarioId = usuario.id;
+  let proximo: EstadoApp = {
+    ...estado,
+    sessao: { usuarioId },
+    banco: {
+      ...estado.banco,
+      usuarios: estado.banco.usuarios.map((u) =>
+        u.id === usuarioId
+          ? { ...u, senhaHash: hashSenha(usuarioId, dados.senha), emailVerificadoEm: u.emailVerificadoEm ?? quando, atualizadoEm: quando }
+          : u,
+      ),
+    },
+  };
+  proximo = comParticipacao(proximo, usuarioId, eventoId);
+  proximo = comUi(proximo, {
+    loginPendente: null,
+    bloqueioLoginCodigo: { falhas: 0, ateMs: null },
+    bloqueioSenha: { falhas: 0, ateMs: null },
+  });
+  store.atualizar(() => proximo);
+  return sucesso({ destino: calcularDestino(proximo, eventoId, usuarioId, agoraMs, dados.de ?? pendente.de) });
+}
+
+/**
+ * Confirma o e-mail de quem já está logado sem e-mail verificado (só alcançável pela toolbar, "E-mail
+ * verificado"). Não entra sem senha: sem sessão, recusa.
  */
 export async function confirmarCodigo(
   eventoId: string,
@@ -377,44 +525,20 @@ export async function confirmarCodigo(
   const r = eventoOuFalha(estado, eventoId);
   if (r.erro) return r.erro;
 
-  const email = emailPendente(estado);
-  if (!email) return falha("NAO_AUTORIZADO", { detalhe: "sem e-mail pendente nem sessão" });
+  const usuario = estado.banco.usuarios.find((u) => u.id === estado.sessao.usuarioId);
+  if (!usuario) return falha("NAO_AUTORIZADO", { detalhe: "confirmação de e-mail sem sessão" });
 
   const restante = segundosBloqueado(estado.ui.bloqueioLoginCodigo, agoraMs);
   if (restante !== null) return falha("LIMITE_TENTATIVAS", { parametros: { n: restante } });
 
   const erroFormato = validarCodigoLogin(codigo);
   if (erroFormato) return falha("VALIDACAO", { campos: { codigo: erroFormato } });
-
-  const usuario = acharUsuarioPorEmail(estado, email);
-  if (codigo.trim() !== CODIGO_LOGIN_PROTOTIPO || !usuario) {
-    let bloqueou = false;
-    store.atualizar((e) => {
-      const contagem = contarRecusa(e.ui.bloqueioLoginCodigo, agoraMs);
-      bloqueou = contagem.bloqueou;
-      const proximo = comUi(e, { bloqueioLoginCodigo: contagem.bloqueio });
-      if (!bloqueou) return proximo;
-      return registrarAuditoria(proximo, {
-        eventoId,
-        usuarioId: null,
-        acao: "BLOQUEIO_RATE_LIMIT",
-        entidade: "codigo_login",
-        detalhes: { alvo: "CODIGO_LOGIN", segundos: BLOQUEIO_MS / 1000 },
-        ipHash: IP_HASH,
-        criadoEm: instante(e, eventoId, agoraMs),
-      });
-    });
-    return falha("CREDENCIAIS_INVALIDAS", {
-      detalhe: `${usuario ? "código incorreto" : "conta inexistente"}${bloqueou ? " (bloqueio ligado)" : ""}`,
-    });
-  }
+  if (codigo.trim() !== CODIGO_LOGIN_PROTOTIPO) return recusarCodigoLogin(eventoId, "código de confirmação incorreto");
 
   const quando = instante(estado, eventoId, agoraMs);
   const usuarioId = usuario.id;
-  const deFinal = de ?? estado.ui.loginPendente?.de;
   let proximo: EstadoApp = {
     ...estado,
-    sessao: { usuarioId },
     banco: {
       ...estado.banco,
       usuarios: estado.banco.usuarios.map((u) =>
@@ -423,11 +547,10 @@ export async function confirmarCodigo(
     },
   };
   proximo = comParticipacao(proximo, usuarioId, eventoId);
-  proximo = comUi(proximo, { loginPendente: null, bloqueioLoginCodigo: { falhas: 0, ateMs: null } });
+  proximo = comUi(proximo, { bloqueioLoginCodigo: { falhas: 0, ateMs: null } });
   store.atualizar(() => proximo);
   return sucesso({
-    destino: calcularDestino(proximo, eventoId, usuarioId, agoraMs, deFinal),
-    // Primeira confirmação do e-mail (registro, ou cadastro iniciado como o de Davi): a tela mostra o sucesso.
+    destino: calcularDestino(proximo, eventoId, usuarioId, agoraMs, de),
     contaConfirmada: !usuario.emailVerificadoEm,
   });
 }

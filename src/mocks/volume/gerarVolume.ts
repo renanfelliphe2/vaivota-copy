@@ -57,6 +57,7 @@ export function criarUsuarioVolume(numero: number, rng: Gerador, criadoEm: Insta
     id: `${PREFIXO_USUARIO_VOLUME}${quatroDigitos(numero)}`,
     nome,
     email: `vol-${quatroDigitos(numero)}@demo.com`,
+    senhaHash: null, // usuários de volume nunca entram
     emailVerificadoEm: criadoEm,
     anonimizadoEm: null,
     criadoEm,

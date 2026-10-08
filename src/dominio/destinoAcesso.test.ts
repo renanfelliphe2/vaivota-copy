@@ -16,8 +16,8 @@ describe("resolverDestinoAcesso (tabela 5.3)", () => {
   });
 
   it("?de= externo é ignorado", () => {
-    expect(resolverDestinoAcesso({ ...base, de: "//evil.com" })).toBe("/e/semana-tech/votar");
-    expect(resolverDestinoAcesso({ ...base, de: "https://evil.com" })).toBe("/e/semana-tech/votar");
+    expect(resolverDestinoAcesso({ ...base, de: "//evil.com" })).toBe("/e/semana-tech#candidatos");
+    expect(resolverDestinoAcesso({ ...base, de: "https://evil.com" })).toBe("/e/semana-tech#candidatos");
     expect(rotaVerificarEmail("semana-tech", "//evil.com")).toBe("/e/semana-tech/verificar-email");
   });
 
@@ -25,9 +25,9 @@ describe("resolverDestinoAcesso (tabela 5.3)", () => {
     expect(resolverDestinoAcesso({ ...base, papel: "ADMIN", acao: "PAINEL_ADMIN" })).toBe("/e/semana-tech/admin");
   });
 
-  it("4. ações de voto vão a /votar", () => {
+  it("4. ações de voto vão à seção de votação da entrada", () => {
     for (const acao of ["VOTAR", "VOTAR_JURADO", "ALTERAR_VOTO_JURADO", "VER_CONFIRMACAO"] as const) {
-      expect(resolverDestinoAcesso({ ...base, acao })).toBe("/e/semana-tech/votar");
+      expect(resolverDestinoAcesso({ ...base, acao })).toBe("/e/semana-tech#candidatos");
     }
   });
 

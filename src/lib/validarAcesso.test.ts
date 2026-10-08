@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { limparCodigoLogin, normalizarEmail, validarCodigoLogin, validarEmail, validarNome } from "./validarAcesso";
+import {
+  limparCodigoLogin,
+  normalizarEmail,
+  validarCodigoLogin,
+  validarConfirmacaoSenha,
+  validarEmail,
+  validarNome,
+  validarSenha,
+} from "./validarAcesso";
 
 describe("validarAcesso", () => {
   it("e-mail", () => {
@@ -26,5 +34,20 @@ describe("validarAcesso", () => {
     expect(validarCodigoLogin("12345")).not.toBeNull();
     expect(validarCodigoLogin("12a456")).not.toBeNull();
     expect(limparCodigoLogin("12-34 56 78")).toBe("123456");
+  });
+});
+
+describe("senha (08/10/2026)", () => {
+  it("exige de 8 a 72 caracteres, sem regra de símbolo", () => {
+    expect(validarSenha("")).toBe("Informe a senha.");
+    expect(validarSenha("1234567")).toBe("Use pelo menos 8 caracteres.");
+    expect(validarSenha("abcdefgh")).toBeNull();
+    expect(validarSenha("a".repeat(73))).toBe("Use no máximo 72 caracteres.");
+  });
+
+  it("confirmação igual à senha", () => {
+    expect(validarConfirmacaoSenha("demo1234", "")).toBe("Repita a senha.");
+    expect(validarConfirmacaoSenha("demo1234", "demo12345")).toBe("As senhas não são iguais.");
+    expect(validarConfirmacaoSenha("demo1234", "demo1234")).toBeNull();
   });
 });
