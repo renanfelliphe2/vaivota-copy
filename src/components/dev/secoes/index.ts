@@ -16,7 +16,7 @@ export type SecaoToolbar = {
 };
 
 export const SECOES_TOOLBAR: SecaoToolbar[] = [
-  { id: "votacao", titulo: "Votação", grupo: "BASICO", Componente: SecaoVotacao },
+  { id: "votacao", titulo: "Votação", grupo: "AVANCADO", Componente: SecaoVotacao },
   { id: "totem", titulo: "Totem", grupo: "BASICO", Componente: SecaoTotem },
   { id: "dashboard", titulo: "Dashboard", grupo: "AVANCADO", Componente: SecaoDashboard },
   { id: "apresentacao", titulo: "Apresentação", grupo: "AVANCADO", Componente: SecaoApresentacao },
