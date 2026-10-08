@@ -15,7 +15,7 @@ import { useEventoAtivo } from "@/store/seletores/evento";
 
 const CLASSE_BOTAO = "rounded-md border border-zinc-600 px-2 py-1 text-xs hover:bg-zinc-800";
 /** O mesmo placeholder do seed do Festival. */
-const LINK_VALIDO = "https://www.youtube.com/watch?v=aqz-KE-bpKQ";
+const LINK_VALIDO = "https://www.youtube.com/watch?v=U4GmYqhTJgk";
 const LINK_INVALIDO = "https://exemplo.com/nao-e-video";
 
 function alterarConfig(eventoId: string, mudanca: Partial<ConfigApresentacao>): void {

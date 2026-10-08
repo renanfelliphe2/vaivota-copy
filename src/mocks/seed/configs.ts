@@ -16,7 +16,7 @@ export const seedConfigsPlacar = [
 export const seedConfigsApresentacao = [
   {
     eventoId: ID_FESTIVAL,
-    trailerUrl: "https://www.youtube.com/watch?v=aqz-KE-bpKQ", // placeholder
+    trailerUrl: "https://www.youtube.com/watch?v=U4GmYqhTJgk",
     usarTrailerGerado: false,
     incluirCandidatosTrailer: false,
     classificacaoCompleta: false,

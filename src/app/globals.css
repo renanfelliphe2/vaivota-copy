@@ -351,6 +351,20 @@ dialog::backdrop {
     opacity: 0;
   }
 }
+/* 08/10/2026: saída de cena até o preto (PassagemPeloPreto). */
+@keyframes cinema-escurecer {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.cinema-escurecer {
+  animation: cinema-escurecer var(--dur, 900ms) ease-in both;
+}
+
 .cinema-cortina {
   animation: cinema-cortina 1100ms ease-out both;
 }

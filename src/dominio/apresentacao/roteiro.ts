@@ -54,6 +54,9 @@ export function passosDaCena(cena: Cena): number {
       return cena.passos;
     case "CLASSIFICACAO":
       return cena.paginas;
+    case "TRAILER":
+      // 08/10/2026: o vídeo e, depois dele, a chamada "E os vencedores deste ano são…".
+      return 2;
     default:
       return 1;
   }

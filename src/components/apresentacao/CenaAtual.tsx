@@ -89,6 +89,7 @@ export function CenaAtual({
       <div key={estado.cena} className="relative h-full">
         <CenaTrailer
           estado={estado.trailer}
+          passo={estado.passo}
           linkTrailer={config.trailerUrl}
           forcarGerado={config.usarTrailerGerado || simularTrailerFalha}
           nome={nome}
@@ -98,7 +99,6 @@ export function CenaAtual({
           aoPronto={() => despachar({ tipo: "TRAILER_PRONTO" })}
           aoFalhar={() => despachar({ tipo: "TRAILER_FALHOU" })}
         />
-        <Cortina />
       </div>
     );
   }

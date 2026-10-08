@@ -37,6 +37,10 @@ export const TEXTOS_PALCO = {
   apresenta: "apresenta",
   votosContados: "Os votos foram contados",
   chegouAHora: "Chegou a hora do resultado",
+  // Títulos em volta do trailer (08/10/2026).
+  naUltimaEdicao: "Na última edição",
+  eOsVencedores: "E os vencedores",
+  desteAnoSao: "deste ano são",
 } as const;
 
 export function disputaPelo(posicao: number): string {

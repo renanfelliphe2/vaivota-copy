@@ -73,7 +73,7 @@ export function useTemporizadorDoPasso(estado: EstadoMotor, roteiro: Cena[], des
   const chave = `${ativo}:${cena}:${passo}:${pausado}:${modoAvanco}:${trailer}:${situacao}`;
   const [prazo, setPrazo] = useState<{ chave: string; em: number } | null>(null);
   useEffect(() => {
-    if (!ativo || !atual || pausado || situacao === "CONCLUIDA" || !avancaSozinha(atual, modoAvanco)) return;
+    if (!ativo || !atual || pausado || situacao === "CONCLUIDA" || !avancaSozinha(atual, modoAvanco, passo)) return;
     const ms = duracaoDoPasso(atual, passo, trailer);
     if (ms === null) return;
     const em = Date.now() + ms;

@@ -149,8 +149,8 @@ export function conferirMotor(): string[] {
     if (JSON.stringify(real) !== JSON.stringify(esperado)) erros.push(`${nome}: ${JSON.stringify(real)}`);
   };
 
-  // Trailer (1 passo) → CAT:POPULAR (3 passos).
-  let e = aplicar([{ tipo: "AVANCAR" }, { tipo: "AVANCAR" }, { tipo: "AVANCAR" }]);
+  // Trailer (2 passos: vídeo e chamada) → CAT:POPULAR (3 passos).
+  let e = aplicar([{ tipo: "AVANCAR" }, { tipo: "AVANCAR" }, { tipo: "AVANCAR" }, { tipo: "AVANCAR" }]);
   esperar("avançar", [e.cena, e.passo], [1, 2]);
   e = reduzirMotor(e, { tipo: "AVANCAR" }, roteiro);
   esperar("troca de cena", [e.cena, e.passo], [2, 0]);
@@ -158,7 +158,7 @@ export function conferirMotor(): string[] {
   esperar("voltar do passo 0", [e.cena, e.passo], [1, 2]);
   esperar("voltar no início", [aplicar([{ tipo: "VOLTAR" }]).cena], [0]);
   const atrasado = aplicar([{ tipo: "AVANCAR" }, { tipo: "AVANCO_AUTOMATICO", cena: 0, passo: 0 }]);
-  esperar("automático atrasado ignorado", [atrasado.cena, atrasado.passo], [1, 0]);
+  esperar("automático atrasado ignorado", [atrasado.cena, atrasado.passo], [0, 1]);
   esperar("pausado ignora automático", aplicar([{ tipo: "PAUSAR" }, { tipo: "AVANCO_AUTOMATICO", cena: 0, passo: 0 }]).cena, 0);
   const fim = aplicar([{ tipo: "IR_PARA_FINAL" }]);
   esperar("emergência", [fim.cena, fim.situacao, fim.emergencia], [roteiro.length - 1, "CONCLUIDA", true]);
@@ -168,6 +168,8 @@ export function conferirMotor(): string[] {
   esperar("trailer pronto", aplicar([{ tipo: "TRAILER_PRONTO" }]).trailer, "LINK");
   esperar("trailer falhou", aplicar([{ tipo: "TRAILER_FALHOU" }]).trailer, "GERADO");
   esperar("pular trailer", aplicar([{ tipo: "PULAR_TRAILER" }]).cena, 1);
+  esperar("pular trailer na chamada", [aplicar([{ tipo: "AVANCAR" }, { tipo: "PULAR_TRAILER" }])].map((x) => [x.cena, x.passo])[0], [1, 0]);
+  esperar("voltar da categoria cai na chamada", [aplicar([{ tipo: "AVANCAR" }, { tipo: "AVANCAR" }, { tipo: "VOLTAR" }])].map((x) => [x.cena, x.passo])[0], [0, 1]);
   let ate = estadoInicialMotor("MANUAL");
   for (let i = 0; i < 100; i++) ate = reduzirMotor(ate, { tipo: "AVANCAR" }, roteiro);
   esperar("chega ao final concluída", [ate.cena, ate.situacao, ate.emergencia], [roteiro.length - 1, "CONCLUIDA", false]);

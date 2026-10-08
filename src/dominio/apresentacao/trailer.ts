@@ -1,7 +1,8 @@
 // Etapa 8 (D11, seção 5.8): link do YouTube ou do Vimeo → URL de embed (sem mudo, C19), ou null.
 // 08/10/2026: o telão é uma aba própria, que pode nunca ter recebido um clique; sem isso o navegador só deixa o vídeo
 // começar sozinho se estiver mudo. `mudo` pede o início mudo, com a API do player ligada para o som voltar no
-// primeiro toque no telão (CenaTrailer).
+// primeiro toque no telão (CenaTrailer). A API do YouTube fica sempre ligada: o som baixa junto com a imagem na
+// saída do trailer (comandoVolume).
 
 const ID_YOUTUBE = /^[A-Za-z0-9_-]{11}$/;
 const ID_VIMEO = /^\d{6,12}$/;
@@ -26,7 +27,7 @@ export function interpretarLinkTrailer(url: string | null | undefined, opcoes: {
   }
   if (youtube)
     return ID_YOUTUBE.test(youtube)
-      ? `https://www.youtube-nocookie.com/embed/${youtube}?autoplay=1&rel=0${opcoes.mudo ? "&mute=1&playsinline=1&enablejsapi=1" : ""}`
+      ? `https://www.youtube-nocookie.com/embed/${youtube}?autoplay=1&rel=0${opcoes.mudo ? "&mute=1&playsinline=1" : ""}&enablejsapi=1`
       : null;
 
   let vimeo: string | null = null;
@@ -40,5 +41,13 @@ export function interpretarLinkTrailer(url: string | null | undefined, opcoes: {
 export function comandoTirarMudo(embedUrl: string): string | null {
   if (embedUrl.includes("youtube")) return JSON.stringify({ event: "command", func: "unMute", args: [] });
   if (embedUrl.includes("vimeo")) return JSON.stringify({ method: "setMuted", value: false });
+  return null;
+}
+
+/** Comando de volume (`fracao` de 0 a 1) para o player do embed (postMessage), conforme o provedor. */
+export function comandoVolume(embedUrl: string, fracao: number): string | null {
+  const v = Math.max(0, Math.min(1, fracao));
+  if (embedUrl.includes("youtube")) return JSON.stringify({ event: "command", func: "setVolume", args: [Math.round(v * 100)] });
+  if (embedUrl.includes("vimeo")) return JSON.stringify({ method: "setVolume", value: v });
   return null;
 }

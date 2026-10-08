@@ -39,7 +39,7 @@ describe("resolverFasePalco (5.1)", () => {
 
 describe("interpretarLinkTrailer (5.8)", () => {
   it("YouTube e Vimeo, sem mudo", () => {
-    const yt = "https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?autoplay=1&rel=0";
+    const yt = "https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?autoplay=1&rel=0&enablejsapi=1";
     expect(interpretarLinkTrailer("https://www.youtube.com/watch?v=aqz-KE-bpKQ")).toBe(yt);
     expect(interpretarLinkTrailer("https://youtu.be/aqz-KE-bpKQ")).toBe(yt);
     expect(interpretarLinkTrailer("https://www.youtube.com/embed/aqz-KE-bpKQ")).toBe(yt);

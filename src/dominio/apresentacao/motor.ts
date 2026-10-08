@@ -73,6 +73,7 @@ export function duracaoDoPasso(cena: Cena, passo: number, trailer: EstadoTrailer
     case "ENCERRADA_ENSAIO":
       return DURACOES.ensaioEncerrada;
     case "TRAILER":
+      if (passo === 1) return DURACOES.chamadaVencedores;
       return trailer === "CARREGANDO" ? null : trailer === "LINK" ? DURACOES.trailerLink : DURACOES.trailerGerado;
     case "CATEGORIA":
       return [DURACOES.suspense, DURACOES.nome, DURACOES.detalhe][passo] ?? DURACOES.detalhe;
@@ -87,7 +88,12 @@ export function duracaoDoPasso(cena: Cena, passo: number, trailer: EstadoTrailer
   }
 }
 
-/** As duas cenas iniciais do ensaio seguem tempos fixos mesmo no modo manual. */
-export function avancaSozinha(cena: Cena, modo: ModoAvanco): boolean {
-  return modo === "AUTOMATICO" || cena.tipo === "AO_VIVO_ENSAIO" || cena.tipo === "ENCERRADA_ENSAIO";
+/**
+ * As duas cenas iniciais do ensaio seguem tempos fixos mesmo no modo manual; a chamada depois do trailer
+ * (08/10/2026) também, como uma vinheta.
+ */
+export function avancaSozinha(cena: Cena, modo: ModoAvanco, passo = 0): boolean {
+  return (
+    modo === "AUTOMATICO" || cena.tipo === "AO_VIVO_ENSAIO" || cena.tipo === "ENCERRADA_ENSAIO" || (cena.tipo === "TRAILER" && passo === 1)
+  );
 }

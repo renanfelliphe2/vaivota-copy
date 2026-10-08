@@ -11,6 +11,14 @@ export const DURACOES = {
   trailerLink: 60000,
   trailerGerado: 12000,
   limiteCargaTrailer: 8000,
+  /** 08/10/2026: entrada e saída do trailer passam pelo preto: a cena que sai escurece (e o som baixa)… */
+  passagemPreto: 900,
+  /** …e o vídeo só clareia depois de o player carregar, um pouco depois do onLoad (o autoplay leva um instante). */
+  esperaPlayerTrailer: 700,
+  /** Título "Na última edição…" no preto, com o trailer já tocando por baixo (08/10/2026). */
+  aberturaTrailer: 4500,
+  /** Chamada "E os vencedores deste ano são…" depois do trailer (segundo passo da cena; avança sozinha). */
+  chamadaVencedores: 5500,
   mensagemAbertura: 8000,
   paginaCandidatos: 8000,
   ensaioAoVivo: 20000,
