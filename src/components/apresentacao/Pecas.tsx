@@ -82,7 +82,7 @@ export function FaixaParceiros({ parceiros }: { parceiros: readonly Parceiro[] }
     <ul ref={copia ? undefined : primeira} aria-hidden={copia || undefined} className={cx("flex shrink-0 items-center gap-24", rolando && "pr-24")}>
       {parceiros.map((p) => (
         <li key={p.id} className="flex h-[88px] shrink-0 items-center">
-          {/* Largura limitada: logo largo e sem margem (como o do VaiVota) não domina a faixa. */}
+          {/* Largura limitada: logo largo e sem margem não domina a faixa. */}
           <LogoParceiro parceiro={p} className="max-h-[88px] max-w-[200px]" classeNome="text-[40px] font-bold" />
         </li>
       ))}

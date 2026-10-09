@@ -51,6 +51,4 @@ export const seedParceiros = [
   { id: "parc-fv-inst-energisa", eventoId: ID_FESTIVAL, nome: "Instituto Energisa", logoUrl: "/parceiros/instituto-energisa.png", ordem: 4 },
   { id: "parc-fv-energisa", eventoId: ID_FESTIVAL, nome: "Energisa", logoUrl: "/parceiros/energisa.png", ordem: 5 },
   { id: "parc-fv-mg", eventoId: ID_FESTIVAL, nome: "Cultura e Turismo de Minas Gerais", logoUrl: "/parceiros/cultura-e-turismo-mg.png", ordem: 6 },
-  // A plataforma como parceira de tecnologia do Festival; a organização pode tirar em Configuração → Parceiros.
-  { id: "parc-fv-vaivota", eventoId: ID_FESTIVAL, nome: "VaiVota", logoUrl: "/vaivota-logo.png", ordem: 7 },
 ] satisfies Parceiro[];

@@ -48,7 +48,9 @@ function gravar(chave: string, texto: string): void {
 /** Primeira aba: aplica o que foi salvo (urna antes do evento: concluir encerra a urna aberta). */
 export function restaurarDemo({ store, relogio }: Ambiente): void {
   const parceiros = ler<Parceiro[]>(CHAVE_PARCEIROS);
-  if (Array.isArray(parceiros)) store.atualizar((e) => ({ ...e, banco: { ...e.banco, parceiros } }));
+  // 09/10/2026: o VaiVota saiu dos parceiros (fica só no rodapé e no final da apresentação); listas salvas antes ainda o trazem.
+  if (Array.isArray(parceiros))
+    store.atualizar((e) => ({ ...e, banco: { ...e.banco, parceiros: parceiros.filter((p) => p.id !== "parc-fv-vaivota") } }));
   const salvo = ler<Salvo>(CHAVE);
   if (!salvo) return;
   const ctx = { agoraMs: relogio.getAgora(), usuarioId: null };
