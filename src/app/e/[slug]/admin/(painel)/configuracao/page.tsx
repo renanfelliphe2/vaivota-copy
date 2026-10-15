@@ -1,4 +1,4 @@
-import { metadadosDaTela } from "@/servicos/metadados";
+import { metadadosDaTela } from "@/server/metadados";
 import { Suspense } from "react";
 import { TelaConfiguracao } from "@/components/config/TelaConfiguracao";
 import { Carregando } from "@/components/ui/Carregando";

@@ -22,7 +22,7 @@ export function BannerTrava({ travas, acoes }: { travas: Travas; acoes: readonly
   return (
     <Alerta variante={travas.fase === "CONCLUIDO" ? "informacao" : "aviso"}>
       {algumaTrava && texto && <p>{texto}</p>}
-      {travas.incoerente && <p>Combinação criada pela toolbar. Use a toolbar para voltar a um estado válido.</p>}
+      {travas.incoerente && <p>Combinação de estados inválida (fora do fluxo normal). Fale com a equipe técnica.</p>}
     </Alerta>
   );
 }

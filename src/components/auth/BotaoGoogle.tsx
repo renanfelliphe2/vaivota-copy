@@ -1,11 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
-import { Dialogo } from "@/components/ui/Dialogo";
-import { entrarComGoogle, listarContasGoogle } from "@/servicos/auth";
+import { entrarComGoogle } from "@/servicos/auth";
 import { useEventoAtivo } from "@/store/seletores/evento";
 
 export type BotaoGoogleProps = {
@@ -24,77 +22,44 @@ function MarcaG() {
   );
 }
 
-/** Google fake (D8): seletor com três contas, todas com e-mail verificado. */
+/**
+ * Entrar com Google (Better Auth): pede o endereço do consentimento e leva o navegador até lá. A volta cai em
+ * /e/[slug]/continuar, que cria a participação e segue para o destino certo.
+ */
 export function BotaoGoogle({ de, desabilitado, dicaId, aoConcluir }: BotaoGoogleProps) {
   const ativo = useEventoAtivo();
-  const router = useRouter();
-  const [aberto, setAberto] = useState(false);
-  const [enviando, setEnviando] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const contas = listarContasGoogle();
 
-  const escolher = async (contaId: string) => {
+  const entrar = async () => {
     if (!ativo || enviando) return;
-    setEnviando(contaId);
+    setEnviando(true);
     setErro(null);
-    const r = await entrarComGoogle(ativo.evento.id, contaId, de);
-    setEnviando(null);
+    const r = await entrarComGoogle(ativo.evento.id, de);
     if (!r.ok) {
+      setEnviando(false);
       setErro(r.erro.mensagem);
       return;
     }
-    setAberto(false);
     aoConcluir?.();
-    router.push(r.dados.destino);
+    // Navegação completa (saída para o Google): o estado do navegador é refeito na volta.
+    window.location.assign(r.dados.url);
   };
 
   return (
-    <>
+    <div className="flex flex-col gap-2">
+      {erro && <Alerta variante="erro">{erro}</Alerta>}
       <Botao
         variante="contorno"
         larguraTotal
         icone={<MarcaG />}
         disabled={desabilitado}
+        carregando={enviando}
         aria-describedby={dicaId}
-        onClick={() => setAberto(true)}
+        onClick={() => void entrar()}
       >
         Entrar com Google
       </Botao>
-      <Dialogo
-        aberto={aberto}
-        aoFechar={() => !enviando && setAberto(false)}
-        titulo="Escolha uma conta"
-        descricao="Protótipo: seletor de conta do Google simulado."
-      >
-        <div className="flex flex-col gap-3">
-          {erro && <Alerta variante="erro">{erro}</Alerta>}
-          <ul className="flex flex-col gap-2">
-            {contas.map((c) => (
-              <li key={c.id}>
-                <button
-                  type="button"
-                  onClick={() => void escolher(c.id)}
-                  disabled={enviando !== null}
-                  aria-busy={enviando === c.id || undefined}
-                  className="flex min-h-14 w-full items-center gap-3 rounded-xl border border-tema-borda px-4 py-2 text-left hover:bg-tema-superficie disabled:opacity-60"
-                >
-                  <span
-                    aria-hidden
-                    className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-tema-primaria font-bold text-tema-sobre-primaria"
-                  >
-                    {c.nome.charAt(0)}
-                  </span>
-                  <span className="flex flex-col">
-                    <span className="font-semibold">{c.nome}</span>
-                    <span className="text-sm text-tema-texto-suave">{c.email}</span>
-                  </span>
-                  {enviando === c.id && <span className="ml-auto text-sm text-tema-texto-suave">Entrando…</span>}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </Dialogo>
-    </>
+    </div>
   );
 }

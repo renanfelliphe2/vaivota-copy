@@ -5,7 +5,7 @@ import { MODOS_VOTO_JURI, ROTULO_MODO_JURI } from "@/dominio/avaliacaoJuri";
 import { definirModoVotoJuri } from "@/store/acoes";
 import { resetarMeuVoto } from "@/store/acoesVotacao";
 import { useEventoAtivo } from "@/store/seletores/evento";
-import { votarJuri, votarPopular } from "@/servicos/votacao";
+import { votarJuri, votarPopular } from "@/servicos/votacaoMock";
 
 // Etapa 5 (D15): só o que é novo. "Resetar meu voto" e "Enviar direto" (chama o serviço sem a tela).
 // 08/10/2026: "Modo do júri" troca a forma de votação do júri para a demonstração (ignora a trava da urna aberta).

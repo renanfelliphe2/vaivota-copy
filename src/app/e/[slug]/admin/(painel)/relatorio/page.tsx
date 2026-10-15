@@ -1,4 +1,4 @@
-import { metadadosDaTela } from "@/servicos/metadados";
+import { metadadosDaTela } from "@/server/metadados";
 import { RelatorioView } from "@/components/relatorio/RelatorioView";
 
 /** Etapa 7 (D17): herda RotaGuard(ADMIN) e AdminShell do layout (painel); a impressão esconde o shell. */

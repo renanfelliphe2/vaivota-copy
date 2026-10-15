@@ -9,6 +9,7 @@ import { atalhoAtual, atalhosDoPapel, type IdAtalho } from "@/dominio/navegacao"
 import { votacaoAberta } from "@/dominio/situacaoEvento";
 import { MenuUsuario } from "@/components/evento/MenuUsuario";
 import { cx } from "@/lib/classes";
+import { MODULOS_FESTIVAL } from "@/lib/modulos";
 import { useUi } from "@/store/seletores/dev";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { useSessao } from "@/store/seletores/sessao";
@@ -36,7 +37,8 @@ export function CabecalhoEvento() {
   const { slug, evento, tema } = ativo;
   if (pathname === `/e/${slug}/totem` || ui.palcoAtivo) return null;
 
-  const atalhos = sessao.logado ? atalhosDoPapel(slug, sessao.papel, votacaoAberta(evento)) : [];
+  // A apresentação (telão) é do MVP do Festival.
+  const atalhos = sessao.logado ? atalhosDoPapel(slug, sessao.papel, votacaoAberta(evento)).filter((a) => MODULOS_FESTIVAL || a.id !== "APRESENTACAO") : [];
   // Evento indisponível: a casca mínima já mostra o estado.
   const comFaixa = pathname === `/e/${slug}` && visao !== null && visao.variante !== "INDISPONIVEL";
 

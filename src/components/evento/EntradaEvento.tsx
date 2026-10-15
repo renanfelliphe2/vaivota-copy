@@ -5,6 +5,7 @@ import { ComoFunciona } from "@/components/landing/ComoFunciona";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { Parceiros } from "@/components/landing/Parceiros";
 import { SecaoVotacao } from "@/components/votacao/SecaoVotacao";
+import { Alerta } from "@/components/ui/Alerta";
 import { ehRotaInterna } from "@/dominio/acesso";
 import { useVisaoEvento } from "@/store/seletores/visao";
 import { useSessao } from "@/store/seletores/sessao";
@@ -24,6 +25,7 @@ export function EntradaEvento() {
   const busca = useSearchParams();
   const de = busca.get("de");
   const acesso = busca.get("acesso");
+  const erroGoogle = busca.get("erro") === "google";
   const intencao: IntencaoAcesso | undefined = acesso === "entrar" || acesso === "criar" ? acesso : undefined;
   if (!visao) return null;
   const deInterno = ehRotaInterna(de) ? de : undefined;
@@ -40,6 +42,11 @@ export function EntradaEvento() {
   return (
     <>
       {visao.bannerRascunho && <BannerRascunho />}
+      {erroGoogle && !logado && (
+        <div className="mx-auto w-full max-w-3xl px-4 pt-4 sm:px-6">
+          <Alerta variante="erro">Não foi possível entrar com o Google. Tente de novo ou use seu e-mail e senha.</Alerta>
+        </div>
+      )}
       <LandingHero />
       {!logado && <AbrirAcessoAutomatico de={deInterno} intencao={intencao} />}
       <ComoFunciona />

@@ -1,68 +1,66 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import type { EstadoPublico } from "@/dominio/estadoPublico";
 import type { EstadoApp } from "@/dominio/tipos";
-import { T0_MS } from "@/lib/tempo";
-import { criarEstadoInicial } from "@/mocks/criarEstadoInicial";
 import { definirAmbiente, type Ambiente } from "./ambiente";
 import { criarStore } from "./criarStore";
+import { criarEstadoDoServidor } from "./estadoReal";
 import { criarRelogio } from "./relogio";
-import { restaurarDemo, salvarDemo } from "./persistirDemo";
-import { ESPERA_COM_MAE_MS, ESPERA_SOZINHA_MS, idDaAbaMae, sincronizarAbas } from "./sincronizarAbas";
-import { fecharUrnasVencidas } from "./transicoes";
+import { intervaloDePollingMs, recarregarEstado } from "./servidor";
 
 const AmbienteContext = createContext<Ambiente | null>(null);
 
 /**
- * D1: estado único em memória, montado no layout raiz. Store e relógio criados por montagem.
- * 08/10/2026: as abas do navegador ficam sincronizadas (sincronizarAbas). As telas só aparecem depois da foto de
- * outra aba (ou da espera curta, se esta for a primeira): sem isso, a aba nova do telão nasceria deslogada e o
- * RotaGuard a mandaria para o login.
+ * MVP Semana Tech: estado único no navegador, montado no layout raiz com o estado público que o servidor já entregou
+ * (a primeira tela sai renderizada com dados reais, sem espera). O relógio é o real, alinhado ao do servidor. Depois
+ * disso, o estado se atualiza a cada ação (os serviços chamam `recarregarEstado`) e por polling enquanto a aba está visível
+ * (10 s para quem espera a urna; 30 s para quem já votou ou administra; 60 s com a urna encerrada: ver `intervaloDePollingMs`).
  */
-export function AppProvider({ children }: { children: ReactNode }) {
-  const [pronto, setPronto] = useState(false);
+export function AppProvider({ estadoInicial, children }: { estadoInicial: EstadoPublico; children: ReactNode }) {
   const [ambiente] = useState<Ambiente>(() => {
-    const novo = { store: criarStore(criarEstadoInicial()), relogio: criarRelogio(T0_MS) };
+    const novo = { store: criarStore(criarEstadoDoServidor(estadoInicial)), relogio: criarRelogio(estadoInicial.agoraMs) };
     // Serviços (funções comuns) precisam do store já no primeiro efeito dos filhos.
     if (typeof window !== "undefined") definirAmbiente(novo);
     return novo;
   });
 
   useEffect(() => {
-    let pararDeSalvar = () => {};
-    const parar = sincronizarAbas(
-      ambiente,
-      (comFoto) => {
-        // Primeira aba: aplica o preparo salvo da demonstração (persistirDemo). As outras já vêm com a foto.
-        if (!comFoto) restaurarDemo(ambiente);
-        pararDeSalvar = salvarDemo(ambiente);
-        setPronto(true);
-      },
-      idDaAbaMae() ? ESPERA_COM_MAE_MS : ESPERA_SOZINHA_MS,
-    );
-    return () => {
-      parar();
-      pararDeSalvar();
-    };
+    definirAmbiente(ambiente);
+    const { relogio } = ambiente;
+    const intervalo = setInterval(() => relogio.tique(), 1000);
+    return () => clearInterval(intervalo);
   }, [ambiente]);
 
   useEffect(() => {
-    definirAmbiente(ambiente);
-    const { store, relogio } = ambiente;
-    const fechar = () => store.atualizar((e) => fecharUrnasVencidas(e, relogio.getAgora()));
-    // Tique de 1 s: avança o relógio e aplica o fechamento automático (D7). Pulos do relógio também checam.
-    const intervalo = setInterval(() => {
-      relogio.tique();
-      fechar();
-    }, 1000);
-    const cancelar = relogio.subscribe(fechar);
+    let parado = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const agendar = () => {
+      clearTimeout(timer);
+      if (parado) return;
+      // O intervalo depende do estado: quem só espera a urna abrir consulta mais; quem já votou ou a urna encerrada, menos.
+      timer = setTimeout(() => void ciclo(), intervaloDePollingMs(ambiente.store.getState()));
+    };
+    async function ciclo() {
+      if (document.visibilityState === "visible") await recarregarEstado();
+      agendar();
+    }
+    const aoVoltar = () => {
+      // Voltou à aba depois de um tempo (ou de volta da tela bloqueada): atualiza já.
+      if (document.visibilityState === "visible") void recarregarEstado();
+    };
+
+    agendar();
+    document.addEventListener("visibilitychange", aoVoltar);
     return () => {
-      clearInterval(intervalo);
-      cancelar();
+      parado = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", aoVoltar);
     };
   }, [ambiente]);
 
-  return <AmbienteContext.Provider value={ambiente}>{pronto ? children : null}</AmbienteContext.Provider>;
+  return <AmbienteContext.Provider value={ambiente}>{children}</AmbienteContext.Provider>;
 }
 
 export function useAmbiente(): Ambiente {
@@ -81,8 +79,8 @@ export function useStore<T>(seletor: (estado: EstadoApp) => T): T {
   );
 }
 
-/** Instante simulado em ms. No servidor e na hidratação vale T0 (D6). */
+/** Instante em ms: o relógio real, alinhado ao do servidor. Na hidratação vale o instante em que o servidor montou a página. */
 export function useAgora(): number {
   const { relogio } = useAmbiente();
-  return useSyncExternalStore(relogio.subscribe, relogio.getAgora, () => T0_MS);
+  return useSyncExternalStore(relogio.subscribe, relogio.getAgora, relogio.getAgora);
 }

@@ -122,7 +122,7 @@ export function SecaoOperacao({ travas, checklist }: { travas: Travas; checklist
 
       {travas.incoerente && (
         <Alerta variante="aviso" titulo="Ações desabilitadas">
-          Combinação criada pela toolbar. Use a toolbar para voltar a um estado válido.
+          Combinação de estados inválida (fora do fluxo normal). Fale com a equipe técnica.
         </Alerta>
       )}
 

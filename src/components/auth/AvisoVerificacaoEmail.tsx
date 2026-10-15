@@ -11,8 +11,8 @@ import { Cartao } from "@/components/ui/Cartao";
 import { Carregando } from "@/components/ui/Carregando";
 import { ContagemRegressiva } from "@/components/ui/ContagemRegressiva";
 import { ehRotaInterna } from "@/dominio/acesso";
-import { CODIGO_LOGIN_PROTOTIPO, limparCodigoLogin, validarCodigoLogin } from "@/lib/validarAcesso";
-import { confirmarCodigo, reenviarCodigo } from "@/servicos/auth";
+import { limparCodigoLogin, validarCodigoLogin } from "@/lib/validarAcesso";
+import { confirmarCodigo, descartarLoginPendente, reenviarCodigo } from "@/servicos/auth";
 import { sair } from "@/servicos/sessao";
 import { useUi } from "@/store/seletores/dev";
 import { useEventoAtivo } from "@/store/seletores/evento";
@@ -20,9 +20,9 @@ import { useAgora } from "@/store/seletores/relogio";
 import { useSessao } from "@/store/seletores/sessao";
 
 /**
- * Confirmação de e-mail por código para quem está logado sem e-mail verificado (só pela toolbar desde o login
- * com senha, 08/10/2026; a recuperação de senha tem tela própria). Sem sessão, volta à entrada; logado e verificado vai
- * para o `?de=` interno ou para a entrada (rev. 3, D2).
+ * Confirmação do e-mail por código (ST1): quem acabou de criar a conta (ou tentou entrar sem ter confirmado) digita o
+ * código de 6 números enviado por e-mail; ao acertar, a sessão abre. O e-mail vem de `ui.loginPendente`. Sem e-mail
+ * pendente, volta à entrada; logado e verificado vai para o `?de=` interno ou para a entrada.
  */
 export function AvisoVerificacaoEmail({ de }: { de?: string }) {
   const ativo = useEventoAtivo();
@@ -40,7 +40,8 @@ export function AvisoVerificacaoEmail({ de }: { de?: string }) {
   const [concluido, setConcluido] = useState<string | null>(null);
 
   const slug = ativo?.slug ?? "";
-  const email = sessao.logado && !sessao.emailVerificado ? sessao.usuario!.email : null;
+  const pendente = ui.loginPendente && ui.loginPendente.eventoId === ativo?.evento.id && ui.loginPendente.tipo !== "recuperacao" ? ui.loginPendente : null;
+  const email = pendente?.email ?? (sessao.logado && !sessao.emailVerificado ? sessao.usuario!.email : null);
   const destinoDe = de;
   const ocupado = enviando || concluido !== null;
   const redirecionar = ocupado
@@ -110,6 +111,7 @@ export function AvisoVerificacaoEmail({ de }: { de?: string }) {
 
   const usarOutroEmail = async () => {
     setEnviando(true); // evita o redirecionamento automático enquanto sai
+    descartarLoginPendente();
     if (sessao.logado) await sair();
     router.push(`/e/${slug}?acesso=entrar${ehRotaInterna(destinoDe) ? `&de=${encodeURIComponent(destinoDe)}` : ""}`);
   };
@@ -123,9 +125,6 @@ export function AvisoVerificacaoEmail({ de }: { de?: string }) {
           Digite o código enviado para <strong className="break-all text-tema-texto">{email}</strong>.
         </p>
       </div>
-      <Alerta variante="informacao" titulo="Protótipo" role={null}>
-        Protótipo: use {CODIGO_LOGIN_PROTOTIPO}
-      </Alerta>
       {erroGeral && <Alerta variante="erro">{erroGeral}</Alerta>}
       <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
         <Campo

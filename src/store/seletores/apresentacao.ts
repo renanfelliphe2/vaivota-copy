@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { chaveApresentacao, lerRevelacao } from "@/dominio/apresentacao/revelacao";
 import type { EstadoUiApresentacao } from "@/dominio/tipos";
-import { criarApresentacaoInicial } from "@/mocks/criarEstadoNucleo";
+import { criarApresentacaoInicial } from "../estadoInicial";
 import { useStore } from "../AppProvider";
 
 /** Etapa 8 (D4): revelação válida para a sessão, o evento e a assinatura atuais. */

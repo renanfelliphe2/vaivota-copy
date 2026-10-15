@@ -76,7 +76,7 @@ export function TelaConfiguracao() {
         )}
         {travas.incoerente && (
           <Alerta variante="aviso" titulo="Estado incoerente">
-            Combinação criada pela toolbar. Use a toolbar para voltar a um estado válido. As ações de Operação ficam desabilitadas.
+            Combinação de estados inválida (fora do fluxo normal). Fale com a equipe técnica. As ações de Operação ficam desabilitadas.
           </Alerta>
         )}
 

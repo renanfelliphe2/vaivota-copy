@@ -9,7 +9,7 @@ export function BannerPainel({ fase, incoerente, base }: { fase: FaseConfig; inc
     <>
       {incoerente && (
         <Alerta variante="aviso" titulo="Estado incoerente">
-          Combinação criada pela toolbar. Use a toolbar para voltar a um estado válido.
+          Combinação de estados inválida (fora do fluxo normal). Fale com a equipe técnica.
         </Alerta>
       )}
       {fase === "CONCLUIDO" && (

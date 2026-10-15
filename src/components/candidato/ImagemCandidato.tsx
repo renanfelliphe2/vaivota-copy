@@ -7,7 +7,7 @@ export type ImagemCandidatoProps = {
   /** Proporção fixa para não dar salto de layout. */
   proporcao?: "4/3" | "16/9" | "1/1";
   className?: string;
-  /** Repassado ao next/image (caminhos de public/). */
+  /** Repassado ao next/image. */
   sizes?: string;
 };
 
@@ -59,8 +59,9 @@ function Cartaz({ n, titulo }: { n: number; titulo: string }) {
 }
 
 /**
- * Imagem de candidato (D16): `placeholder:<n>` (cartaz do tema), caminho de public/ (next/image),
- * `blob:` (prévia da Etapa 6, <img> simples) ou null (bloco de cor + inicial; só em rascunho).
+ * Imagem de candidato: endereço `https://` do Supabase Storage ou caminho local `/uploads/` (next/image; o domínio do
+ * Storage está liberado em next.config.ts), `placeholder:<n>` (cartaz do tema, só nos dados de exemplo do protótipo),
+ * `blob:` (prévia local) ou null (bloco de cor + inicial; só em rascunho).
  */
 export function ImagemCandidato({ titulo, imagemUrl, proporcao = "4/3", className, sizes }: ImagemCandidatoProps) {
   const moldura = cx("relative overflow-hidden bg-tema-superficie", PROPORCOES[proporcao], className);
@@ -83,7 +84,7 @@ export function ImagemCandidato({ titulo, imagemUrl, proporcao = "4/3", classNam
     );
   }
 
-  if (imagemUrl?.startsWith("/")) {
+  if (imagemUrl?.startsWith("/") || imagemUrl?.startsWith("https://")) {
     return (
       <div className={moldura}>
         <Image src={imagemUrl} alt={titulo} fill sizes={sizes ?? "(min-width: 768px) 33vw, 50vw"} className="object-cover" />

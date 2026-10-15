@@ -1,4 +1,4 @@
-import { metadadosDaTela } from "@/servicos/metadados";
+import { metadadosDaTela } from "@/server/metadados";
 import { Suspense } from "react";
 import { TelaRecuperarSenha } from "./TelaRecuperarSenha";
 

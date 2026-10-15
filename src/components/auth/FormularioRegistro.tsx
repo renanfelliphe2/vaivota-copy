@@ -100,6 +100,11 @@ export function FormularioRegistro({ de, aoConcluir }: { de?: string; aoConcluir
 
   return (
     <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
+      {evento.estado === "RASCUNHO" && (
+        <Alerta variante="informacao" role={null}>
+          O evento ainda não abriu para o público. Por enquanto, só a organização (com o e-mail convidado) pode criar conta.
+        </Alerta>
+      )}
       {erroGeral && (
         <Alerta variante="erro">
           {erroGeral}

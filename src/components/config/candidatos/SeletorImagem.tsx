@@ -5,13 +5,14 @@ import { useId, useState } from "react";
 import { validarArquivoImagem } from "@/dominio/validacoesConfig";
 import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
 import { Botao } from "@/components/ui/Botao";
-import { Select } from "@/components/ui/Campo";
 import { cx } from "@/lib/classes";
+import { enviarImagemCandidato } from "@/servicos/candidatosAdmin";
+import { useEventoAtivo } from "@/store/seletores/evento";
 
 export type SeletorImagemProps = {
   titulo: string;
   valor: string | null;
-  /** Remover só é permitido em rascunho (D12). */
+  /** Remover só é permitido em rascunho (a imagem é obrigatória na votação). */
   podeRemover: boolean;
   disabled?: boolean;
   erro?: string | null;
@@ -19,17 +20,33 @@ export type SeletorImagemProps = {
 };
 
 /**
- * Etapa 6 (D12): enviar arquivo (`blob:` criado no manipulador), usar um exemplo (`placeholder:1..8`) ou
- * remover. A revogação do `blob:` descartado é de quem guarda o rascunho (nunca o salvo).
+ * ST2: envia o arquivo ao servidor assim que é escolhido (PNG, JPG ou WebP, até 2 MB; o servidor confere tipo e tamanho
+ * de novo, pelo conteúdo) e guarda a URL pública que voltou. Mostra a prévia da imagem já enviada.
  */
 export function SeletorImagem({ titulo, valor, podeRemover, disabled, erro, aoMudar }: SeletorImagemProps) {
+  const ativo = useEventoAtivo();
   const [erroArquivo, setErroArquivo] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
   const id = useId();
   const mensagem = erroArquivo ?? erro ?? null;
-  const exemplo = valor?.startsWith("placeholder:") ? valor : "";
+
+  async function enviar(arquivo: File) {
+    if (!ativo) return;
+    const problema = validarArquivoImagem(arquivo);
+    setErroArquivo(problema);
+    if (problema) return;
+    setEnviando(true);
+    const r = await enviarImagemCandidato(ativo.evento.id, arquivo);
+    setEnviando(false);
+    if (!r.ok) {
+      setErroArquivo(r.erro.campos?.imagemUrl ?? r.erro.mensagem);
+      return;
+    }
+    aoMudar(r.dados.url);
+  }
 
   return (
-    <fieldset className="flex flex-col gap-3" aria-describedby={mensagem ? `${id}-erro` : undefined}>
+    <fieldset className="flex flex-col gap-3" aria-describedby={mensagem ? `${id}-erro` : undefined} aria-busy={enviando || undefined}>
       <legend className="text-sm font-semibold">Imagem</legend>
       <div className="w-48 overflow-hidden rounded-xl border border-tema-borda">
         <ImagemCandidato titulo={titulo || "Sem título"} imagemUrl={valor} />
@@ -39,50 +56,30 @@ export function SeletorImagem({ titulo, valor, podeRemover, disabled, erro, aoMu
         <label
           className={cx(
             "inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-tema-texto-suave px-4 text-sm font-semibold hover:bg-tema-superficie has-focus-visible:outline-3 has-focus-visible:outline-tema-foco",
-            disabled && "pointer-events-none opacity-60",
+            (disabled || enviando) && "pointer-events-none opacity-60",
           )}
         >
           <Upload aria-hidden className="size-4" />
-          Enviar arquivo
+          {enviando ? "Enviando…" : valor ? "Trocar imagem" : "Enviar imagem"}
           <input
             type="file"
-            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            accept="image/png,image/jpeg,image/webp"
             className="sr-only"
-            disabled={disabled}
+            disabled={disabled || enviando}
             onChange={(e) => {
               const arquivo = e.target.files?.[0];
               e.target.value = "";
-              if (!arquivo) return;
-              const problema = validarArquivoImagem(arquivo);
-              setErroArquivo(problema);
-              if (!problema) aoMudar(URL.createObjectURL(arquivo));
+              if (arquivo) void enviar(arquivo);
             }}
           />
         </label>
-        <Select
-          aria-label="Usar uma imagem de exemplo"
-          className="w-auto"
-          value={exemplo}
-          disabled={disabled}
-          onChange={(e) => {
-            setErroArquivo(null);
-            if (e.target.value) aoMudar(e.target.value);
-          }}
-        >
-          <option value="">Usar exemplo…</option>
-          {Array.from({ length: 8 }, (_, i) => (
-            <option key={i} value={`placeholder:${i + 1}`}>
-              Exemplo {i + 1}
-            </option>
-          ))}
-        </Select>
         {podeRemover && valor && (
-          <Botao variante="fantasma" tamanho="pequeno" disabled={disabled} onClick={() => aoMudar(null)} icone={<ImageOff aria-hidden className="size-4" />}>
+          <Botao variante="fantasma" tamanho="pequeno" disabled={disabled || enviando} onClick={() => aoMudar(null)} icone={<ImageOff aria-hidden className="size-4" />}>
             Remover imagem
           </Botao>
         )}
       </div>
-      <p className="text-sm text-tema-texto-suave">PNG, JPG, WebP ou SVG, até 2 MB. O arquivo fica só nesta aba (protótipo).</p>
+      <p className="text-sm text-tema-texto-suave">PNG, JPG ou WebP, até 2 MB. Use uma imagem horizontal (proporção 4:3).</p>
       {mensagem && (
         <p id={`${id}-erro`} role="alert" className="text-sm font-medium text-tema-erro">
           {mensagem}

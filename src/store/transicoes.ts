@@ -1,7 +1,7 @@
 import { congelarResultado } from "@/dominio/resultado";
 import type { EstadoApp, EstadoEvento, EstadoUrna, Evento, OrigemEncerramento } from "@/dominio/tipos";
 import { paraInstante, paraMs } from "@/lib/tempo";
-import { criarApresentacaoInicial } from "@/mocks/criarEstadoNucleo";
+import { criarApresentacaoInicial } from "./estadoInicial";
 import { registrarAuditoria } from "./auditoria";
 
 // D8: todas as transições de estado do evento e da urna moram aqui (funções puras sobre o estado).

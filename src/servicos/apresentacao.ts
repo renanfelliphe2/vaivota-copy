@@ -12,7 +12,7 @@ import { CENARIOS } from "@/mocks/cenarios";
 import { registrarAuditoria } from "@/store/auditoria";
 import { obterAmbiente } from "@/store/ambiente";
 import { exigirAdmin, IP_HASH, iniciarServico, instanteDoEvento, lerAmbiente } from "./apoio";
-import { faseComResultado, serieDoEvento } from "./dashboard";
+import { faseComResultado, serieDoEvento } from "./dashboardMock";
 import { falha, registrarLog, simularFalha, sucesso, type Resultado } from "./resultado";
 
 // Etapa 8 (D2, D6, D7, seção 5.3): fronteira de leitura do palco. Leituras obedecem só a simularErroRede;

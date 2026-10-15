@@ -1,7 +1,7 @@
 import { chaveApresentacao, type Revelacao } from "@/dominio/apresentacao/revelacao";
 import type { EstadoApp, EstadoUiApresentacao, ModoAvanco } from "@/dominio/tipos";
 import { paraInstante } from "@/lib/tempo";
-import { criarApresentacaoInicial } from "@/mocks/criarEstadoNucleo";
+import { criarApresentacaoInicial } from "./estadoInicial";
 import { obterAmbiente } from "./ambiente";
 
 // Etapa 8 (seção 5.2): única escrita em ui.apresentacao (só no modo real; o ensaio nunca grava).

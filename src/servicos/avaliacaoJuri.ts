@@ -11,7 +11,7 @@ import type { EstadoApp, ModoVotoJuri, ResultadoEnvioVoto } from "@/dominio/tipo
 import { registrarAuditoria } from "@/store/auditoria";
 import { IP_HASH, acharEvento, instanteDoEvento, lerAmbiente } from "./apoio";
 import { atraso, falha, registrarLog, simularFalha, sucesso, type Resultado } from "./resultado";
-import { encerrarPorFalhaSimulada, inicioDoEnvio, validarCandidato, validarIdentidade, validarUrna, type Contexto } from "./votacao";
+import { encerrarPorFalhaSimulada, inicioDoEnvio, validarCandidato, validarIdentidade, validarUrna, type Contexto } from "./votacaoMock";
 
 // Júri por critério (08/10/2026). Mesma ordem de validação do votarJuri (Etapa 5, seção 5.2) e mesmas falhas
 // simuladas. Salvar é idempotente (substitui as notas ou escolhas do candidato): depois de erro de rede, tentar

@@ -50,6 +50,8 @@ export type ErroServico = {
   detalhe?: string;
   /** Erros por campo (VALIDACAO). */
   campos?: Record<string, string>;
+  /** LIMITE_TENTATIVAS: segundos até poder tentar de novo (o bloqueio é do servidor). */
+  retryAposSegundos?: number;
 };
 
 export type Resultado<T> = { ok: true; dados: T } | { ok: false; erro: ErroServico };

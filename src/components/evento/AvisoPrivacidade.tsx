@@ -7,8 +7,8 @@ import { cx } from "@/lib/classes";
 
 /**
  * Aviso de privacidade da plataforma VaiVota (controladora dos dados; rev. 4, E29). Sempre disponível.
- * Texto provisório (rascunho a partir do DD §10.4), pendente de revisão jurídica. Sem rota própria no
- * protótipo: abre num diálogo.
+ * Texto simples (a partir do DD §10.4); a revisão jurídica final (E29) é do dono do produto. Sem rota própria:
+ * abre num diálogo.
  */
 export function AvisoPrivacidade({ className, rotulo = "Aviso de privacidade" }: { className?: string; rotulo?: string }) {
   const [aberto, setAberto] = useState(false);
@@ -25,7 +25,7 @@ export function AvisoPrivacidade({ className, rotulo = "Aviso de privacidade" }:
         aberto={aberto}
         aoFechar={() => setAberto(false)}
         titulo="Aviso de privacidade"
-        descricao="VaiVota · texto provisório, em revisão"
+        descricao="VaiVota · versão de 15/10/2026"
         rodape={<Botao onClick={() => setAberto(false)}>Entendi</Botao>}
       >
         <div className="flex flex-col gap-3 text-sm leading-relaxed">

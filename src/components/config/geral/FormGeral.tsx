@@ -17,6 +17,7 @@ import { useAnunciar } from "@/components/a11y/LiveRegion";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Campo, Checkbox, Input, Select, Textarea } from "@/components/ui/Campo";
+import { MODULOS_FESTIVAL } from "@/lib/modulos";
 import { descreverDeslocamento, FUSOS_SUPORTADOS, instanteParaLocal, localParaInstante } from "@/lib/fusoHorario";
 import { paraMs } from "@/lib/tempo";
 import { salvarGeral, type PatchGeral } from "@/servicos/configGeral";
@@ -216,20 +217,27 @@ function FormGeralInterno({ evento, travas }: { evento: Evento; travas: Travas }
               ))}
             </Select>
           </Campo>
-          <div className="flex flex-col gap-1">
-            <Checkbox
-              id="geral-auto"
-              rotulo="Encerrar automaticamente ao fim da janela"
-              checked={r.encerramentoAutomatico}
-              onChange={(e) => mudar("encerramentoAutomatico", e.target.checked)}
-              disabled={!pode("GERAL_ENCERRAMENTO_AUTOMATICO")}
-            />
+          {MODULOS_FESTIVAL ? (
+            <div className="flex flex-col gap-1">
+              <Checkbox
+                id="geral-auto"
+                rotulo="Encerrar automaticamente ao fim da janela"
+                checked={r.encerramentoAutomatico}
+                onChange={(e) => mudar("encerramentoAutomatico", e.target.checked)}
+                disabled={!pode("GERAL_ENCERRAMENTO_AUTOMATICO")}
+              />
+              <p className="text-sm text-tema-texto-suave">
+                A abertura da urna é sempre manual. Desligado, a urna continua aberta depois do fim e as telas mostram &quot;Tempo
+                esgotado&quot; até a organização encerrar.
+              </p>
+              <DicaTrava motivo={dicaAuto} />
+            </div>
+          ) : (
             <p className="text-sm text-tema-texto-suave">
-              A abertura da urna é sempre manual. Desligado, a urna continua aberta depois do fim e as telas mostram &quot;Tempo
-              esgotado&quot; até a organização encerrar.
+              A urna só é aberta e encerrada pela organização, na seção Operação. O horário da janela é só informativo: passando
+              do fim, as telas mostram &quot;Tempo esgotado&quot; até a organização encerrar.
             </p>
-            <DicaTrava motivo={dicaAuto} />
-          </div>
+          )}
           {!leitura && (
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Botao variante="contorno" onClick={descartar} disabled={!alterado || servico.carregando} icone={<Undo2 aria-hidden className="size-4" />}>

@@ -1,6 +1,6 @@
 import { chaveVinculo } from "@/dominio/aplicarVoto";
 import type { EstadoApp, EstadoUiVotacao } from "@/dominio/tipos";
-import { criarVotacaoInicial } from "@/mocks/criarEstadoNucleo";
+import { criarVotacaoInicial } from "./estadoInicial";
 import { obterAmbiente } from "./ambiente";
 
 // Etapa 5 (seção 5.1): única escrita em `ui.votacao`. Toda escrita grava a chave atual

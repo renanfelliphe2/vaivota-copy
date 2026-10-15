@@ -1,7 +1,12 @@
 import { obterAmbiente } from "@/store/ambiente";
+import { recarregarEstado } from "@/store/servidor";
+import { chamar } from "./rpc";
 import { atraso, falha, simularFalha, sucesso, type Resultado } from "./resultado";
 
-/** Abre a sessão de um usuário existente (a Etapa 3 usa ao confirmar o código; a toolbar usa forcarSessao). */
+/**
+ * Só toolbar do protótipo ("Entrar como" um usuário seed). Não existe no MVP da Semana Tech: a sessão é a do cookie do
+ * Better Auth e o estado vem do servidor.
+ */
 export async function entrarComo(usuarioId: string): Promise<Resultado<{ usuarioId: string }>> {
   await atraso();
   const erro = simularFalha();
@@ -16,9 +21,10 @@ export async function entrarComo(usuarioId: string): Promise<Resultado<{ usuario
 
 /** Encerra a sessão (a participação continua no banco). */
 export async function sair(): Promise<Resultado<null>> {
-  await atraso();
-  const erro = simularFalha();
-  if (erro) return erro;
-  obterAmbiente().store.atualizar((e) => ({ ...e, sessao: { usuarioId: null }, ui: { ...e.ui, loginPendente: null } }));
+  const r = await chamar<null>("sair");
+  if (!r.ok) return r;
+  // Limpa o que era da pessoa (seleção de voto, e-mail pendente) e busca o estado de visitante.
+  obterAmbiente().store.atualizar((e) => ({ ...e, ui: { ...e.ui, loginPendente: null, votacao: { ...e.ui.votacao, chave: null, selecaoId: null } } }));
+  await recarregarEstado();
   return sucesso(null);
 }

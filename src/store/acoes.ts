@@ -4,7 +4,7 @@ import { exigirAcao } from "@/dominio/travas";
 import type { EstadoApp, EstadoDev, EstadoEvento, EstadoUrna, ModoFalha, ModoVotoJuri, ToolbarModo } from "@/dominio/tipos";
 import { paraInstante } from "@/lib/tempo";
 import { CENARIOS } from "@/mocks/cenarios";
-import { criarApresentacaoInicial } from "@/mocks/criarEstadoNucleo";
+import { criarApresentacaoInicial } from "./estadoInicial";
 import { criarEstadoInicial } from "@/mocks/criarEstadoInicial";
 import { obterAmbiente } from "./ambiente";
 import { forcarEstadoEvento as forcarEvento, forcarEstadoUrna as forcarUrna } from "./transicoes";

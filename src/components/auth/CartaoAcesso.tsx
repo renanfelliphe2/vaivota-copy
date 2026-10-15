@@ -12,16 +12,16 @@ export type CartaoAcessoProps = {
   abaInicial?: "entrar" | "criar";
 };
 
-/** Abas Entrar / Criar conta (D7): "Criar conta" fica desabilitada, com explicação, fora do estado ATIVO. */
+/**
+ * Abas Entrar / Criar conta (D7): "Criar conta" fica desabilitada, com explicação, com o evento concluído. Em rascunho
+ * a aba existe (a organização convidada cria a conta antes de ativar o evento); o formulário explica e o servidor confere o convite.
+ */
 export function CartaoAcesso({ de, aoConcluir, abaInicial = "entrar" }: CartaoAcessoProps) {
   const ativo = useEventoAtivo();
   if (!ativo) return null;
   const { estado } = ativo.evento;
-  const criarDesabilitada = estado !== "ATIVO";
-  const dica =
-    estado === "CONCLUIDO"
-      ? "Este evento foi concluído e não aceita novos cadastros."
-      : "Este evento ainda não está disponível para novos cadastros.";
+  const criarDesabilitada = estado === "CONCLUIDO";
+  const dica = "Este evento foi concluído e não aceita novos cadastros.";
 
   return (
     <Abas

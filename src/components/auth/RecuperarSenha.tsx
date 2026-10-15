@@ -11,7 +11,6 @@ import { Cartao } from "@/components/ui/Cartao";
 import { ContagemRegressiva } from "@/components/ui/ContagemRegressiva";
 import { ehRotaInterna } from "@/dominio/acesso";
 import {
-  CODIGO_LOGIN_PROTOTIPO,
   SENHA_MIN,
   limparCodigoLogin,
   validarCodigoLogin,
@@ -28,13 +27,13 @@ import { CampoSenha } from "./CampoSenha";
 type Erros = Partial<Record<"codigo" | "senha" | "confirmacaoSenha", string>>;
 
 /**
- * "Esqueci minha senha" (08/10/2026): passo 1 pede o e-mail e "envia" o código; passo 2 pede o código e a
+ * "Esqueci minha senha" (ST1): passo 1 pede o e-mail e envia o código por e-mail; passo 2 pede o código e a
  * senha nova e já entra. O passo vem de `ui.loginPendente` deste evento (sobrevive à navegação, não ao F5).
  */
 export function RecuperarSenha({ de }: { de?: string }) {
   const ativo = useEventoAtivo();
   const ui = useUi();
-  const pendente = ui.loginPendente && ui.loginPendente.eventoId === ativo?.evento.id ? ui.loginPendente : null;
+  const pendente = ui.loginPendente && ui.loginPendente.eventoId === ativo?.evento.id && ui.loginPendente.tipo === "recuperacao" ? ui.loginPendente : null;
   if (!ativo) return null;
   return pendente ? <PassoCodigo email={pendente.email} de={de ?? pendente.de} /> : <PassoEmail de={de} />;
 }
@@ -152,9 +151,6 @@ function PassoCodigo({ email, de }: { email: string; de?: string }) {
           Digite o código enviado para <strong className="break-all text-tema-texto">{email}</strong> e escolha a senha nova.
         </p>
       </div>
-      <Alerta variante="informacao" titulo="Protótipo" role={null}>
-        Protótipo: use {CODIGO_LOGIN_PROTOTIPO}
-      </Alerta>
       {erroGeral && <Alerta variante="erro">{erroGeral}</Alerta>}
       <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
         <Campo

@@ -63,7 +63,7 @@ function FormPlacar({ evento, placar, travas }: { evento: Evento; placar: Config
   const motivoJuri = !evento.moduloJuri
     ? travas.nivel("MODULO_JURI_DESLIGAR") === "TRAVADO"
       ? travas.motivo("MODULO_JURI_DESLIGAR") ?? undefined
-      : "Módulo júri desligado (toolbar): peso 0."
+      : "Módulo júri desligado neste evento: peso 0."
     : undefined;
 
   const aplicar = (novos: Pesos) => {
@@ -103,7 +103,7 @@ function FormPlacar({ evento, placar, travas }: { evento: Evento; placar: Config
           pesos={pesos}
           ligados={ligados}
           disabled={!pode}
-          motivoDesligado={{ JURI: motivoJuri, INFANTIL: "Módulo infantil desligado (toolbar): peso 0." }}
+          motivoDesligado={{ JURI: motivoJuri, INFANTIL: "Módulo infantil desligado neste evento: peso 0." }}
           aoMudar={(g, v) => aplicar({ ...pesos, [g]: v })}
         />
         {evento.moduloJuri && travas.nivel("MODULO_JURI_DESLIGAR") === "TRAVADO" && (

@@ -10,6 +10,7 @@ import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Campo, Input, Select } from "@/components/ui/Campo";
 import { FONTES_APROVADAS } from "@/lib/fontes";
+import { MODULOS_FESTIVAL } from "@/lib/modulos";
 import { useConsulta } from "@/lib/useConsulta";
 import { listarPresetsTema, salvarTema } from "@/servicos/temaConfig";
 import { useFormularioSujo } from "../FormularioSujoProvider";
@@ -87,16 +88,19 @@ export function TemaForm({ evento, tema, travas }: { evento: Evento; tema: Tema;
           <Campo id="tema-nome" rotulo="Nome de exibição" obrigatorio erro={mostrar("nomeExibicao")}>
             <Input value={r.nomeExibicao} onChange={(e) => mudar({ nomeExibicao: e.target.value })} maxLength={60} />
           </Campo>
-          <SeletorLogo
-            nome={r.nomeExibicao}
-            valor={r.logoUrl}
-            salvo={salvo.logoUrl}
-            disabled={!pode}
-            aoMudar={(url) => {
-              revogarSeDescartado(r.logoUrl);
-              mudar({ logoUrl: url });
-            }}
-          />
+          {/* Envio de logo é do MVP do Festival (a Semana Tech usa o nome em texto). */}
+          {MODULOS_FESTIVAL && (
+            <SeletorLogo
+              nome={r.nomeExibicao}
+              valor={r.logoUrl}
+              salvo={salvo.logoUrl}
+              disabled={!pode}
+              aoMudar={(url) => {
+                revogarSeDescartado(r.logoUrl);
+                mudar({ logoUrl: url });
+              }}
+            />
+          )}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {CORES.map(([campo, rotulo]) => (
               <Campo key={campo} id={`tema-${campo}`} rotulo={rotulo} erro={mostrar(campo)}>

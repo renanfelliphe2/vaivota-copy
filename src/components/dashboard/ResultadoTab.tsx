@@ -12,6 +12,7 @@ import { casasDaPontuacao } from "@/dominio/resultado";
 import type { FaseConfig } from "@/dominio/travas";
 import type { ConfigApresentacao, Grupo } from "@/dominio/tipos";
 import { formatarDecimal, formatarNumero } from "@/lib/formatar";
+import { MODULOS_FESTIVAL } from "@/lib/modulos";
 import { formatarDataHora, paraMs } from "@/lib/tempo";
 import { mostrarResultado } from "@/store/acoesDashboard";
 import { useUi } from "@/store/seletores/dev";
@@ -37,9 +38,11 @@ export function chaveResultado(eventoId: string, versao: number): string {
 function Atalhos({ base }: { base: string }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <Botao href={`${base}/apresentar`} variante="contorno" tamanho="pequeno" icone={<Monitor aria-hidden className="size-4" />}>
-        Abrir apresentação
-      </Botao>
+      {MODULOS_FESTIVAL && (
+        <Botao href={`${base}/apresentar`} variante="contorno" tamanho="pequeno" icone={<Monitor aria-hidden className="size-4" />}>
+          Abrir apresentação
+        </Botao>
+      )}
       <Botao href={`${base}/relatorio`} variante="contorno" tamanho="pequeno" icone={<FileText aria-hidden className="size-4" />}>
         Ver relatório
       </Botao>
@@ -76,7 +79,7 @@ export function ResultadoTab({
     return (
       <div className="flex flex-col gap-6">
         <Alerta variante="informacao" titulo={MOTIVO_SEM_RESULTADO}>
-          O resultado é calculado no encerramento da urna. Esta combinação só aparece quando o estado é alterado pela toolbar.
+          O resultado é calculado no encerramento da urna. Esta combinação só aparece se o estado do evento foi alterado fora do fluxo normal.
         </Alerta>
         {exportacao}
       </div>

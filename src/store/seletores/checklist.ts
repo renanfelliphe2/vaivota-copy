@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { avaliarChecklist, montarEntradaChecklist, type EntradaChecklist, type ItemChecklist } from "@/dominio/checklistAtivacao";
 import { resolverTravas, type Travas } from "@/dominio/travas";
+import { MODULOS_FESTIVAL } from "@/lib/modulos";
 import { useAgora, useStore } from "../AppProvider";
 import { useEventoAtivo } from "./evento";
 
@@ -22,7 +23,11 @@ export function useEntradaChecklist(): EntradaChecklist | null {
 
 export function useChecklist(): ItemChecklist[] | null {
   const entrada = useEntradaChecklist();
-  return useMemo(() => (entrada ? avaliarChecklist(entrada) : null), [entrada]);
+  // Convites do júri, totem e trailer são do MVP do Festival: na Semana Tech não aparecem no checklist.
+  return useMemo(
+    () => (entrada ? avaliarChecklist(entrada).filter((i) => MODULOS_FESTIVAL || (i.id !== "CONVITES" && i.id !== "TOTEM" && i.id !== "TRAILER")) : null),
+    [entrada],
+  );
 }
 
 /** Travas do evento ativo (D3): nível e motivo de cada ação. */
