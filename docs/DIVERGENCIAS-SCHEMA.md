@@ -2,6 +2,12 @@
 
 Comparação entre os tipos do protótipo (`src/dominio/tipos.ts`) e `prisma/schema.prisma`. **Só registra**: nada aqui altera o schema. O banco está decidido (Supabase PostgreSQL, rev. 4, A4); o schema ainda declara `provider = "mysql"` e tipos `@db.*` de MySQL, e **a conversão para PostgreSQL é tarefa da trilha de produção** (F-11).
 
+## Conversão para PostgreSQL (MVP Semana Tech, 15/10/2026)
+
+Feita (F-11): `provider = "postgresql"`, gerador `prisma-client` em `src/generated/prisma`, datas `timestamptz(3)`, ids como `String` (UUID em texto, gerado pelo Prisma), `Json` nativo, URL da migração em `prisma.config.ts` (`DIRECT_URL`) e da aplicação no adaptador `pg` (`DATABASE_URL`, o pooler do Supabase). A migração está em `prisma/migrations/20261015000000_init` e inclui os CHECKs: pesos (`config_placar` e `resultado_oficial`), candidato publicado com imagem, versão e motivo do resultado, ordem do candidato. O `prisma/schema.sql` (referência em MySQL) foi removido: a migração é a referência.
+
+**Better Auth.** `user` é a própria `usuario` (`user.modelName` e `user.fields` em `src/server/auth.ts`); `emailVerificado` (booleano) substitui `emailVerificadoEm` e o cliente recebe `emailVerificadoEm` derivado dele. `session`, `account` (a senha fica na conta `credential`, hash scrypt), `verification` (códigos de e-mail, guardados com hash) e `rate_limit` são tabelas novas. A `rate_limit` guarda limites por e-mail e por IP (código, cadastro, bloqueio de senha) e **nunca** o voto (sigilo). `ConviteAdmin` entrou em uso: o `promover-admin` cria o convite de quem ainda não tem conta.
+
 ## Já coincidentes (aplicados no schema na rev. 4)
 
 | Item | Decisão |

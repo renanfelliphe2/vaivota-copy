@@ -4,6 +4,14 @@ Matrizes A (rotas × papel) e B (telas × fase) da Etapa 9 e o mapa de entradas 
 
 Legenda: **VER** tela normal · **LOGIN** vai para `/e/{slug}?de={rota}` · **VERIF** vai para `/e/{slug}/verificar-email` · **RESTRITO** `AcessoRestrito` sem dado da tela · **REDIR** redireciona · **AVISO** tela informativa sem formulário.
 
+## MVP Semana Tech: o que muda (15/10/2026)
+
+- **Fora do MVP, 404:** `/dev/ui`, `/e/[slug]/avaliar/[id]`, `/e/[slug]/convite`, `/e/[slug]/totem`, `/e/[slug]/admin/apresentar` e `/e/[slug]/admin/apresentar/palco` (com `NEXT_PUBLIC_MODULOS_FESTIVAL` diferente de `true`). O atalho "Apresentação", a seção Júri/Parceiros da Configuração e o botão "Abrir apresentação" somem.
+- **Rotas novas:** `/e/[slug]/continuar` (volta do Google: cria a participação e segue ao destino) e as de API: `POST /api/servico/[nome]` (todos os serviços; exige `Origin` do próprio site), `/api/auth/*` (só `get-session`, `sign-out`, `sign-in/social`, `callback/*`, `ok` e `error`; cadastro, login por e-mail e códigos passam pelos serviços, que têm bloqueio e auditoria) e `POST /api/candidatos/imagem` (upload, só admin).
+- **Cadastro:** criar conta **não abre sessão**: leva a `/e/[slug]/verificar-email`, onde o código do e-mail abre a sessão. Antes de o evento ser ativado, só e-mail com convite de admin cria conta.
+- `/` leva direto a `/e/<EVENTO_PADRAO_SLUG>` se a variável existir.
+- Os papéis da matriz abaixo valem para o Festival (contas seed do protótipo). Na Semana Tech: visitante, público (qualquer pessoa com e-mail confirmado) e admin (por `promover-admin`).
+
 ## Matriz A: rotas × papel
 
 | Rota | Deslogado | Davi | Ana | Bruno | Carla | Hugo (Semana Tech) | Conferido |

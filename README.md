@@ -4,12 +4,13 @@
 
 Plataforma web **white-label de votação para eventos**. Um mesmo software atende festivais, torneios e campeonatos: cada evento tem seus candidatos, regras e identidade visual, sem alterar código.
 
-> **Status:** protótipo da Fase 1 concluído (Etapas 0 a 9, sem banco). Próximo passo: trilha de produção (Prisma + Supabase). Ver [`docs/`](docs/).
+> **Status:** o **MVP da Semana Tech** está implementado com dados reais (PostgreSQL/Supabase, Better Auth, upload de imagens, votação, operação, apuração, painel, exportação). O que falta é a configuração do ambiente (variáveis, domínio, e-mail, Google): ver [`docs/SEMANA-TECH-IMPLANTACAO.md`](docs/SEMANA-TECH-IMPLANTACAO.md). O protótipo da Fase 1 (Etapas 0 a 9) segue no código para o MVP do Festival. Ver [`docs/`](docs/).
 
 ---
 
 ## Sumário
 
+- [MVP Semana Tech (dados reais)](#mvp-semana-tech-dados-reais)
 - [Fase 1 — protótipo (sem banco)](#fase-1--protótipo-sem-banco)
 - [O que é](#o-que-é)
 - [Recursos](#recursos)
@@ -26,7 +27,44 @@ Plataforma web **white-label de votação para eventos**. Um mesmo software aten
 - [Roadmap](#roadmap)
 - [Licença](#licença)
 
+## MVP Semana Tech (dados reais)
+
+Plano completo em [`MVP-SemanaTech.md`](MVP-SemanaTech.md). Único objetivo do evento: **apurar os votos do público de 8 projetos**. Voto único garantido no banco, voto secreto, sem parcial por projeto, urna só abre e fecha pela organização, resultado oficial congelado no encerramento.
+
+| Peça | Como é |
+|---|---|
+| Banco | PostgreSQL (Supabase), Prisma 7, migração em `prisma/migrations` (com os CHECKs), seed idempotente |
+| Autenticação | Better Auth: e-mail e senha com **código por e-mail** (Resend; plano B SMTP) para verificar e recuperar a senha, mais Google. Bloqueio de 5 senhas erradas e limites por e-mail |
+| Servidor | `src/server/**`: serviços com as mesmas assinaturas do protótipo, chamados por `POST /api/servico/<nome>` (`src/server/rpc.ts`). `src/dominio/**` (apuração, travas, exportação) é o mesmo código do protótipo |
+| Navegador | O mesmo `EstadoApp` do protótipo, preenchido com o **estado público** que o servidor entrega (evento, tema, candidatos publicados, a própria pessoa), com polling (10 s para quem espera a urna, 30 s para quem já votou, 60 s com a urna encerrada). Nunca chegam votos, auditoria nem e-mails de terceiros |
+| Imagens | Supabase Storage (bucket público, escrita só pelo servidor); PNG, JPG ou WebP até 2 MB, conferidos no servidor |
+| Fora do MVP | Júri, voto infantil, totem, modo apresentação e a galeria de dev: rotas com 404 (`NEXT_PUBLIC_MODULOS_FESTIVAL=false`); o código fica para o Festival |
+
+### Como rodar (desenvolvimento)
+
+```bash
+pnpm install
+pnpm db:local                          # PostgreSQL embutido + migração + seed (deixe rodando)
+cp .env.example .env.local             # preencha: DATABASE_URL, DIRECT_URL, BETTER_AUTH_SECRET, APP_URL; EMAIL_PROVIDER=console
+pnpm db:promover-admin seu@email.com   # o primeiro admin
+pnpm dev                               # http://localhost:3000/e/semana-tech
+```
+
+| Comando | Para quê |
+|---|---|
+| `pnpm test` | Testes unitários (domínio, lib, estado real, cliente do servidor) |
+| `pnpm test:integracao` | Testes do servidor contra um PostgreSQL **real** embutido (voto único com concorrência, encerramento durante rajada, login, operação, painel, segurança) |
+| `pnpm lint` · `pnpm typecheck` · `pnpm build` | Verificações |
+| `pnpm db:migrar` · `pnpm db:seed` · `pnpm db:promover-admin <e-mail>` | Banco real (ver implantação) |
+| `pnpm db:backup --rotulo antes-da-urna` | Backup com `pg_dump` |
+| `pnpm db:limpar-ensaio --confirmar` | Limpa os dados do ensaio antes do evento |
+| `pnpm db:carga-preparar` · `k6 run tests/carga/votar.js` · `pnpm db:carga-conferir` | Teste de carga e conferência de integridade |
+
+Implantação (Supabase, Vercel, domínio, Resend, Google): [`docs/SEMANA-TECH-IMPLANTACAO.md`](docs/SEMANA-TECH-IMPLANTACAO.md). Dia do evento e contingência: [`docs/SEMANA-TECH-DIA-DO-EVENTO.md`](docs/SEMANA-TECH-DIA-DO-EVENTO.md).
+
 ## Fase 1 — protótipo (sem banco)
+
+> O texto abaixo descreve o protótipo da Fase 1, que continua no repositório. No MVP da Semana Tech ele roda com dados reais (seção acima): sem relógio simulado, sem toolbar, sem contas seed e sem `123456`.
 
 O protótipo navegável roda **só no navegador**: todo o estado fica em memória (store no layout raiz). **As abas do mesmo navegador ficam sincronizadas** (`BroadcastChannel`): o palco da apresentação abre numa aba própria, que vai para o telão, enquanto o admin opera na outra; F5 ou uma aba nova com outra aberta recuperam o estado, e **fechar todas as abas volta ao seed**. A navegação entre telas preserva o estado. Todas as etapas da Fase 1 estão implementadas (0 a 9). O que é fake, a fronteira de dados e o roteiro de demonstração estão em [`docs/`](docs/).
 
@@ -166,10 +204,11 @@ Cada grupo é normalizado antes de receber o peso; os pesos somam 100% e são co
 | Camada | Tecnologia |
 |---|---|
 | Framework | Next.js + React + TypeScript |
-| Banco de dados | MySQL 8.0.16+ (InnoDB) |
-| ORM e migrações | Prisma |
-| Autenticação | Google e e-mail verificado (biblioteca a definir) |
-| Hospedagem, rate limiting e monitoramento | A definir |
+| Banco de dados | PostgreSQL (Supabase) |
+| ORM e migrações | Prisma 7 (adaptador `pg`) |
+| Autenticação | Better Auth: e-mail e senha com código por e-mail (Resend) e Google |
+| Hospedagem e monitoramento | Vercel e Sentry (opcional) |
+| Imagens | Supabase Storage |
 
 ## Arquitetura
 
@@ -181,7 +220,7 @@ flowchart LR
   T["Totem (quiosque)"] --> A
   AD["Admin e apresentação"] --> A
   A --> S["Serviços de domínio"]
-  S --> DB[("MySQL via Prisma")]
+  S --> DB[("PostgreSQL via Prisma")]
 ```
 
 | Rota | Quem | Descrição |
@@ -199,93 +238,55 @@ flowchart LR
 - **Multi-evento:** todo dado de domínio carrega o evento; um admin só acessa o seu.
 - **Tema por variáveis de design:** cores, tipografia e rótulos vêm da configuração do evento.
 - **Resultado congelado:** gerado no encerramento da urna e versionado; correções criam uma nova versão.
-- **Voto único no banco:** `UPDATE ... WHERE votou = 0` e `INSERT` do voto na mesma transação.
+- **Voto único no banco:** `UPDATE ... WHERE votou = false` e `INSERT` do voto na mesma transação, com a linha do evento travada (`FOR SHARE`): o encerramento espera os votos em andamento e nenhum voto entra depois dele.
 - **Apresentação local:** roda no navegador do admin, sem sincronização entre telas.
 
 ## Modelo de dados
 
-O schema completo está em [`prisma/schema.prisma`](prisma/schema.prisma), com uma versão de referência em SQL em [`docs/schema.sql`](docs/schema.sql). Principais pontos:
+O schema completo está em [`prisma/schema.prisma`](prisma/schema.prisma) e a migração (com os CHECKs que o Prisma não expressa) em [`prisma/migrations/`](prisma/migrations/). Principais pontos:
 
 - **Voto popular sem usuário:** a tabela `voto` não referencia o usuário; `participacao` guarda apenas se a pessoa votou, sem horário.
 - **FKs compostas `(id, evento_id)`:** votos só apontam para candidato, participação ou dispositivo do mesmo evento.
 - **Votos e históricos nunca são apagados:** dados pessoais são anonimizados, não excluídos.
 - **Códigos e tokens:** apenas o hash fica no banco.
-- **CHECK dos pesos** (somam 100): o Prisma não expressa; deve ser adicionado manualmente à migration (ver `docs/schema.sql`).
+- **CHECKs** (pesos somam 100; candidato publicado tem imagem): ficam na migração SQL, não no schema do Prisma.
 
 ## Primeiros passos
 
 ### Pré-requisitos
 
-- Node.js (versão LTS)
-- MySQL 8.0.16 ou superior (necessário para `CHECK` e valores padrão por expressão)
-- Um gerenciador de pacotes (npm, pnpm ou yarn)
+- Node.js 20.19+ e pnpm
+- Para o banco: um projeto Supabase (produção) ou nada (desenvolvimento: `pnpm db:local` sobe um PostgreSQL embutido)
 
-### Instalação
+### Instalação, banco e execução
 
-```bash
-git clone <url-do-repositorio> vaivota
-cd vaivota
-npm install
-cp .env.example .env        # preencha as variáveis (ver abaixo)
-```
-
-### Banco de dados
-
-```bash
-# cria o banco
-mysql -u root -p -e "CREATE DATABASE vaivota CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# aplica as migrations e gera o client do Prisma
-npx prisma migrate dev
-
-# cria o primeiro evento e o primeiro admin (seed)
-npx prisma db seed
-```
-
-> Eventos e o primeiro admin são criados por **seed/script**. Não há painel de super admin nesta versão.
-
-### Execução
-
-```bash
-npm run dev
-```
-
-A aplicação sobe em `http://localhost:3000`. O evento criado pelo seed fica em `/e/{slug}`.
+Ver [MVP Semana Tech (dados reais)](#mvp-semana-tech-dados-reais) e [`docs/SEMANA-TECH-IMPLANTACAO.md`](docs/SEMANA-TECH-IMPLANTACAO.md). Eventos e o primeiro admin são criados por **seed e script** (`pnpm db:seed`, `pnpm db:promover-admin`). Não há painel de super admin nesta versão.
 
 ## Variáveis de ambiente
 
-Os nomes finais dependem da biblioteca de autenticação escolhida.
-
-| Variável | Descrição |
-|---|---|
-| `DATABASE_URL` | URL de conexão do MySQL, ex.: `mysql://usuario:senha@localhost:3306/vaivota` |
-| `AUTH_SECRET` | Segredo usado pela autenticação |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Credenciais do login com Google |
-| `APP_URL` | URL pública da aplicação (QR Codes e links de convite) |
+Todas estão comentadas em [`.env.example`](.env.example). As principais: `DATABASE_URL` (pooler do Supabase) e `DIRECT_URL` (migração e backup), `APP_URL`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`/`EMAIL_FROM`, `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`. Segredos nunca vão em variáveis `NEXT_PUBLIC_*`.
 
 ## Estrutura do projeto
-
-Proposta inicial, a ajustar na implementação:
 
 ```
 vaivota/
 ├── prisma/
 │   ├── schema.prisma
-│   ├── migrations/
-│   └── seed.ts
-├── docs/                    # Design Document e planners
+│   └── migrations/          # SQL da migração, com os CHECKs
+├── scripts/                 # seed, promover-admin, backup, limpar-ensaio, banco local, carga
 ├── src/
-│   ├── app/                 # rotas (Next.js App Router)
-│   │   ├── e/[slug]/        # público, jurado e admin
-│   │   └── totem/           # pareamento e quiosque
+│   ├── app/                 # rotas (App Router): /e/[slug], /api/servico/[nome], /api/auth, /api/candidatos/imagem
 │   ├── components/          # interface e componentes de tema
-│   ├── server/              # regras de negócio
-│   │   ├── votacao/         # voto popular e voto do júri
-│   │   ├── infantil/        # dispositivos e voto infantil
-│   │   ├── apuracao/        # fórmula, desempate e resultado oficial
-│   │   └── exportacao/      # CSVs e relatório
-│   └── lib/                 # banco, autenticação, hash, rate limit
-└── tests/
+│   ├── dominio/             # regras puras (apuração, travas, exportação...), compartilhadas com o servidor
+│   ├── servicos/            # cliente: mesmas assinaturas do protótipo, chamam o servidor
+│   ├── server/              # servidor: Prisma, Better Auth, voto, operação, painel, exportação, upload
+│   ├── store/               # estado do navegador (estado público do servidor)
+│   ├── lib/                 # tempo, formatação, CSV, tema
+│   └── mocks/               # dados do protótipo (usados só pelos testes e pelo Festival)
+├── tests/
+│   ├── integracao/          # PostgreSQL real embutido
+│   └── carga/               # k6
+└── docs/
 ```
 
 ## Segurança e privacidade

@@ -2,6 +2,26 @@
 
 O que a trilha de produção (Prisma + Supabase) precisa trocar. O protótipo guarda todo o `banco` no navegador; esta página diz por onde os dados passam hoje e o que não pode continuar assim.
 
+## Situação: trilha de produção implementada (MVP Semana Tech, 15/10/2026)
+
+A troca descrita abaixo foi feita para o que a Semana Tech usa. O que **não** foi trocado (júri, voto infantil, totem, apresentação, parceiros, convites) segue como protótipo, com as rotas fechadas por `NEXT_PUBLIC_MODULOS_FESTIVAL`.
+
+- **Fronteira real:** cada serviço de `src/servicos/` mantém a assinatura e chama `POST /api/servico/<nome>` (`src/servicos/rpc.ts` → `src/app/api/servico/[nome]/route.ts` → `src/server/rpc.ts`). O servidor valida os argumentos (zod), resolve a sessão do cookie (nunca de um campo enviado) e revalida papel e fase a cada chamada.
+- **Leitura pública:** `src/server/estadoPublico.ts` monta o estado já filtrado (eventos, tema, candidatos publicados, a própria pessoa e participação); o layout raiz o entrega ao `AppProvider` e o polling o renova (`obterEstado`: a cada 10 s para quem espera a urna, 30 s para quem já votou, 60 s com a urna encerrada; cache de 3 s por instância, sem cache para o admin). `src/store/estadoReal.ts` o transforma no mesmo `EstadoApp` do protótipo, então **seletores e telas não mudaram**.
+- **Dados que o cliente não recebe** (tabela 5.11 abaixo): votos, auditoria, resultados, e-mails de terceiros, participações alheias, hash de senha e código de e-mail. Conferido por teste de integração (`tests/integracao/painel.test.ts`) e pela fumaça ponta a ponta.
+- **Domínio reaproveitado sem mudança** no servidor: `apurar`, `resolverFaseConfig`/`exigirAcao`, `avaliarChecklist`, planilhas e `redigirEmails`, catálogo de auditoria, validações.
+
+| Serviço | Real em | Observação |
+|---|---|---|
+| `entrar`, `registrar`, `confirmarCodigo`, `reenviarCodigo`, `solicitarRecuperacao`, `redefinirSenha`, `sair`, `garantirParticipacao` | `src/server/acesso.ts`, `participacao.ts` | Better Auth; `registrar` **não abre sessão** (só o código confirmado abre); bloqueio de 5 senhas por e-mail; `entrarComGoogle` usa a rota do Better Auth e volta em `/e/[slug]/continuar` |
+| `votarPopular`, `consultarEstadoVoto` | `src/server/votacao.ts` | Uma transação: trava o evento (`FOR SHARE`), `UPDATE participacao ... votou = false`, `INSERT voto` com recibo de 32 bytes aleatórios |
+| `ativarEvento`, `abrirUrna`, `encerrarUrna`, `concluirEvento` | `src/server/operacao.ts`, `apuracao.ts` | Encerrar trava o evento (`FOR NO KEY UPDATE`: espera os votos em andamento sem bloquear cadastros), grava a versão 1 do resultado e audita, tudo na mesma transação |
+| `criarCandidato`, `salvarCandidato`, `alterarPublicacao`, `reordenarCandidato`, `removerCandidato`, `desqualificarCandidato`, `salvarCamposExtras` | `src/server/candidatos.ts` | Upload em `/api/candidatos/imagem` (`upload.ts`, `storage.ts`); `imagemUrl` só aceita o que o sistema gravou |
+| `salvarGeral`, `salvarPlacar`, `salvarTema` | `src/server/configuracao.ts` | ST7; encerramento automático recusado (não existe rotina que feche sozinha) |
+| `obterOperacao`, `obterResultado`, `listarAuditoria` | `src/server/dashboard.ts` | Sem contagem por projeto durante a votação; resultado só da maior versão oficial |
+| `prepararExportacao`, `registrarRelatorioGerado` | `src/server/exportacao.ts` | Audita cada exportação |
+| `obterVotosJuri`, `votarJuri`, `resgatarConvite`, `entrarComo` | stubs / mock | Festival ou toolbar |
+
 ## Dois pontos de troca (Etapa 9, D2)
 
 1. **`src/servicos/`**: tudo o que viria do servidor. Funções assíncronas que devolvem `Resultado<T>` (`{ ok: true, dados }` ou `{ ok: false, erro: { codigo, mensagem } }`), com latência e falhas simuladas. Na produção viram chamadas ao servidor (rotas ou *server actions*) com as **mesmas assinaturas**. Não existe `repo.ts`.

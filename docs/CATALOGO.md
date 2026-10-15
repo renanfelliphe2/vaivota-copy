@@ -26,7 +26,7 @@ Protótipo só do Festival (08/10/2026): a Semana Tech trabalha direto com dados
 
 Todos aplicam, reaplicam com o mesmo estado (os de resultado) e deixam `verificarInvariantes` vazia (`src/dominio/cenarios.test.ts`, `volume.test.ts` e `apresentacao/apresentacao.test.ts`). Nos de resultado, Bruno (jurado do seed) fica pendente e 2 jurados gerados votam. A demonstração usa `PADRAO` e `FESTIVAL_EMPATE_RESOLVIDO`; reserva: `FESTIVAL_ENCERRADO`.
 
-## Ações de auditoria (21, `AcaoAuditoria` em `src/dominio/tipos.ts`)
+## Ações de auditoria (22, `AcaoAuditoria` em `src/dominio/tipos.ts`)
 
 Rótulo, grupo e descrição de cada uma estão em `src/dominio/auditoria.ts` (`CATALOGO_AUDITORIA`, tipado por `Record<AcaoAuditoria, …>`: nenhuma ação fica sem rótulo; ação desconhecida cai em `OUTRAS`).
 
@@ -34,7 +34,7 @@ Rótulo, grupo e descrição de cada uma estão em `src/dominio/auditoria.ts` (`
 |---|---|---|
 | Estado | `EVENTO_ATIVADO`, `URNA_ABERTA`, `URNA_ENCERRADA` (com `origem`), `EVENTO_CONCLUIDO` | Etapa 0 |
 | Júri | `CONVITE_RESGATADO` | Etapa 3 |
-| Segurança | `TENTATIVA_CODIGO_INVALIDA`, `BLOQUEIO_RATE_LIMIT` | Etapa 3 |
+| Segurança | `TENTATIVA_CODIGO_INVALIDA`, `BLOQUEIO_RATE_LIMIT` (alvos `SENHA` e `CODIGO_LOGIN` no MVP da Semana Tech), `ADMIN_CONVITE_RESGATADO` | Etapa 3; MVP Semana Tech |
 | Júri | `VOTO_JURI_REGISTRADO`, `VOTO_JURI_ALTERADO` | Etapa 5 |
 | Configuração | `CONFIG_ALTERADA`, `TEMA_ALTERADO`, `CONVITES_GERADOS`, `CONVITE_REVOGADO`, `CANDIDATO_DESQUALIFICADO`, `CANDIDATO_CORRIGIDO` | Etapa 6 |
 | Exportação | `EXPORTACAO_CSV` (`detalhes.arquivo`), `RELATORIO_GERADO` (`detalhes.versao`) | Etapa 7 |

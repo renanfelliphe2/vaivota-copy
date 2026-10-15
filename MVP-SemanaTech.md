@@ -1,6 +1,6 @@
 # MVP Semana Tech — Planner de implementação real
 
-**Projeto:** VaiVota · **Criado em:** 14/10/2026 · **Atualizado em:** 14/10/2026 · **Evento:** Semana Tech (≈ 19/10/2026, daqui a 5 dias; dia e hora exatos a confirmar)
+**Projeto:** VaiVota · **Criado em:** 14/10/2026 · **Atualizado em:** 15/10/2026 (implementado: ver seção 10) · **Evento:** Semana Tech (≈ 19/10/2026, daqui a 5 dias; dia e hora exatos a confirmar)
 **Base:** protótipo da Fase 1 (Etapas 0 a 9) + `docs/FRONTEIRA-DADOS.md` + `DocumentDesign.md` (v1.2)
 
 ---
@@ -202,6 +202,46 @@ Telas de Geral, Placar e Tema ligadas ao banco; `desqualificarCandidato`; `salva
 ## 9. Depois da Semana Tech
 
 Reabrir júri por critério, voto infantil e totem, modo apresentação, telas de configuração completas e as pendências de `docs/DECISOES-PENDENTES.md`, no MVP Ver e Fazer Filmes.
+
+## 10. Status da implementação (15/10/2026)
+
+O código das etapas **ST0 a ST7** está implementado e verificado por testes e por uma fumaça ponta a ponta em build de produção contra PostgreSQL real. **Falta só o que depende de contas e configuração suas** (domínio, Resend, Google, Supabase, variáveis de ambiente): passo a passo em [`docs/SEMANA-TECH-IMPLANTACAO.md`](docs/SEMANA-TECH-IMPLANTACAO.md); dia do evento e contingência em [`docs/SEMANA-TECH-DIA-DO-EVENTO.md`](docs/SEMANA-TECH-DIA-DO-EVENTO.md).
+
+### Como foi verificado
+
+- `pnpm test`: 299 testes unitários (domínio, lib, estado real, cliente do servidor).
+- `pnpm test:integracao`: testes do servidor contra um **PostgreSQL de verdade** com a migração aplicada: voto único com 10 requisições simultâneas da mesma pessoa, 200 pessoas votando ao mesmo tempo, **votos e encerramento ao mesmo tempo** (o resultado congelado é exatamente o que está no banco), cadastro por código, bloqueio de senha, recuperação, convite de admin, operação completa (ativar, abrir, travas, encerrar, versão 1, desqualificar gera a 2, concluir), painel sem contagem por projeto, CSV sem e-mail, segurança de origem e de imagem.
+- Fumaça ponta a ponta no **build de produção** (`next start`): cadastro pelo código do e-mail, upload de imagem, publicar, ativar, abrir, votar, painel, encerrar, resultado, CSV, relatório, auditoria, 404 das rotas do Festival e portas do Better Auth fechadas.
+- Carga local: 400 pessoas votando em 18 s, nenhum erro, p95 do voto de 25 ms, sem voto duplicado ou perdido (`pnpm db:carga-conferir`). **Não substitui** o teste com o k6 no ambiente de teste real (passo H da implantação).
+- `pnpm lint`, `pnpm typecheck` e `pnpm build` limpos.
+
+### Critérios de aceite
+
+Marcado = verificado como acima. Desmarcado = depende de você ou de conferência no navegador (**nenhuma tela foi aberta num navegador nesta máquina**: confira os fluxos de tela no celular durante o ensaio).
+
+**ST0:** [x] migração aplicada com os CHECKs · [ ] `/e/semana-tech` em produção (verificado em build de produção local; falta o deploy) · [ ] domínio `.space` comprado e ligado à Vercel · [ ] domínio verificado no Resend e envio testado em Gmail, Outlook e Hotmail · [ ] credencial do Google criada e app publicado
+**ST1:** [x] registro → código → sessão com e-mail verificado · [ ] login com Google (implementado, mas **não exercitado**: exige as credenciais) · [x] recuperação de senha de ponta a ponta · [x] admin de seed acessa o painel; público recebe `NAO_AUTORIZADO` · [x] nenhuma tela, CSV ou auditoria mostra e-mail de terceiros
+**ST2:** [x] cadastro dos projetos com imagem; sem imagem só rascunho (inclusive pelo CHECK do banco) · [ ] imagem na lista e no detalhe, inclusive no celular (conferir na tela) · [x] arquivo inválido recusado no servidor
+**ST3:** [x] segundo voto impedido, inclusive simultâneo (teste automatizado) · [x] urna não iniciada ou encerrada não vota nem por link direto · [x] sem vínculo entre usuário e projeto (colunas das tabelas conferidas) · [x] pode votar em si mesmo · [x] a ordem dos cards varia entre usuários (`ordenarParaVotacao`, semente por usuário e evento)
+**ST4:** [x] lista de projetos e pesos travados com a urna aberta · [x] encerrar gera a versão 1 · [x] resultado oficial confere com o `COUNT` do banco · [x] evento concluído em somente leitura
+**ST5:** [x] nenhuma contagem por projeto durante a votação, nem na resposta de rede · [x] total do painel = linhas de `voto` = soma do resultado · [x] CSVs sem `@` e cada exportação audita · [x] relatório só com resultado oficial
+**ST6:** [x] script de carga (k6) e conferência de integridade · [x] Sentry (liga só com DSN) · [x] backup (`pg_dump`) e limpeza do ensaio por script · [x] roteiro do dia e contingência escritos · [ ] teste de carga no pico esperado, no ambiente de teste (precisa do k6) · [ ] ensaio de ponta a ponta no celular · [ ] backups feitos antes e depois no evento real
+**ST7:** [x] telas de Geral, Placar e Tema ligadas ao banco · [x] `desqualificarCandidato` · [x] `salvarCamposExtras`
+
+### Decisões tomadas na implementação (revise)
+
+1. **Cadastro antes de ativar o evento:** só e-mail com **convite de admin** (`pnpm db:promover-admin`) cria conta; é como o primeiro admin entra para poder ativar. O público espera a ativação. Quem entra pelo Google ou já tem conta não é afetado.
+2. **Criar conta não abre sessão:** só o código confirmado abre (evita contas falsas com e-mail alheio).
+3. **Portas do Better Auth fechadas:** `/api/auth/*` só expõe sessão, sair e Google. Cadastro, login por e-mail e códigos passam pelos serviços do projeto, que têm bloqueio por e-mail (5 senhas = 60 s; 5 códigos errados invalidam o código), limite de envio de código (30 s por e-mail e 8 por hora) e auditoria.
+4. **Limites por IP muito generosos** (milhares por minuto): o público divide o mesmo Wi-Fi. **O voto não grava nada por usuário no banco** (nem contador de limite): o limite do voto é só em memória; o sigilo vale também para o `rate_limit`.
+5. **Encerramento automático recusado** (`encerramentoAutomatico` só pode ser falso): não existe rotina que feche a urna sozinha; a janela é só informativa.
+6. **Sessão em cache de 5 min no cookie** só na leitura do estado público (polling); toda ação sensível (voto, admin) confere a sessão no banco.
+7. **A urna abrir/fechar chega ao público por polling** (10 s para quem espera, 30 s para quem já votou ou administra, 60 s com a urna encerrada; poupa chamadas da Vercel), sem websocket.
+8. **SVG removido** do upload (nenhum lugar do sistema aceita SVG enviado); logo por upload é do Festival.
+9. **Sem rotina de anonimização** dos dados pessoais (ficou para o MVP do Festival); o doc do dia explica.
+10. **`EVENTO_PADRAO_SLUG`**: com ele definido, `/` leva ao evento (a landing da plataforma menciona recursos do Festival).
+11. **Revisão independente do backend feita e corrigida:** pré-sequestro de conta (um segundo cadastro não substitui a conta que tem código vivo; `promover-admin` apaga conta com e-mail nunca confirmado), bloqueio de senha atômico (conta a tentativa antes de verificar), `rate_limit` não é mais apagado pelo Better Auth (ele usa memória), redirecionamento aberto por `?de=` com TAB/quebra de linha, trava do evento relida dentro da transação nas ações de candidato, participação do público só com o evento ativo, variações do mesmo Gmail contam como uma conta, validação de `BETTER_AUTH_SECRET`/`APP_URL`/`EMAIL_PROVIDER` em produção. **Risco aceito e documentado:** o sigilo do voto vale para a aplicação, não contra quem tem leitura direta do banco; e-mails de outros provedores podem ser criados em quantidade.
+12. **O Resend gratuito tem cota diária baixa**: dimensione pelos cadastros esperados (quem entra pelo Google não usa e-mail).
 
 ## Anexo A — Domínio, Resend e Google (passo a passo)
 
