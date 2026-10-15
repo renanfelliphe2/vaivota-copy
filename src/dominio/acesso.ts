@@ -30,8 +30,18 @@ export function resolverAcesso(exigencia: ExigenciaAcesso, contexto: ContextoAce
   return { ok: false, motivo: "PAPEL_INSUFICIENTE" };
 }
 
-/** `?de=` só aceita caminho interno: começa com `/` e não com `//` (nem `/\`). */
+/**
+ * `?de=` só aceita caminho interno: começa com `/` e não com `//` (nem `/\`), não tem espaço, TAB nem quebra de linha
+ * (o parser de URL REMOVE TAB e quebras: "/<TAB>/evil.com" viraria "//evil.com") e, resolvido contra uma origem qualquer,
+ * continua nessa origem.
+ */
 export function ehRotaInterna(de: string | null | undefined): de is string {
   if (!de) return false;
-  return de.startsWith("/") && !de.startsWith("//") && !de.startsWith("/\\");
+  if (!de.startsWith("/") || de.startsWith("//") || de.startsWith("/\\")) return false;
+  if (/[\s\\\u0000-\u001f\u007f]/.test(de)) return false;
+  try {
+    return new URL(de, "http://origem.interna").origin === "http://origem.interna";
+  } catch {
+    return false;
+  }
 }

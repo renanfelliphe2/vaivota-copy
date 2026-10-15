@@ -8,6 +8,16 @@ export function normalizarEmail(email: string): string {
   return email.trim().toLocaleLowerCase("pt-BR");
 }
 
+/**
+ * Parte local canônica de um e-mail do Gmail/Googlemail (sem pontos e sem "+etiqueta", em minúsculas), ou null se não é do
+ * Gmail. "f.ulano+1@gmail.com" e "fulano@gmail.com" chegam na mesma caixa: contam como uma só pessoa.
+ */
+export function canonicoGmail(email: string): string | null {
+  const [local, dominio] = normalizarEmail(email).split("@");
+  if (!local || (dominio !== "gmail.com" && dominio !== "googlemail.com")) return null;
+  return local.split("+")[0].replace(/\./g, "");
+}
+
 const PADRAO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export function validarEmail(email: string): string | null {

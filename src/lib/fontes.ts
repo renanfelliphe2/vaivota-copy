@@ -12,8 +12,7 @@ const poppins = Poppins({
 });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--fonte-space-grotesk", display: "swap" });
 
-/** Lista usada pelo formulário de tema (Etapa 6). */
-export const FONTES_APROVADAS = ["Inter", "Poppins", "Space Grotesk"] as const;
+export { FONTES_APROVADAS } from "./fontesAprovadas";
 
 /** Classes que expõem as variáveis das fontes; aplicadas no <html> do layout raiz. */
 export const classesFontes = [inter.variable, poppins.variable, spaceGrotesk.variable].join(" ");

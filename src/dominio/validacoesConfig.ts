@@ -28,7 +28,8 @@ export const LIMITES = {
   imagemBytes: 2 * 1024 * 1024,
 } as const;
 
-export const TIPOS_IMAGEM = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"] as const;
+// SVG fora (MVP Semana Tech, seção 4): pode carregar script. Só PNG, JPG e WebP.
+export const TIPOS_IMAGEM = ["image/png", "image/jpeg", "image/webp"] as const;
 
 const RE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const RE_COR = /^#[0-9a-fA-F]{6}$/;
@@ -116,7 +117,7 @@ export function validarCandidato(dados: DadosCandidato, { naVotacao }: { naVotac
 
 /** Arquivo de imagem (logo ou candidato): tipo e tamanho informados pelo navegador. */
 export function validarArquivoImagem(arquivo: { type: string; size: number }): string | null {
-  if (!(TIPOS_IMAGEM as readonly string[]).includes(arquivo.type)) return "Use PNG, JPG, WebP ou SVG.";
+  if (!(TIPOS_IMAGEM as readonly string[]).includes(arquivo.type)) return "Use PNG, JPG ou WebP.";
   if (arquivo.size > LIMITES.imagemBytes) return "O arquivo passa de 2 MB.";
   return null;
 }

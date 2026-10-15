@@ -7,9 +7,9 @@ const BOM = "﻿";
 const SEPARADOR = ";";
 const FIM_DE_LINHA = "\r\n";
 
-/** Texto que começa com = + - @ ganha um apóstrofo à frente (evita injeção de fórmula). */
+/** Texto que começa com = + - @ (ou TAB/CR, que as planilhas ignoram antes de ler a fórmula) ganha um apóstrofo à frente. */
 export function neutralizarFormula(texto: string): string {
-  return /^[=+\-@]/.test(texto) ? `'${texto}` : texto;
+  return /^[=+\-@\t\r]/.test(texto) ? `'${texto}` : texto;
 }
 
 export function celulaCsv(valor: CelulaCsv): string {

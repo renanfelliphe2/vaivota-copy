@@ -123,13 +123,20 @@ export const CATALOGO_AUDITORIA: Record<AcaoAuditoria, ItemCatalogo> = {
       entidade === "nota_juri" ? "Notas de jurado alteradas" : entidade === "escolha_juri" ? "Escolha por critério alterada" : "Voto de jurado alterado",
   },
   TENTATIVA_CODIGO_INVALIDA: { rotulo: "Código recusado", grupo: "SEGURANCA", descrever: () => "Código recusado" },
+  ADMIN_CONVITE_RESGATADO: {
+    rotulo: "Admin adicionado",
+    grupo: "SEGURANCA",
+    descrever: () => "Pessoa convidada passou a administrar o evento",
+  },
   BLOQUEIO_RATE_LIMIT: {
     rotulo: "Bloqueio por tentativas",
     grupo: "SEGURANCA",
     descrever: (d) =>
       d?.alvo === "CODIGO_LOGIN"
         ? "Código de login bloqueado por excesso de tentativas"
-        : "Campo bloqueado por excesso de tentativas",
+        : d?.alvo === "SENHA"
+          ? "Login bloqueado por excesso de senhas erradas"
+          : "Campo bloqueado por excesso de tentativas",
   },
   EXPORTACAO_CSV: {
     rotulo: "Arquivo exportado",

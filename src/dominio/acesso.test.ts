@@ -46,6 +46,12 @@ describe("ehRotaInterna", () => {
     expect(ehRotaInterna("/\\evil.com")).toBe(false);
     expect(ehRotaInterna("https://evil.com")).toBe(false);
     expect(ehRotaInterna("")).toBe(false);
+    // o parser de URL remove TAB e quebras de linha: "/<TAB>/evil.com" vira "//evil.com"
+    expect(ehRotaInterna("/\t/evil.com")).toBe(false);
+    expect(ehRotaInterna("/\n/evil.com")).toBe(false);
+    expect(ehRotaInterna("/\r/evil.com")).toBe(false);
+    expect(ehRotaInterna("/ /evil.com")).toBe(false);
+    expect(ehRotaInterna("/e/semana-tech?candidato=k1#candidatos")).toBe(true);
     expect(ehRotaInterna(null)).toBe(false);
   });
 });

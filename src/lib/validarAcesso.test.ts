@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canonicoGmail,
   limparCodigoLogin,
   normalizarEmail,
   validarCodigoLogin,
@@ -49,5 +50,14 @@ describe("senha (08/10/2026)", () => {
     expect(validarConfirmacaoSenha("demo1234", "")).toBe("Repita a senha.");
     expect(validarConfirmacaoSenha("demo1234", "demo12345")).toBe("As senhas não são iguais.");
     expect(validarConfirmacaoSenha("demo1234", "demo1234")).toBeNull();
+  });
+});
+
+describe("canonicoGmail", () => {
+  it("tira pontos e +etiqueta do Gmail e do Googlemail; outros domínios não têm forma canônica", () => {
+    expect(canonicoGmail("Fulana.Silva+voto@Gmail.com")).toBe("fulanasilva");
+    expect(canonicoGmail("f.u.l.a.n.a.s.i.l.v.a@googlemail.com")).toBe("fulanasilva");
+    expect(canonicoGmail("fulana@outlook.com")).toBeNull();
+    expect(canonicoGmail("sem-arroba")).toBeNull();
   });
 });
