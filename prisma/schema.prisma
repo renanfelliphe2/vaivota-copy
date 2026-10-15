@@ -1,26 +1,28 @@
-// VaiVota — schema Prisma (MySQL)
-// Baseado no DocumentDesign.md v1.2
+// VaiVota — schema Prisma (PostgreSQL, Supabase)
+// Baseado no DocumentDesign.md v1.2 e no MVP da Semana Tech (ST0).
 //
-// Banco decidido: Supabase (PostgreSQL); a conversão do provider e dos tipos MySQL é tarefa da trilha de produção.
-// Login sem senha (Better Auth: Google + código por e-mail): as tabelas do Better Auth (conta, sessão,
-// verificação) entram na trilha de produção; `Usuario` não guarda senha nem método de login.
+// Banco: Supabase PostgreSQL. Prisma 7: a URL da migração fica em prisma.config.ts (DIRECT_URL) e a conexão da aplicação
+// vai pelo adaptador `pg` em src/server/db.ts (DATABASE_URL, o pooler do Supabase).
+// Login por e-mail e senha + Google (Better Auth): as tabelas `usuario`, `session`, `account`, `verification` e
+// `rate_limit` são as do Better Auth. `Usuario` é o usuário global do domínio e também o `user` do Better Auth
+// (src/server/auth.ts mapeia os nomes). `emailVerificado` (booleano do Better Auth) alimenta o `emailVerificadoEm`
+// que o cliente vê.
 //
 // Convenções:
 //  - Modelos em PascalCase mapeados para tabelas snake_case (@@map) e campos camelCase mapeados para colunas snake_case (@map).
-//  - Entidades de domínio usam UUID (CHAR(36)); tabelas de alto volume e append-only (votos, histórico, auditoria) usam INT autoincrement.
+//  - Entidades de domínio usam UUID em texto; tabelas de alto volume e append-only (votos, histórico, auditoria) usam INT autoincrement.
+//  - Datas são `timestamptz` (sempre UTC no banco; o fuso do evento só vale na exibição).
 //  - Votos e registros históricos NUNCA são apagados (onDelete: Restrict). Dados pessoais são anonimizados, não excluídos.
 //  - Integridade entre eventos: FKs compostas (id, eventoId) garantem que um voto só aponte para candidato/participação/dispositivo do MESMO evento.
-//  - Pesos são inteiros (sem decimais). O CHECK dos pesos (cada um >= 0, soma = 100) não é expresso no Prisma:
-//    adicionar na migration (ver schema.sql).
-//  - Prisma 7+: a URL do banco fica em prisma.config.ts (datasource.url = env("DATABASE_URL")).
-//    Se usar Prisma 5/6, adicione `url = env("DATABASE_URL")` ao bloco datasource abaixo.
+//  - O que o Prisma não expressa (CHECKs) está na migração: pesos >= 0 com soma 100, candidato publicado com imagem.
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
 }
 
 // ─────────────────────────────────────────────
@@ -86,20 +88,22 @@ enum ModoAvanco {
 }
 
 // ─────────────────────────────────────────────
-// Identidade
+// Identidade (Better Auth)
 // ─────────────────────────────────────────────
 
-// Usuário global, sem senha. O método de login fica nas tabelas do Better Auth (conta, sessão,
-// verificação), que entram na trilha de produção.
+// Usuário global (`user` do Better Auth). Sem senha aqui: a senha fica na `account` do provedor "credential".
 model Usuario {
-  id                String    @id @default(uuid()) @db.Char(36)
-  nome              String    @db.VarChar(120)
-  email             String    @unique @db.VarChar(191)
-  emailVerificadoEm DateTime? @map("email_verificado_em")
-  anonimizadoEm     DateTime? @map("anonimizado_em")
-  criadoEm          DateTime  @default(now()) @map("criado_em")
-  atualizadoEm      DateTime  @updatedAt @map("atualizado_em")
+  id              String    @id @default(uuid())
+  nome            String    @db.VarChar(120)
+  email           String    @unique @db.VarChar(191)
+  emailVerificado Boolean   @default(false) @map("email_verificado")
+  imagem          String?   @db.VarChar(500)
+  anonimizadoEm   DateTime? @map("anonimizado_em") @db.Timestamptz(3)
+  criadoEm        DateTime  @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm    DateTime  @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
+  sessoes                 Session[]
+  contas                  Account[]
   participacoes           Participacao[]
   candidatosVinculados    Candidato[]
   resultadosCalculados    ResultadoOficial[] @relation("ResultadosCalculados")
@@ -109,22 +113,85 @@ model Usuario {
   @@map("usuario")
 }
 
+model Session {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  ipAddress String?  @map("ip_address") @db.VarChar(64)
+  userAgent String?  @map("user_agent") @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  usuario Usuario @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(uuid())
+  userId                String    @map("user_id")
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(3)
+  scope                 String?
+  // Só do provedor "credential" (e-mail e senha): hash scrypt do Better Auth.
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  usuario Usuario @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+// Códigos de e-mail (verificação e recuperação de senha) e o estado do fluxo do Google.
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// Limite de requisições (Better Auth) e bloqueio por tentativas de senha (src/server/limites.ts).
+// Nunca guarda o voto: a votação não usa esta tabela (sigilo).
+model RateLimit {
+  id          String @id @default(uuid())
+  key         String @unique
+  count       Int
+  lastRequest BigInt @map("last_request")
+
+  @@map("rate_limit")
+}
+
 // ─────────────────────────────────────────────
 // Evento e configuração
 // ─────────────────────────────────────────────
 
 model Evento {
-  id                     String              @id @default(uuid()) @db.Char(36)
+  id                     String              @id @default(uuid())
   slug                   String              @unique @db.VarChar(80)
   nome                   String              @db.VarChar(160)
-  descricao              String?             @db.Text
+  descricao              String?
   local                  String?             @db.VarChar(120)
   linkSobre              String?             @map("link_sobre") @db.VarChar(500)
-  fusoHorario            String             @default("America/Sao_Paulo") @map("fuso_horario") @db.VarChar(64)
+  fusoHorario            String              @default("America/Sao_Paulo") @map("fuso_horario") @db.VarChar(64)
   estado                 EstadoEvento        @default(RASCUNHO)
   estadoUrna             EstadoUrna          @default(NAO_INICIADA) @map("estado_urna")
-  janelaInicio           DateTime?           @map("janela_inicio")
-  janelaFim              DateTime?           @map("janela_fim")
+  janelaInicio           DateTime?           @map("janela_inicio") @db.Timestamptz(3)
+  janelaFim              DateTime?           @map("janela_fim") @db.Timestamptz(3)
   encerramentoAutomatico Boolean             @default(true) @map("encerramento_automatico")
   metodoIdentificacao    MetodoIdentificacao @default(GOOGLE_OU_EMAIL) @map("metodo_identificacao")
   moduloJuri             Boolean             @default(false) @map("modulo_juri")
@@ -134,11 +201,11 @@ model Evento {
   // Aviso de privacidade próprio do evento: opcional e complementar ao aviso da plataforma VaiVota (controladora dos dados).
   avisoPrivacidadeUrl    String?             @map("aviso_privacidade_url") @db.VarChar(500)
   prazoAnonimizacaoDias  Int                 @default(90) @map("prazo_anonimizacao_dias")
-  urnaAbertaEm           DateTime?           @map("urna_aberta_em")
-  urnaEncerradaEm        DateTime?           @map("urna_encerrada_em")
-  concluidoEm            DateTime?           @map("concluido_em")
-  criadoEm               DateTime            @default(now()) @map("criado_em")
-  atualizadoEm           DateTime            @updatedAt @map("atualizado_em")
+  urnaAbertaEm           DateTime?           @map("urna_aberta_em") @db.Timestamptz(3)
+  urnaEncerradaEm        DateTime?           @map("urna_encerrada_em") @db.Timestamptz(3)
+  concluidoEm            DateTime?           @map("concluido_em") @db.Timestamptz(3)
+  criadoEm               DateTime            @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm           DateTime            @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
   tema               Tema?
   configPlacar       ConfigPlacar?
@@ -159,20 +226,20 @@ model Evento {
 
 // Tema visual do evento (1:1). Contraste validado e fontes pré-aprovadas na aplicação.
 model Tema {
-  eventoId           String   @id @map("evento_id") @db.Char(36)
-  nomeExibicao       String?  @map("nome_exibicao") @db.VarChar(160)
-  logoUrl            String?  @map("logo_url") @db.VarChar(500)
-  capaUrl            String?  @map("capa_url") @db.VarChar(500)
-  corPrimaria        String   @default("#1F2937") @map("cor_primaria") @db.VarChar(7)
-  corSecundaria      String   @default("#F59E0B") @map("cor_secundaria") @db.VarChar(7)
-  corFundo           String   @default("#FFFFFF") @map("cor_fundo") @db.VarChar(7)
-  corTexto           String   @default("#111827") @map("cor_texto") @db.VarChar(7)
-  fonte              String   @default("Inter") @db.VarChar(80)
-  rotuloCandidato    String   @default("Candidato") @map("rotulo_candidato") @db.VarChar(40)
-  rotuloCandidatos   String   @default("Candidatos") @map("rotulo_candidatos") @db.VarChar(40)
+  eventoId         String   @id @map("evento_id")
+  nomeExibicao     String?  @map("nome_exibicao") @db.VarChar(160)
+  logoUrl          String?  @map("logo_url") @db.VarChar(500)
+  capaUrl          String?  @map("capa_url") @db.VarChar(500)
+  corPrimaria      String   @default("#1F2937") @map("cor_primaria") @db.VarChar(7)
+  corSecundaria    String   @default("#F59E0B") @map("cor_secundaria") @db.VarChar(7)
+  corFundo         String   @default("#FFFFFF") @map("cor_fundo") @db.VarChar(7)
+  corTexto         String   @default("#111827") @map("cor_texto") @db.VarChar(7)
+  fonte            String   @default("Inter") @db.VarChar(80)
+  rotuloCandidato  String   @default("Candidato") @map("rotulo_candidato") @db.VarChar(40)
+  rotuloCandidatos String   @default("Candidatos") @map("rotulo_candidatos") @db.VarChar(40)
   // Textos das telas de estado: nao_iniciada, encerrada, ja_votou, sucesso etc.
-  textosEstado       Json?    @map("textos_estado")
-  atualizadoEm       DateTime @updatedAt @map("atualizado_em")
+  textosEstado     Json?    @map("textos_estado")
+  atualizadoEm     DateTime @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
   evento Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
 
@@ -181,42 +248,42 @@ model Tema {
 
 // Pesos inteiros (somam 100) e desempate (1:1). O voto do júri nunca é exibido no telão (sem opção).
 model ConfigPlacar {
-  eventoId                String         @id @map("evento_id") @db.Char(36)
-  pesoPopular             Int            @default(100) @map("peso_popular")
-  pesoJuri                Int            @default(0) @map("peso_juri")
-  pesoInfantil            Int            @default(0) @map("peso_infantil")
-  regraDesempate          RegraDesempate @default(JURI) @map("regra_desempate")
-  atualizadoEm            DateTime       @updatedAt @map("atualizado_em")
+  eventoId       String         @id @map("evento_id")
+  pesoPopular    Int            @default(100) @map("peso_popular")
+  pesoJuri       Int            @default(0) @map("peso_juri")
+  pesoInfantil   Int            @default(0) @map("peso_infantil")
+  regraDesempate RegraDesempate @default(JURI) @map("regra_desempate")
+  atualizadoEm   DateTime       @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
   evento Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
 
   @@map("config_placar")
 }
 
-// Opções do modo apresentação (1:1).
+// Opções do modo apresentação (1:1). Na Semana Tech só alimenta o limiar de "reta final" e a flag de parcial (sempre falsa).
 model ConfigApresentacao {
-  eventoId                  String     @id @map("evento_id") @db.Char(36)
-  trailerUrl                String?    @map("trailer_url") @db.VarChar(500)
-  usarTrailerGerado         Boolean    @default(false) @map("usar_trailer_gerado")
-  incluirCandidatosTrailer  Boolean    @default(false) @map("incluir_candidatos_trailer")
-  classificacaoCompleta     Boolean    @default(false) @map("classificacao_completa")
-  modoAvanco                ModoAvanco @default(AUTOMATICO) @map("modo_avanco")
-  rotuloCategoriaPublico    String     @default("Queridinho do público") @map("rotulo_categoria_publico") @db.VarChar(80)
-  rotuloCategoriaInfantil   String     @default("Preferido das crianças") @map("rotulo_categoria_infantil") @db.VarChar(80)
-  rotuloCategoriaJuri       String     @default("Escolha dos jurados") @map("rotulo_categoria_juri") @db.VarChar(80)
-  parcialAoVivo             Boolean    @default(false) @map("parcial_ao_vivo")
-  limiarRetaFinalSegundos   Int        @default(300) @map("limiar_reta_final_segundos")
-  atualizadoEm              DateTime   @updatedAt @map("atualizado_em")
+  eventoId                 String     @id @map("evento_id")
+  trailerUrl               String?    @map("trailer_url") @db.VarChar(500)
+  usarTrailerGerado        Boolean    @default(false) @map("usar_trailer_gerado")
+  incluirCandidatosTrailer Boolean    @default(false) @map("incluir_candidatos_trailer")
+  classificacaoCompleta    Boolean    @default(false) @map("classificacao_completa")
+  modoAvanco               ModoAvanco @default(AUTOMATICO) @map("modo_avanco")
+  rotuloCategoriaPublico   String     @default("Queridinho do público") @map("rotulo_categoria_publico") @db.VarChar(80)
+  rotuloCategoriaInfantil  String     @default("Preferido das crianças") @map("rotulo_categoria_infantil") @db.VarChar(80)
+  rotuloCategoriaJuri      String     @default("Escolha dos jurados") @map("rotulo_categoria_juri") @db.VarChar(80)
+  parcialAoVivo            Boolean    @default(false) @map("parcial_ao_vivo")
+  limiarRetaFinalSegundos  Int        @default(300) @map("limiar_reta_final_segundos")
+  atualizadoEm             DateTime   @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
   evento Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
 
   @@map("config_apresentacao")
 }
 
-// Campos extras dos candidatos, definidos por evento (ex.: "Direção", "Equipe").
+// Campos extras dos candidatos, definidos por evento (ex.: "Equipe", "Tecnologias").
 model CampoCandidato {
-  id       String @id @default(uuid()) @db.Char(36)
-  eventoId String @map("evento_id") @db.Char(36)
+  id       String @id @default(uuid())
+  eventoId String @map("evento_id")
   chave    String @db.VarChar(40)
   rotulo   String @db.VarChar(80)
   ordem    Int    @default(0)
@@ -228,10 +295,11 @@ model CampoCandidato {
 }
 
 model Candidato {
-  id                 String   @id @default(uuid()) @db.Char(36)
-  eventoId           String   @map("evento_id") @db.Char(36)
+  id                 String   @id @default(uuid())
+  eventoId           String   @map("evento_id")
   titulo             String   @db.VarChar(200)
-  descricao          String?  @db.Text
+  descricao          String?
+  // URL pública da imagem no Supabase Storage. CHECK na migração: `NOT publicado OR imagem_url IS NOT NULL`.
   imagemUrl          String?  @map("imagem_url") @db.VarChar(500)
   publicado          Boolean  @default(false)
   // Desqualificado sai do ranking, mas seus votos permanecem no banco.
@@ -240,16 +308,16 @@ model Candidato {
   // Valores dos campos extras: { "<chave de CampoCandidato>": "valor" }
   camposExtras       Json?    @map("campos_extras")
   // Opcional: usuário ligado ao candidato (para a regra de voto em si mesmo).
-  usuarioVinculadoId String?  @map("usuario_vinculado_id") @db.Char(36)
-  criadoEm           DateTime @default(now()) @map("criado_em")
-  atualizadoEm       DateTime @updatedAt @map("atualizado_em")
+  usuarioVinculadoId String?  @map("usuario_vinculado_id")
+  criadoEm           DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm       DateTime @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
-  evento           Evento    @relation(fields: [eventoId], references: [id], onDelete: Restrict)
-  usuarioVinculado Usuario?  @relation(fields: [usuarioVinculadoId], references: [id], onDelete: SetNull)
+  evento           Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  usuarioVinculado Usuario? @relation(fields: [usuarioVinculadoId], references: [id], onDelete: SetNull)
 
-  votos                Voto[]
-  votosJuri            VotoJuri[]
-  votosInfantis        VotoInfantil[]
+  votos                 Voto[]
+  votosJuri             VotoJuri[]
+  votosInfantis         VotoInfantil[]
   historicoComoAnterior HistoricoVotoJuri[] @relation("HistoricoAnterior")
   historicoComoNovo     HistoricoVotoJuri[] @relation("HistoricoNovo")
 
@@ -266,9 +334,9 @@ model Candidato {
 // Vínculo usuário × evento com papel. Guarda apenas SE votou. Sigilo: NENHUM horário (nem do voto, nem da
 // criação), para que não seja possível cruzar a participação com o horário de um voto popular.
 model Participacao {
-  id        String            @id @default(uuid()) @db.Char(36)
-  usuarioId String            @map("usuario_id") @db.Char(36)
-  eventoId  String            @map("evento_id") @db.Char(36)
+  id        String            @id @default(uuid())
+  usuarioId String            @map("usuario_id")
+  eventoId  String            @map("evento_id")
   papel     PapelParticipacao @default(PUBLICO)
   votou     Boolean           @default(false)
 
@@ -289,11 +357,12 @@ model Participacao {
 // Voto popular: SEM referência ao usuário (sigilo).
 // Voto único garantido por UPDATE condicional em participacao (votou = false) na mesma transação.
 model Voto {
-  id         Int      @id @default(autoincrement())
-  eventoId   String   @map("evento_id") @db.Char(36)
-  candidatoId String  @map("candidato_id") @db.Char(36)
-  hashRecibo String   @unique @map("hash_recibo") @db.Char(64)
-  criadoEm   DateTime @default(now()) @map("criado_em")
+  id          Int      @id @default(autoincrement())
+  eventoId    String   @map("evento_id")
+  candidatoId String   @map("candidato_id")
+  // 32 bytes aleatórios em hexadecimal (C20): nunca derivado de sequência, id ou instante.
+  hashRecibo  String   @unique @map("hash_recibo") @db.VarChar(64)
+  criadoEm    DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
 
   candidato Candidato @relation(fields: [candidatoId, eventoId], references: [id, eventoId], onDelete: Restrict)
 
@@ -302,17 +371,17 @@ model Voto {
   @@map("voto")
 }
 
-// Código de convite individual de jurado (apenas o hash do código é guardado).
+// Código de convite individual de jurado (apenas o hash do código é guardado). Entra no MVP do Festival.
 model ConviteJurado {
-  id             String        @id @default(uuid()) @db.Char(36)
-  eventoId       String        @map("evento_id") @db.Char(36)
-  hashCodigo     String        @map("hash_codigo") @db.Char(64)
+  id             String        @id @default(uuid())
+  eventoId       String        @map("evento_id")
+  hashCodigo     String        @map("hash_codigo") @db.VarChar(64)
   rotulo         String?       @db.VarChar(120)
-  validadeAte    DateTime?     @map("validade_ate")
+  validadeAte    DateTime?     @map("validade_ate") @db.Timestamptz(3)
   estado         EstadoConvite @default(DISPONIVEL)
-  participacaoId String?       @unique @map("participacao_id") @db.Char(36)
-  resgatadoEm    DateTime?     @map("resgatado_em")
-  criadoEm       DateTime      @default(now()) @map("criado_em")
+  participacaoId String?       @unique @map("participacao_id")
+  resgatadoEm    DateTime?     @map("resgatado_em") @db.Timestamptz(3)
+  criadoEm       DateTime      @default(now()) @map("criado_em") @db.Timestamptz(3)
 
   evento       Evento        @relation(fields: [eventoId], references: [id], onDelete: Restrict)
   participacao Participacao? @relation(fields: [participacaoId], references: [id], onDelete: Restrict)
@@ -322,14 +391,14 @@ model ConviteJurado {
   @@map("convite_jurado")
 }
 
-// Voto do júri: identificado (ligado à participação), alterável enquanto a urna estiver aberta.
+// Voto do júri: identificado (ligado à participação), alterável enquanto a urna estiver aberta. Entra no MVP do Festival.
 model VotoJuri {
-  id             String   @id @default(uuid()) @db.Char(36)
-  eventoId       String   @map("evento_id") @db.Char(36)
-  participacaoId String   @map("participacao_id") @db.Char(36)
-  candidatoId    String   @map("candidato_id") @db.Char(36)
-  criadoEm       DateTime @default(now()) @map("criado_em")
-  atualizadoEm   DateTime @updatedAt @map("atualizado_em")
+  id             String   @id @default(uuid())
+  eventoId       String   @map("evento_id")
+  participacaoId String   @map("participacao_id")
+  candidatoId    String   @map("candidato_id")
+  criadoEm       DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm   DateTime @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
   participacao Participacao @relation(fields: [participacaoId, eventoId], references: [id, eventoId], onDelete: Restrict)
   candidato    Candidato    @relation(fields: [candidatoId, eventoId], references: [id, eventoId], onDelete: Restrict)
@@ -343,11 +412,11 @@ model VotoJuri {
 }
 
 model HistoricoVotoJuri {
-  id                   Int      @id @default(autoincrement())
-  votoJuriId           String   @map("voto_juri_id") @db.Char(36)
-  candidatoAnteriorId  String?  @map("candidato_anterior_id") @db.Char(36)
-  candidatoNovoId      String   @map("candidato_novo_id") @db.Char(36)
-  criadoEm             DateTime @default(now()) @map("criado_em")
+  id                  Int      @id @default(autoincrement())
+  votoJuriId          String   @map("voto_juri_id")
+  candidatoAnteriorId String?  @map("candidato_anterior_id")
+  candidatoNovoId     String   @map("candidato_novo_id")
+  criadoEm            DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
 
   votoJuri          VotoJuri   @relation(fields: [votoJuriId], references: [id], onDelete: Restrict)
   candidatoAnterior Candidato? @relation("HistoricoAnterior", fields: [candidatoAnteriorId], references: [id], onDelete: Restrict)
@@ -358,19 +427,19 @@ model HistoricoVotoJuri {
 }
 
 // ─────────────────────────────────────────────
-// Voto infantil (totens)
+// Voto infantil (totens) — entra no MVP do Festival
 // ─────────────────────────────────────────────
 
 // Totem pareado. Não é usuário e não tem participação. Token e PIN guardados só como hash.
 model Dispositivo {
-  id          String            @id @default(uuid()) @db.Char(36)
-  eventoId    String            @map("evento_id") @db.Char(36)
+  id          String            @id @default(uuid())
+  eventoId    String            @map("evento_id")
   nome        String            @db.VarChar(120)
-  hashToken   String            @unique @map("hash_token") @db.Char(64)
+  hashToken   String            @unique @map("hash_token") @db.VarChar(64)
   hashPin     String?           @map("hash_pin") @db.VarChar(255)
   estado      EstadoDispositivo @default(ATIVO)
-  ultimoUsoEm DateTime?         @map("ultimo_uso_em")
-  criadoEm    DateTime          @default(now()) @map("criado_em")
+  ultimoUsoEm DateTime?         @map("ultimo_uso_em") @db.Timestamptz(3)
+  criadoEm    DateTime          @default(now()) @map("criado_em") @db.Timestamptz(3)
 
   evento Evento @relation(fields: [eventoId], references: [id], onDelete: Restrict)
 
@@ -385,13 +454,13 @@ model Dispositivo {
 }
 
 model CodigoPareamento {
-  id            String                 @id @default(uuid()) @db.Char(36)
-  eventoId      String                 @map("evento_id") @db.Char(36)
-  hashCodigo    String                 @map("hash_codigo") @db.Char(64)
-  validadeAte   DateTime               @map("validade_ate")
+  id            String                 @id @default(uuid())
+  eventoId      String                 @map("evento_id")
+  hashCodigo    String                 @map("hash_codigo") @db.VarChar(64)
+  validadeAte   DateTime               @map("validade_ate") @db.Timestamptz(3)
   estado        EstadoCodigoPareamento @default(DISPONIVEL)
-  dispositivoId String?                @map("dispositivo_id") @db.Char(36)
-  criadoEm      DateTime               @default(now()) @map("criado_em")
+  dispositivoId String?                @map("dispositivo_id")
+  criadoEm      DateTime               @default(now()) @map("criado_em") @db.Timestamptz(3)
 
   evento      Evento       @relation(fields: [eventoId], references: [id], onDelete: Restrict)
   dispositivo Dispositivo? @relation(fields: [dispositivoId], references: [id], onDelete: Restrict)
@@ -403,10 +472,10 @@ model CodigoPareamento {
 // Voto infantil: candidato, horário e dispositivo. Nenhum dado da criança.
 model VotoInfantil {
   id            Int      @id @default(autoincrement())
-  eventoId      String   @map("evento_id") @db.Char(36)
-  candidatoId   String   @map("candidato_id") @db.Char(36)
-  dispositivoId String   @map("dispositivo_id") @db.Char(36)
-  criadoEm      DateTime @default(now()) @map("criado_em")
+  eventoId      String   @map("evento_id")
+  candidatoId   String   @map("candidato_id")
+  dispositivoId String   @map("dispositivo_id")
+  criadoEm      DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
 
   candidato   Candidato   @relation(fields: [candidatoId, eventoId], references: [id, eventoId], onDelete: Restrict)
   dispositivo Dispositivo @relation(fields: [dispositivoId, eventoId], references: [id, eventoId], onDelete: Restrict)
@@ -421,15 +490,16 @@ model VotoInfantil {
 // Administração, resultado e auditoria
 // ─────────────────────────────────────────────
 
-// Convite para admin adicional: entra ao autenticar com o e-mail verificado.
+// Convite para admin: entra ao autenticar com o e-mail verificado. É como o script `promover-admin` cadastra quem
+// ainda não tem conta: a participação ADMIN nasce quando a pessoa entra com esse e-mail já verificado.
 model ConviteAdmin {
-  id             String             @id @default(uuid()) @db.Char(36)
-  eventoId       String             @map("evento_id") @db.Char(36)
+  id             String             @id @default(uuid())
+  eventoId       String             @map("evento_id")
   email          String             @db.VarChar(191)
   estado         EstadoConviteAdmin @default(PENDENTE)
-  resgatadoPorId String?            @map("resgatado_por_id") @db.Char(36)
-  resgatadoEm    DateTime?          @map("resgatado_em")
-  criadoEm       DateTime           @default(now()) @map("criado_em")
+  resgatadoPorId String?            @map("resgatado_por_id")
+  resgatadoEm    DateTime?          @map("resgatado_em") @db.Timestamptz(3)
+  criadoEm       DateTime           @default(now()) @map("criado_em") @db.Timestamptz(3)
 
   evento       Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
   resgatadoPor Usuario? @relation("ConvitesAdminResgatados", fields: [resgatadoPorId], references: [id], onDelete: SetNull)
@@ -440,8 +510,8 @@ model ConviteAdmin {
 
 // Resultado oficial congelado no encerramento. Correções geram nova versão (nunca sobrescrevem).
 model ResultadoOficial {
-  id             String   @id @default(uuid()) @db.Char(36)
-  eventoId       String   @map("evento_id") @db.Char(36)
+  id             String   @id @default(uuid())
+  eventoId       String   @map("evento_id")
   versao         Int
   // Ex.: ENCERRAMENTO, DESQUALIFICACAO, CORRECAO
   motivo         String   @db.VarChar(40)
@@ -450,8 +520,8 @@ model ResultadoOficial {
   pesoInfantil   Int      @map("peso_infantil")
   // Placares por grupo, pontuação final, posições, categorias, empates e critério aplicado.
   dados          Json
-  calculadoPorId String?  @map("calculado_por_id") @db.Char(36)
-  calculadoEm    DateTime @default(now()) @map("calculado_em")
+  calculadoPorId String?  @map("calculado_por_id")
+  calculadoEm    DateTime @default(now()) @map("calculado_em") @db.Timestamptz(3)
 
   evento       Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
   calculadoPor Usuario? @relation("ResultadosCalculados", fields: [calculadoPorId], references: [id], onDelete: SetNull)
@@ -463,19 +533,19 @@ model ResultadoOficial {
 // Trilha de auditoria (separada dos logs técnicos). Nunca guarda a escolha de voto popular/infantil.
 model Auditoria {
   id                Int      @id @default(autoincrement())
-  eventoId          String?  @map("evento_id") @db.Char(36)
-  atorUsuarioId     String?  @map("ator_usuario_id") @db.Char(36)
-  atorDispositivoId String?  @map("ator_dispositivo_id") @db.Char(36)
+  eventoId          String?  @map("evento_id")
+  atorUsuarioId     String?  @map("ator_usuario_id")
+  atorDispositivoId String?  @map("ator_dispositivo_id")
   acao              String   @db.VarChar(64)
   entidade          String?  @db.VarChar(64)
   entidadeId        String?  @map("entidade_id") @db.VarChar(64)
   detalhes          Json?
   // Hash do IP para eventos de bloqueio/rate limit (não guarda o IP em claro).
-  ipHash            String?  @map("ip_hash") @db.Char(64)
-  criadoEm          DateTime @default(now()) @map("criado_em")
+  ipHash            String?  @map("ip_hash") @db.VarChar(64)
+  criadoEm          DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
 
-  evento         Evento?      @relation(fields: [eventoId], references: [id], onDelete: Restrict)
-  atorUsuario    Usuario?     @relation("AuditoriaAtor", fields: [atorUsuarioId], references: [id], onDelete: SetNull)
+  evento          Evento?      @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  atorUsuario     Usuario?     @relation("AuditoriaAtor", fields: [atorUsuarioId], references: [id], onDelete: SetNull)
   atorDispositivo Dispositivo? @relation(fields: [atorDispositivoId], references: [id], onDelete: SetNull)
 
   @@index([eventoId, criadoEm])

@@ -40,3 +40,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# prisma (cliente gerado por `prisma generate`)
+/src/generated/
+
+# banco local embutido (scripts/banco-local.ts) e uploads de desenvolvimento
+/.pgdata/
+/public/uploads/
+/.next-build/
+/backups/
+/tests/carga/sessoes.json
