@@ -5,10 +5,10 @@ import { calcularTokens, paresDeContraste } from "./tema";
 // Cores dos dois temas seed (cópia local para o teste; o seed é a fonte).
 const festival = { corPrimaria: "#F15A29", corSecundaria: "#8DC63F", corFundo: "#FFFFFF", corTexto: "#18181B", fonte: "Inter" };
 const maratonaTechTIVIT = {
-  corPrimaria: "#38BDF8",
-  corSecundaria: "#A78BFA",
-  corFundo: "#0F172A",
-  corTexto: "#E2E8F0",
+  corPrimaria: "#0097B1",
+  corSecundaria: "#7ED958",
+  corFundo: "#FFFFFF",
+  corTexto: "#0F172A",
   fonte: "Space Grotesk",
 };
 
@@ -31,9 +31,9 @@ describe("corTextoSobre", () => {
     expect(razaoContraste(sobre, festival.corPrimaria)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("Maratona Tech Tivit: texto escuro sobre o azul-claro", () => {
+  it("Maratona Tech Tivit: texto escuro sobre o turquesa", () => {
     const sobre = corTextoSobre(maratonaTechTIVIT.corPrimaria, [maratonaTechTIVIT.corFundo, maratonaTechTIVIT.corTexto]);
-    expect(sobre).toBe(maratonaTechTIVIT.corFundo);
+    expect(sobre).toBe(maratonaTechTIVIT.corTexto);
     expect(razaoContraste(sobre, maratonaTechTIVIT.corPrimaria)).toBeGreaterThanOrEqual(4.5);
   });
 
@@ -47,8 +47,8 @@ describe("corLegivelSobre", () => {
     const casos: [string, string, string][] = [
       ["#8DC63F", "#FFFFFF", "#18181B"],
       ["#F15A29", "#FFFFFF", "#18181B"],
-      ["#38BDF8", "#0F172A", "#E2E8F0"],
-      ["#A78BFA", "#0F172A", "#E2E8F0"],
+      ["#0097B1", "#FFFFFF", "#0F172A"],
+      ["#7ED958", "#FFFFFF", "#0F172A"],
       ["#FFFF00", "#FFFFFF", "#000000"],
     ];
     for (const [cor, fundo, texto] of casos) {
@@ -74,7 +74,7 @@ describe("calcularTokens", () => {
 
   it("esquema de cor segue o fundo", () => {
     expect(calcularTokens(festival).esquemaCor).toBe("light");
-    expect(calcularTokens(maratonaTechTIVIT).esquemaCor).toBe("dark");
+    expect(calcularTokens(maratonaTechTIVIT).esquemaCor).toBe("light");
   });
 
   it("fonte vira variável CSS", () => {

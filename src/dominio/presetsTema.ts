@@ -22,4 +22,10 @@ export const PRESETS_TEMA: PresetTema[] = [
     paleta: { corPrimaria: "#38BDF8", corSecundaria: "#A78BFA", corFundo: "#0F172A", corTexto: "#E2E8F0" },
     fonte: "Space Grotesk",
   },
+  {
+    id: "maratona-tivit",
+    nome: "Maratona Tivit",
+    paleta: { corPrimaria: "#0097B1", corSecundaria: "#7ED958", corFundo: "#FFFFFF", corTexto: "#0F172A" },
+    fonte: "Space Grotesk",
+  },
 ];

@@ -44,7 +44,8 @@ const TEXTOS_ESTADO = {
 
 export async function semearMaratonaTechTivit(opcoes: OpcoesSemente = {}): Promise<{ eventoId: string; criado: boolean }> {
   const slug = opcoes.slug ?? PADRAO.slug;
-  const escuro = PRESETS_TEMA.find((p) => p.id === "escuro")!;
+  const temaTivit = PRESETS_TEMA.find((p) => p.id === "maratona-tivit");
+  if (!temaTivit) throw new Error("Preset de tema da Maratona Tivit não encontrado.");
   const existia = await db().evento.findUnique({ where: { slug }, select: { id: true } });
 
   const evento = await db().evento.upsert({
@@ -77,11 +78,11 @@ export async function semearMaratonaTechTivit(opcoes: OpcoesSemente = {}): Promi
     create: {
       eventoId: evento.id,
       nomeExibicao: opcoes.nome ?? PADRAO.nome,
-      corPrimaria: escuro.paleta.corPrimaria,
-      corSecundaria: escuro.paleta.corSecundaria,
-      corFundo: escuro.paleta.corFundo,
-      corTexto: escuro.paleta.corTexto,
-      fonte: escuro.fonte,
+      corPrimaria: temaTivit.paleta.corPrimaria,
+      corSecundaria: temaTivit.paleta.corSecundaria,
+      corFundo: temaTivit.paleta.corFundo,
+      corTexto: temaTivit.paleta.corTexto,
+      fonte: temaTivit.fonte,
       rotuloCandidato: "Projeto",
       rotuloCandidatos: "Projetos",
       textosEstado: TEXTOS_ESTADO,

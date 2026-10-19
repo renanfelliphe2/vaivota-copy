@@ -65,13 +65,13 @@ Crie a conta com **esse e-mail** (o código chega no terminal do `pnpm dev`): vo
 
 ```bash
 pnpm db:migrar     # prisma migrate deploy: cria as tabelas, as constraints (CHECK) e o que o Prisma não expressa
-pnpm db:seed       # cria o evento maratona-tech-tivit (rascunho), o tema escuro, os campos Equipe/Tecnologias e o bucket
+pnpm db:seed       # cria o evento maratona-tech-tivit (rascunho), o tema Tivit, os campos Equipe/Tecnologias e o bucket
 ```
 
 Ao aplicar as migrações, o evento publicado com o slug antigo é renomeado para `maratona-tech-tivit`; os endereços antigos redirecionam para o novo. Atualize `EVENTO_PADRAO_SLUG` e `SEED_SLUG` nas variáveis da Vercel para `maratona-tech-tivit` antes de fazer o deploy. O seed **nunca desfaz** o que já existe: pode rodar de novo. Janela da votação: por padrão 19/10/2026 08h–22h (-03:00). Mude pela tela **Configuração > Geral** (o dia e a hora exatos ainda são uma pendência do evento) ou com `SEED_JANELA_INICIO` / `SEED_JANELA_FIM` antes do primeiro seed.
 
 4. **Região das funções:** em Settings > Functions, escolha a região mais próxima do banco (**São Paulo, `gru1`**, se o Supabase for em São Paulo). Cada voto faz poucas consultas ao banco; região diferente soma latência em cada uma.
-5. Faça o deploy e abra `/e/maratona-tech-tivit`: deve aparecer o evento, com o tema escuro e "Em breve".
+5. Faça o deploy e abra `/e/maratona-tech-tivit`: deve aparecer o evento, com as cores turquesa e verde da identidade Tivit e "Em breve".
 
 ## D. Domínio `.space`
 
@@ -103,7 +103,7 @@ Ao aplicar as migrações, o evento publicado com o slug antigo é renomeado par
 2. Entre como admin em `/e/maratona-tech-tivit` e abra **Configuração**:
    - **Itens** (os projetos): cadastre os 8, com título, descrição, equipe, tecnologias e **imagem** (PNG, JPG ou WebP, até 2 MB). Marque **Colocar na votação** em cada um (sem imagem o projeto só fica em rascunho).
    - **Geral**: confira o nome e a **janela** (informativa: a urna não abre nem fecha sozinha).
-   - **Tema** e **Placar** já vêm do seed (tema escuro; placar 100/0/0).
+   - **Tema** e **Placar** já vêm do seed (tema Tivit em turquesa e verde; placar 100/0/0).
 3. **Operação**: quando o **checklist** estiver todo verde (pelo menos 2 projetos publicados, pesos 100%, janela válida), use **Ativar evento**. Depois, no horário, **Abrir urna**.
 
 ## H. Ensaio (obrigatório antes do evento)
