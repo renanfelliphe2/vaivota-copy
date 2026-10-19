@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, CircleCheck, Clock, ExternalLink, UserPlus, Vote } from "lucide-react";
+import { CircleCheck, Clock, ExternalLink, UserPlus, Vote } from "lucide-react";
 import type { CSSProperties } from "react";
 import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
 import { LogoOrganizador, MARCA_ORGANIZADOR } from "@/components/evento/MarcaOrganizador";
@@ -34,12 +34,27 @@ const CLASSES_VIDRO =
 const atraso = (ms: number) => ({ "--atraso": `${ms}ms` }) as CSSProperties;
 
 /**
+ * Rola até a lista de candidatos (19/10/2026). Um <Link> para "/e/slug#candidatos" não rola quando a URL já termina
+ * nesse hash (é o caso logo após o login: o destino do acesso é essa mesma âncora). A rolagem suave vem do CSS.
+ * Sem a seção na página, cai na navegação normal.
+ */
+function irParaCandidatos(rota: string) {
+  const secao = document.getElementById("candidatos");
+  if (!secao) {
+    window.location.assign(rota);
+    return;
+  }
+  secao.scrollIntoView({ block: "start" });
+  secao.querySelector<HTMLElement>("h2")?.focus({ preventScroll: true });
+}
+
+/**
  * Primeira dobra da página do evento (/e/[slug]; 19/10/2026: redesenho com a identidade das artes da Maratona Tech Tivit).
  * Fundo noite → mar com a rede de nós do logo do organizador, nome em dois tons, a chamada da situação e os candidatos
  * (avatares no celular, mosaico no desktop) logo na primeira tela: o objetivo da página é mostrá-los e levar ao voto.
  * Cada casa do mosaico leva ao cartão do candidato na lista e o destaca (DestaqueCandidato).
- * A chamada (Criar conta / Quero votar / Em breve) abre o diálogo de acesso do visitante; logado, "Quero votar" leva à
- * votação, "Criar conta" some e, para quem já votou, vira o aviso de voto registrado.
+ * A chamada (Criar conta / Quero votar / Em breve) abre o diálogo de acesso do visitante; logado, "Quero votar" rola até
+ * a lista de candidatos (não há outro botão para isso), "Criar conta" some e, para quem já votou, vira o aviso de voto registrado.
  */
 export function LandingHero() {
   const ativo = useEventoAtivo();
@@ -106,7 +121,7 @@ export function LandingHero() {
             </p>
           )}
 
-          {(rotuloChamada || jaVotou || n > 0 || evento.linkSobre) && (
+          {(rotuloChamada || jaVotou || evento.linkSobre) && (
             <div className="marca-subir mt-8 flex w-full flex-wrap items-center gap-3" style={atraso(300)}>
               {rotuloChamada &&
                 (chamada.desabilitado ? (
@@ -114,7 +129,7 @@ export function LandingHero() {
                     {rotuloChamada}
                   </Botao>
                 ) : logado ? (
-                  <Botao variante="secundaria" tamanho="grande" href={rotaVotacao(slug)} icone={iconeChamada} className={classesChamada}>
+                  <Botao variante="secundaria" tamanho="grande" icone={iconeChamada} className={classesChamada} onClick={() => irParaCandidatos(rotaVotacao(slug))}>
                     {rotuloChamada}
                   </Botao>
                 ) : (
@@ -133,12 +148,6 @@ export function LandingHero() {
                   <CircleCheck aria-hidden className="size-5 text-tema-sucesso" />
                   Seu voto foi registrado
                 </p>
-              )}
-              {n > 0 && (
-                <a href="#candidatos" className={CLASSES_VIDRO}>
-                  Ver {minusculas(tema.rotuloCandidatos)}
-                  <ArrowDown aria-hidden className="size-5" />
-                </a>
               )}
               {evento.linkSobre && (
                 <a href={evento.linkSobre} target="_blank" rel="noopener noreferrer" className={CLASSES_VIDRO}>
