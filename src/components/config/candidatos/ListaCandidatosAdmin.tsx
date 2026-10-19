@@ -13,7 +13,7 @@ const FILTROS: { valor: EstadoCandidatoAdmin | "TODOS"; rotulo: string }[] = [
   { valor: "FORA_DA_DISPUTA", rotulo: "Fora da disputa" },
 ];
 
-/** Etapa 6 (CP3): todos os itens na ordem de `ordem`, com filtro por estado e reordenação. */
+/** Etapa 6 (CP3): todos os itens na ordem de cadastro, com filtro por estado (a ordem na votação é escolhida na seção). */
 export function ListaCandidatosAdmin({
   itens,
   travas,
@@ -44,21 +44,11 @@ export function ListaCandidatosAdmin({
         <p className="rounded-xl border border-dashed border-tema-borda p-6 text-center text-tema-texto-suave">Nenhum item neste filtro.</p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {visiveis.map((item) => {
-            const indice = itens.indexOf(item);
-            return (
-              <li key={item.candidato.id}>
-                <CartaoCandidatoAdmin
-                  item={item}
-                  travas={travas}
-                  primeiro={indice === 0}
-                  ultimo={indice === itens.length - 1}
-                  ocupado={ocupado}
-                  acoes={acoes}
-                />
-              </li>
-            );
-          })}
+          {visiveis.map((item) => (
+            <li key={item.candidato.id}>
+              <CartaoCandidatoAdmin item={item} travas={travas} ocupado={ocupado} acoes={acoes} />
+            </li>
+          ))}
         </ul>
       )}
     </div>

@@ -64,11 +64,18 @@ function ConteudoRevisao(props: DialogoRevisaoProps & { item: ItemLista }) {
 
   return (
     <div aria-busy={ocupado || undefined} className="flex flex-col gap-5">
-      <div className="overflow-hidden rounded-2xl border border-tema-borda bg-tema-superficie">
-        <ImagemCandidato titulo={candidato.titulo} imagemUrl={candidato.imagemUrl} proporcao="16/9" sizes="(min-width: 640px) 576px, 100vw" />
-        <div className="flex flex-col gap-1 p-4">
+      {/* 19/10/2026: miniatura quadrada inteira ao lado do nome (o 16:9 cortava os logos 1:1). */}
+      <div className="flex items-center gap-4 rounded-2xl border border-tema-borda bg-tema-superficie p-3">
+        <ImagemCandidato
+          titulo={candidato.titulo}
+          imagemUrl={candidato.imagemUrl}
+          proporcao="1/1"
+          className="w-24 shrink-0 rounded-xl sm:w-28"
+          sizes="7rem"
+        />
+        <div className="flex min-w-0 flex-col gap-1">
           <p className="text-sm text-tema-texto-suave">Você está votando em</p>
-          <p className="text-xl font-bold leading-tight">{candidato.titulo}</p>
+          <p className="font-display text-xl font-extrabold leading-tight wrap-anywhere">{candidato.titulo}</p>
         </div>
       </div>
 

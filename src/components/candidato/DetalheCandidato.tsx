@@ -23,7 +23,10 @@ export type DetalheCandidatoProps = {
   renderAcoes?: (item: ItemLista) => ReactNode;
 };
 
-/** Detalhe sobre o Dialogo (Etapa 4, D3): bottom sheet no celular, modal no desktop. */
+/**
+ * Detalhe sobre o Dialogo (Etapa 4, D3): bottom sheet no celular, modal no desktop. 19/10/2026: imagem quadrada inteira
+ * (o 16:9 cortava os logos 1:1), ao lado dos campos a partir do sm.
+ */
 export function DetalheCandidato({ posicao, campos, aoFechar, aoNavegar, focoAoFechar, renderAcoes }: DetalheCandidatoProps) {
   const item = posicao?.item ?? null;
   const candidato = item?.candidato;
@@ -48,10 +51,21 @@ export function DetalheCandidato({ posicao, campos, aoFechar, aoNavegar, focoAoF
       }
     >
       {posicao && item && candidato && (
-        <div className="flex flex-col gap-4">
-          <ImagemCandidato titulo={candidato.titulo} imagemUrl={candidato.imagemUrl} proporcao="16/9" className="rounded-xl" sizes="(min-width: 640px) 640px, 100vw" />
-          {item.bloqueadoVotoProprio && dicaId && <AvisoVotoProprio dicaId={dicaId} />}
-          <CamposExtras candidato={candidato} campos={campos} modo="completo" />
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+            <ImagemCandidato
+              titulo={candidato.titulo}
+              imagemUrl={candidato.imagemUrl}
+              proporcao="1/1"
+              className="mx-auto w-full max-w-64 shrink-0 rounded-2xl ring-1 ring-tema-borda sm:mx-0 sm:w-60"
+              sizes="(min-width: 640px) 15rem, 16rem"
+            />
+            <div className="flex min-w-0 flex-1 flex-col gap-4">
+              <div aria-hidden className="h-1.5 w-14 rounded-full bg-linear-to-r from-tema-primaria to-tema-secundaria" />
+              {item.bloqueadoVotoProprio && dicaId && <AvisoVotoProprio dicaId={dicaId} />}
+              <CamposExtras candidato={candidato} campos={campos} modo="completo" />
+            </div>
+          </div>
           {posicao.total > 1 && (
             <nav aria-label="Navegar entre opções" className="flex items-center justify-between gap-2 border-t border-tema-borda pt-4">
               <Botao

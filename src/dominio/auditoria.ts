@@ -50,6 +50,7 @@ const CAMPO_CONFIG: Record<string, string> = {
   encerramentoAutomatico: "encerramento automático",
   metodoIdentificacao: "identificação",
   bloquearVotoProprio: "voto próprio",
+  ordemCandidatos: "ordem dos candidatos",
   moduloJuri: "módulo do júri",
   moduloInfantil: "módulo infantil",
 };

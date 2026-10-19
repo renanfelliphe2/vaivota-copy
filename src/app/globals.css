@@ -58,9 +58,14 @@ body {
   margin: 0;
 }
 
-/* Cabeçalho fixo (08/10/2026): âncoras e foco por teclado param abaixo dele. */
+/*
+ * Cabeçalho fixo (08/10/2026): âncoras e foco por teclado param abaixo dele.
+ * 19/10/2026: toda rolagem dentro da página é suave (âncoras, botões, o mosaico que leva ao cartão); a troca de página
+ * continua direta (data-scroll-behavior="smooth" no <html>). Com prefers-reduced-motion, volta a auto (regra abaixo).
+ */
 html {
   scroll-padding-top: 5rem;
+  scroll-behavior: smooth;
 }
 
 /* Foco visível global com o token do tema. */
@@ -72,6 +77,84 @@ html {
 /* Diálogo nativo: herda os tokens (sem portal), backdrop discreto. */
 dialog::backdrop {
   background: color-mix(in srgb, var(--tema-texto) 45%, transparent);
+}
+
+/*
+ * Identidade da página do evento (19/10/2026), a partir das artes da Maratona Tech Tivit (public/*-tivit.png) e do logo
+ * do Rio Pomba Valley. O degradê das artes é exatamente primária → secundária do tema; o azul-noite e os tons claros
+ * (água → menta) derivam dos mesmos tokens. Declarados no contêiner que recebe os tokens do <TemaEvento> (no layout
+ * raiz), como o .palco-cinema: um var() em :root leria o fallback neutro, não o tema do evento.
+ */
+.marca-evento {
+  /*
+   * Fundo escuro do hero: o azul-noite passa de 4,5:1 sobre todo o degradê primária → secundária (texto da faixa
+   * "Como funciona"), e o mar, com no máximo 60% da primária, ainda segura texto branco com uma primária clara.
+   */
+  --marca-noite: color-mix(in srgb, var(--tema-primaria) 10%, #051421);
+  --marca-petroleo: color-mix(in srgb, var(--tema-primaria) 40%, #051421);
+  --marca-mar: color-mix(in srgb, var(--tema-primaria) 60%, #051421);
+  /* Claro sobre o hero escuro (texto em degradê), em qualquer tema. */
+  --marca-agua: color-mix(in srgb, var(--tema-primaria) 30%, #ffffff);
+  /* Fundo da seção dos candidatos: tingido a partir do fundo do tema, para o texto do tema seguir legível. */
+  --marca-agua-clara: color-mix(in srgb, var(--tema-primaria) 9%, var(--tema-fundo));
+  --marca-menta-clara: color-mix(in srgb, var(--tema-secundaria) 14%, var(--tema-fundo));
+}
+
+@theme inline {
+  --font-display: var(--fonte-montserrat), var(--tema-fonte);
+  --color-marca-noite: var(--marca-noite);
+  --color-marca-petroleo: var(--marca-petroleo);
+  --color-marca-mar: var(--marca-mar);
+  --color-marca-agua: var(--marca-agua);
+  --color-marca-agua-clara: var(--marca-agua-clara);
+  --color-marca-menta-clara: var(--marca-menta-clara);
+}
+
+/*
+ * Hero da página do evento: noite → petróleo → mar, com o brilho da primária no alto e o da secundária embaixo. O texto
+ * branco fica acima de 4,5:1 em todo o fundo (o degradê claro das artes não segura texto branco no verde).
+ */
+.marca-hero {
+  background:
+    radial-gradient(55% 60% at 100% 100%, color-mix(in srgb, var(--tema-secundaria) 45%, transparent), transparent 72%),
+    radial-gradient(50% 55% at 92% 0%, color-mix(in srgb, var(--tema-primaria) 55%, transparent), transparent 70%),
+    linear-gradient(155deg, var(--marca-noite) 0%, var(--marca-petroleo) 55%, var(--marca-mar) 100%);
+}
+
+/* Mosaico do hero: colunas que flutuam em tempos diferentes (desligado por prefers-reduced-motion abaixo). */
+@keyframes marca-flutuar {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(var(--amplitude, -10px));
+  }
+}
+
+.marca-flutuar {
+  animation: marca-flutuar var(--dur, 7s) ease-in-out infinite;
+  animation-delay: var(--atraso, 0ms);
+}
+
+/* Entrada do conteúdo do hero, em cascata por style={{ "--atraso": "120ms" }}. */
+@keyframes marca-subir {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+.marca-subir {
+  animation: marca-subir 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--atraso, 0ms);
+}
+
+/* Sem movimento, sem a cascata: a regra geral abaixo zera a duração, e aqui o atraso (senão o conteúdo some por um instante). */
+@media (prefers-reduced-motion: reduce) {
+  .marca-subir {
+    animation-delay: 0ms !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

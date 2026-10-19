@@ -16,7 +16,7 @@ A troca descrita abaixo foi feita para o que a Maratona Tech Tivit usa. O que **
 | `entrar`, `registrar`, `confirmarCodigo`, `reenviarCodigo`, `solicitarRecuperacao`, `redefinirSenha`, `sair`, `garantirParticipacao` | `src/server/acesso.ts`, `participacao.ts` | Better Auth; `registrar` **não abre sessão** (só o código confirmado abre); bloqueio de 5 senhas por e-mail; `entrarComGoogle` usa a rota do Better Auth e volta em `/e/[slug]/continuar` |
 | `votarPopular`, `consultarEstadoVoto` | `src/server/votacao.ts` | Uma transação: trava o evento (`FOR SHARE`), `UPDATE participacao ... votou = false`, `INSERT voto` com recibo de 32 bytes aleatórios |
 | `ativarEvento`, `abrirUrna`, `encerrarUrna`, `concluirEvento` | `src/server/operacao.ts`, `apuracao.ts` | Encerrar trava o evento (`FOR NO KEY UPDATE`: espera os votos em andamento sem bloquear cadastros), grava a versão 1 do resultado e audita, tudo na mesma transação |
-| `criarCandidato`, `salvarCandidato`, `alterarPublicacao`, `reordenarCandidato`, `removerCandidato`, `desqualificarCandidato`, `salvarCamposExtras` | `src/server/candidatos.ts` | Upload em `/api/candidatos/imagem` (`upload.ts`, `storage.ts`); `imagemUrl` só aceita o que o sistema gravou |
+| `criarCandidato`, `salvarCandidato`, `alterarPublicacao`, `salvarOrdemCandidatos`, `removerCandidato`, `desqualificarCandidato`, `salvarCamposExtras` | `src/server/candidatos.ts` | Upload em `/api/candidatos/imagem` (`upload.ts`, `storage.ts`); `imagemUrl` só aceita o que o sistema gravou. `salvarOrdemCandidatos` (19/10/2026, no lugar de `reordenarCandidato`): `evento.ordem_candidatos` aleatória ou alfabética, auditado |
 | `salvarGeral`, `salvarPlacar`, `salvarTema` | `src/server/configuracao.ts` | ST7; encerramento automático recusado (não existe rotina que feche sozinha) |
 | `obterOperacao`, `obterResultado`, `listarAuditoria` | `src/server/dashboard.ts` | Sem contagem por projeto durante a votação; resultado só da maior versão oficial |
 | `prepararExportacao`, `registrarRelatorioGerado` | `src/server/exportacao.ts` | Audita cada exportação |
@@ -45,7 +45,7 @@ Reaproveitável sem mudança: `src/dominio/**` (regras puras: apuração, travas
 | `votarPopular`, `votarJuri` | `votacao.ts` | ação | todos os modos | `JA_VOTOU`, `URNA_*`, `PAPEL_INVALIDO`, `CANDIDATO_INDISPONIVEL`, `VOTO_PROPRIO`, `REDE` | Votar |
 | `consultarEstadoVoto` | `votacao.ts` | leitura | não | `REDE` | Votar (verificação antes de reenviar) |
 | `salvarGeral` | `configGeral.ts` | ação | sim | `TRAVADO`, `VALIDACAO`, `CONFLITO` | Configuração · Geral |
-| `criarCandidato`, `salvarCandidato`, `alterarPublicacao`, `reordenarCandidato`, `removerCandidato`, `desqualificarCandidato`, `salvarCamposExtras` | `candidatosAdmin.ts` | ação | sim | `TRAVADO`, `VALIDACAO`, `CONFLITO` | Configuração · Candidatos |
+| `criarCandidato`, `salvarCandidato`, `alterarPublicacao`, `salvarOrdemCandidatos`, `removerCandidato`, `desqualificarCandidato`, `salvarCamposExtras` | `candidatosAdmin.ts` | ação | sim | `TRAVADO`, `VALIDACAO`, `CONFLITO` | Configuração · Candidatos |
 | `listarConvites` | `convites.ts` | leitura | não | `NAO_AUTORIZADO` | Configuração · Júri |
 | `gerarConvites`, `renomearConvite`, `revogarConvite`, `registrarExportacaoConvites` | `convites.ts` | ação | sim | `TRAVADO`, `VALIDACAO` | Configuração · Júri |
 | `salvarPlacar` | `placarConfig.ts` | ação | sim | `TRAVADO`, `VALIDACAO` | Configuração · Placar |

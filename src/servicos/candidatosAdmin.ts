@@ -1,3 +1,4 @@
+import type { OrdemCandidatos } from "@/dominio/tipos";
 import type { DadosCandidato } from "@/dominio/validacoesConfig";
 import { recarregarEstado } from "@/store/servidor";
 import { chamar } from "./rpc";
@@ -27,9 +28,9 @@ export function alterarPublicacao(eventoId: string, candidatoId: string, publica
   return comRecarga(chamar<null>("alterarPublicacao", { eventoId, candidatoId, publicado }));
 }
 
-/** Troca a `ordem` com o vizinho e reindexa (1..n). Livre até concluir. */
-export function reordenarCandidato(eventoId: string, candidatoId: string, direcao: "SUBIR" | "DESCER"): Promise<Resultado<null>> {
-  return comRecarga(chamar<null>("reordenarCandidato", { eventoId, candidatoId, direcao }));
+/** Ordem na votação: aleatória (padrão, nova a cada carga da página) ou alfabética. Livre até concluir, com auditoria. */
+export function salvarOrdemCandidatos(eventoId: string, ordem: OrdemCandidatos): Promise<Resultado<null>> {
+  return comRecarga(chamar<null>("salvarOrdemCandidatos", { eventoId, ordem }));
 }
 
 /** Recusa (CONFLITO) se o candidato tem qualquer voto. */

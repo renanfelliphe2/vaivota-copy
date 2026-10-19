@@ -43,6 +43,7 @@ export function eventoParaDominio(e: P.Evento): Evento {
     moduloJuri: e.moduloJuri,
     moduloInfantil: e.moduloInfantil,
     bloquearVotoProprio: e.bloquearVotoProprio,
+    ordemCandidatos: e.ordemCandidatos,
     avisoPrivacidadeUrl: e.avisoPrivacidadeUrl,
     prazoAnonimizacaoDias: e.prazoAnonimizacaoDias,
     urnaAbertaEm: instanteOuNulo(e.urnaAbertaEm, f),

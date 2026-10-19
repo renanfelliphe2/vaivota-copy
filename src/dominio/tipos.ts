@@ -16,6 +16,8 @@ export type EstadoConvite = "DISPONIVEL" | "USADO" | "REVOGADO";
 export type EstadoDispositivo = "ATIVO" | "PAUSADO" | "REVOGADO";
 export type RegraDesempate = "JURI" | "PUBLICO";
 export type ModoAvanco = "AUTOMATICO" | "MANUAL";
+/** Ordem dos candidatos na votação (19/10/2026): ALEATORIA embaralha a cada carga da página; ALFABETICA, sempre A–Z. */
+export type OrdemCandidatos = "ALEATORIA" | "ALFABETICA";
 /**
  * Como o jurado vota (08/10/2026). VOTO_UNICO: um candidato (Etapa 5). NOTAS_POR_CRITERIO: nota de 0 a 10 a cada
  * candidato em cada critério. MELHOR_POR_CRITERIO: um candidato por critério. O público sempre vota em um só.
@@ -127,6 +129,7 @@ export type Evento = {
   moduloJuri: boolean;
   moduloInfantil: boolean;
   bloquearVotoProprio: boolean;
+  ordemCandidatos: OrdemCandidatos;
   avisoPrivacidadeUrl: string | null;
   prazoAnonimizacaoDias: number;
   urnaAbertaEm: Instante | null;

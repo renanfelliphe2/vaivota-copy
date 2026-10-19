@@ -1,6 +1,7 @@
 import "server-only";
 import type { Evento as EventoLinha, Prisma } from "@/generated/prisma/client";
 import { gerarChave } from "@/dominio/camposExtras";
+import type { OrdemCandidatos } from "@/dominio/tipos";
 import { exigirAcao, resolverFaseConfig, type AcaoConfig } from "@/dominio/travas";
 import { LIMITES, validarCandidato, validarMotivo, validarRotuloCampo, type DadosCandidato } from "@/dominio/validacoesConfig";
 import { congelarResultado } from "./apuracao";
@@ -55,7 +56,7 @@ async function comEventoTravado<T>(
   }
 }
 
-/** Trava a linha do evento: reordenar, publicar e remover não se atropelam. */
+/** Trava a linha do evento: publicar, remover e editar campos extras não se atropelam. */
 async function travarEvento(tx: Transacao, eventoId: string) {
   await tx.$queryRaw`SELECT id FROM evento WHERE id = ${eventoId} FOR NO KEY UPDATE`;
 }
@@ -171,33 +172,33 @@ export async function alterarPublicacao(usuario: UsuarioSessao | null, eventoId:
   return r;
 }
 
-/** Troca a `ordem` com o vizinho e reindexa (1..n). Livre até concluir. */
-export async function reordenarCandidato(
-  usuario: UsuarioSessao | null,
-  eventoId: string,
-  candidatoId: string,
-  direcao: "SUBIR" | "DESCER",
-): Promise<Resultado<null>> {
+/**
+ * Ordem dos candidatos na votação (19/10/2026, no lugar da reordenação manual): ALEATORIA (padrão) embaralha a cada carga
+ * da página; ALFABETICA mostra A–Z. Livre até concluir, sempre com registro na auditoria.
+ */
+export async function salvarOrdemCandidatos(usuario: UsuarioSessao | null, eventoId: string, ordem: OrdemCandidatos): Promise<Resultado<null>> {
   const admin = await exigirAdmin(usuario, eventoId);
   if (!admin.ok) return admin;
-  const trava = exigirAcao(admin.dados.evento, "CANDIDATOS_REORDENAR");
+  const { evento, usuarioId } = admin.dados;
+  const trava = exigirAcao(evento, "CANDIDATOS_ORDEM");
   if (!trava.ok) return trava;
+  if (evento.ordemCandidatos === ordem) return sucesso(null);
   try {
-    const achou = await db().$transaction(async (tx) => {
-      await travarEvento(tx, eventoId);
-      const lista = await tx.candidato.findMany({ where: { eventoId }, orderBy: [{ ordem: "asc" }, { id: "asc" }], select: { id: true } });
-      const i = lista.findIndex((c) => c.id === candidatoId);
-      if (i < 0) return false;
-      const j = direcao === "SUBIR" ? i - 1 : i + 1;
-      if (j >= 0 && j < lista.length) [lista[i], lista[j]] = [lista[j], lista[i]];
-      for (const [k, c] of lista.entries()) await tx.candidato.update({ where: { id: c.id }, data: { ordem: k + 1 } });
-      return true;
+    await db().$transaction(async (tx) => {
+      await tx.evento.update({ where: { id: eventoId }, data: { ordemCandidatos: ordem } });
+      await registrarAuditoria(tx, {
+        eventoId,
+        usuarioId,
+        acao: "CONFIG_ALTERADA",
+        entidade: "evento",
+        entidadeId: eventoId,
+        detalhes: { campos: ["ordemCandidatos"], de: evento.ordemCandidatos, para: ordem },
+      });
     });
-    if (!achou) return falha("NAO_ENCONTRADO");
     invalidarEstadoPublico();
     return sucesso(null);
   } catch (e) {
-    return falhaInterna(e, "reordenarCandidato");
+    return falhaInterna(e, "salvarOrdemCandidatos");
   }
 }
 

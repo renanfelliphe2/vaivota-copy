@@ -103,8 +103,8 @@ const servicos = {
   alterarPublicacao: definir(z.object({ eventoId: id, candidatoId: id, publicado: z.boolean() }), (_c, u, a) =>
     candidatos.alterarPublicacao(u, a.eventoId, a.candidatoId, a.publicado),
   ),
-  reordenarCandidato: definir(z.object({ eventoId: id, candidatoId: id, direcao: z.enum(["SUBIR", "DESCER"]) }), (_c, u, a) =>
-    candidatos.reordenarCandidato(u, a.eventoId, a.candidatoId, a.direcao),
+  salvarOrdemCandidatos: definir(z.object({ eventoId: id, ordem: z.enum(["ALEATORIA", "ALFABETICA"]) }), (_c, u, a) =>
+    candidatos.salvarOrdemCandidatos(u, a.eventoId, a.ordem),
   ),
   removerCandidato: definir(z.object({ eventoId: id, candidatoId: id }), (_c, u, a) => candidatos.removerCandidato(u, a.eventoId, a.candidatoId)),
   desqualificarCandidato: definir(z.object({ eventoId: id, candidatoId: id, motivo: texto(500) }), (_c, u, a) =>

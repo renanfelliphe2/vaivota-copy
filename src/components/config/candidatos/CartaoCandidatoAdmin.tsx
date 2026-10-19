@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Ban, CircleCheck, EyeOff, FilePen, Pencil, Trash2, Vote } from "lucide-react";
+import { Ban, CircleCheck, EyeOff, FilePen, Pencil, Trash2, Vote } from "lucide-react";
 import type { Travas } from "@/dominio/travas";
 import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
 import { Botao } from "@/components/ui/Botao";
@@ -17,31 +17,28 @@ const SELOS = {
 export type AcoesCartaoAdmin = {
   aoEditar: (id: string) => void;
   aoPublicar: (id: string, publicado: boolean) => void;
-  aoReordenar: (id: string, direcao: "SUBIR" | "DESCER") => void;
   aoRemover: (id: string) => void;
   aoDesqualificar: (id: string) => void;
 };
 
-/** Etapa 6 (CP3): estado em texto neutro com ícone; desqualificado riscado e identificado em texto. */
+/**
+ * Etapa 6 (CP3): estado em texto neutro com ícone; desqualificado riscado e identificado em texto. 19/10/2026: sem
+ * posição nem "Subir"/"Descer": a ordem na votação é aleatória ou alfabética, escolhida para todos na seção.
+ */
 export function CartaoCandidatoAdmin({
   item,
   travas,
-  primeiro,
-  ultimo,
   ocupado,
   acoes,
 }: {
   item: CandidatoAdmin;
   travas: Travas;
-  primeiro: boolean;
-  ultimo: boolean;
   ocupado: boolean;
   acoes: AcoesCartaoAdmin;
 }) {
   const { candidato, estado } = item;
   const selo = SELOS[estado];
   const podePublicar = travas.permite("CANDIDATOS_PUBLICACAO");
-  const podeReordenar = travas.permite("CANDIDATOS_REORDENAR");
   const podeDesqualificar = travas.permite("CANDIDATOS_DESQUALIFICAR");
   const leitura = travas.fase === "CONCLUIDO";
   const fora = estado === "FORA_DA_DISPUTA";
@@ -56,7 +53,6 @@ export function CartaoCandidatoAdmin({
           <Selo variante={selo.variante} icone={selo.icone}>
             {selo.texto}
           </Selo>
-          <span className="text-sm tabular-nums text-tema-texto-suave">Posição {candidato.ordem}</span>
         </div>
         <h3 id={`adm-${candidato.id}`} className={cx("line-clamp-2 font-bold", fora && "line-through")}>
           {candidato.titulo}
@@ -77,16 +73,6 @@ export function CartaoCandidatoAdmin({
               >
                 {candidato.publicado ? "Tirar da votação" : "Colocar na votação"}
               </Botao>
-            )}
-            {podeReordenar && (
-              <>
-                <Botao variante="fantasma" tamanho="pequeno" disabled={primeiro || ocupado} onClick={() => acoes.aoReordenar(candidato.id, "SUBIR")} aria-label={`Subir: ${candidato.titulo}`} icone={<ArrowUp aria-hidden className="size-4" />}>
-                  Subir
-                </Botao>
-                <Botao variante="fantasma" tamanho="pequeno" disabled={ultimo || ocupado} onClick={() => acoes.aoReordenar(candidato.id, "DESCER")} aria-label={`Descer: ${candidato.titulo}`} icone={<ArrowDown aria-hidden className="size-4" />}>
-                  Descer
-                </Botao>
-              </>
             )}
             {podePublicar && (
               <Botao variante="fantasma" tamanho="pequeno" disabled={ocupado} onClick={() => acoes.aoRemover(candidato.id)} aria-label={`Remover: ${candidato.titulo}`} icone={<Trash2 aria-hidden className="size-4" />}>

@@ -10,14 +10,26 @@ import { criarRelogio } from "./relogio";
 import { intervaloDePollingMs, recarregarEstado } from "./servidor";
 
 const AmbienteContext = createContext<Ambiente | null>(null);
+const SementeOrdemContext = createContext(0);
 
 /**
  * MVP Maratona Tech Tivit: estado único no navegador, montado no layout raiz com o estado público que o servidor já entregou
  * (a primeira tela sai renderizada com dados reais, sem espera). O relógio é o real, alinhado ao do servidor. Depois
  * disso, o estado se atualiza a cada ação (os serviços chamam `recarregarEstado`) e por polling enquanto a aba está visível
  * (10 s para quem espera a urna; 30 s para quem já votou ou administra; 60 s com a urna encerrada: ver `intervaloDePollingMs`).
+ * `sementeOrdem` (19/10/2026): sorteada no servidor a cada carga da página, embaralha os candidatos (dominio/ordemVotacao).
+ * Fica a da montagem: o polling e a navegação dentro do app não mudam a ordem; só uma carga nova da página muda.
  */
-export function AppProvider({ estadoInicial, children }: { estadoInicial: EstadoPublico; children: ReactNode }) {
+export function AppProvider({
+  estadoInicial,
+  sementeOrdem = 0,
+  children,
+}: {
+  estadoInicial: EstadoPublico;
+  sementeOrdem?: number;
+  children: ReactNode;
+}) {
+  const [semente] = useState(sementeOrdem);
   const [ambiente] = useState<Ambiente>(() => {
     const novo = { store: criarStore(criarEstadoDoServidor(estadoInicial)), relogio: criarRelogio(estadoInicial.agoraMs) };
     // Serviços (funções comuns) precisam do store já no primeiro efeito dos filhos.
@@ -60,7 +72,16 @@ export function AppProvider({ estadoInicial, children }: { estadoInicial: Estado
     };
   }, [ambiente]);
 
-  return <AmbienteContext.Provider value={ambiente}>{children}</AmbienteContext.Provider>;
+  return (
+    <AmbienteContext.Provider value={ambiente}>
+      <SementeOrdemContext.Provider value={semente}>{children}</SementeOrdemContext.Provider>
+    </AmbienteContext.Provider>
+  );
+}
+
+/** Semente da ordem aleatória dos candidatos nesta carga da página (a mesma no servidor e na hidratação). */
+export function useSementeOrdem(): number {
+  return useContext(SementeOrdemContext);
 }
 
 export function useAmbiente(): Ambiente {

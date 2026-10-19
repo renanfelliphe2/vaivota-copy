@@ -87,6 +87,12 @@ enum ModoAvanco {
   MANUAL
 }
 
+// Ordem dos candidatos na votação (19/10/2026, no lugar da ordenação manual): embaralhada a cada carga da página ou A–Z.
+enum OrdemCandidatos {
+  ALEATORIA
+  ALFABETICA
+}
+
 // ─────────────────────────────────────────────
 // Identidade (Better Auth)
 // ─────────────────────────────────────────────
@@ -198,6 +204,8 @@ model Evento {
   moduloInfantil         Boolean             @default(false) @map("modulo_infantil")
   // Candidato vinculado a um usuário não pode votar em si mesmo (padrão decidido; configurado por seed).
   bloquearVotoProprio    Boolean             @default(true) @map("bloquear_voto_proprio")
+  // Ordem dos candidatos para quem vota: aleatória (padrão, nova a cada carga da página) ou alfabética.
+  ordemCandidatos        OrdemCandidatos     @default(ALEATORIA) @map("ordem_candidatos")
   // Aviso de privacidade próprio do evento: opcional e complementar ao aviso da plataforma VaiVota (controladora dos dados).
   avisoPrivacidadeUrl    String?             @map("aviso_privacidade_url") @db.VarChar(500)
   prazoAnonimizacaoDias  Int                 @default(90) @map("prazo_anonimizacao_dias")

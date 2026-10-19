@@ -24,3 +24,12 @@ export const ROTULO_PAPEL: Record<PapelParticipacao, string> = {
 export function minusculas(texto: string): string {
   return texto.toLocaleLowerCase("pt-BR");
 }
+
+/**
+ * Nome do evento em dois tons (página do evento): a primeira palavra e o resto ("Maratona" + "Tech Tivit").
+ * Nome de uma palavra só fica inteiro, sem o segundo tom.
+ */
+export function dividirNome(nome: string): { primeira: string; resto: string | null } {
+  const [primeira, ...resto] = nome.trim().split(/\s+/);
+  return { primeira, resto: resto.length > 0 ? resto.join(" ") : null };
+}

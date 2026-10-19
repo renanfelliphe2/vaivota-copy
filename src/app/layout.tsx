@@ -46,13 +46,17 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     console.error("[servidor] não foi possível montar o estado público:", erro);
   }
 
+  // Semente da ordem aleatória dos candidatos: nova a cada carga da página (dominio/ordemVotacao).
+  const sementeOrdem = crypto.getRandomValues(new Uint32Array(1))[0];
+
   return (
-    <html lang="pt-BR" className={`${classesFontes} h-full antialiased`}>
+    // data-scroll-behavior (Next 16): a rolagem suave do CSS vale dentro da página; na troca de página o Next rola direto.
+    <html lang="pt-BR" data-scroll-behavior="smooth" className={`${classesFontes} h-full antialiased`}>
       <body className="min-h-full">
         {estado ? (
-          <AppProvider estadoInicial={estado}>
+          <AppProvider estadoInicial={estado} sementeOrdem={sementeOrdem}>
             <LiveRegionProvider>
-              <TemaEvento className="flex min-h-dvh flex-col">
+              <TemaEvento className="marca-evento flex min-h-dvh flex-col">
                 <ToastProvider>
                   <SkipLink />
                   {children}

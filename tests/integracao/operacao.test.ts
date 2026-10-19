@@ -1,5 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { alterarPublicacao, criarCandidato, desqualificarCandidato, removerCandidato, reordenarCandidato, salvarCamposExtras, salvarCandidato } from "@/server/candidatos";
+import {
+  alterarPublicacao,
+  criarCandidato,
+  desqualificarCandidato,
+  removerCandidato,
+  salvarCamposExtras,
+  salvarCandidato,
+  salvarOrdemCandidatos,
+} from "@/server/candidatos";
 import { salvarGeral, salvarPlacar, salvarTema } from "@/server/configuracao";
 import { db, desconectarBanco } from "@/server/db";
 import { abrirUrna, ativarEvento, concluirEvento, encerrarUrna, entradaDoChecklist } from "@/server/operacao";
@@ -36,6 +44,13 @@ describe("seed da Maratona Tech Tivit", () => {
     await expect(db().evento.findUniqueOrThrow({ where: { id: primeira.eventoId } })).resolves.toMatchObject({
       slug: "maratona-tech-tivit",
       nome: "Maratona Tech Tivit",
+    });
+    await expect(db().tema.findUniqueOrThrow({ where: { eventoId: primeira.eventoId } })).resolves.toMatchObject({
+      corPrimaria: "#0097B1",
+      corSecundaria: "#7ED958",
+      corFundo: "#FFFFFF",
+      corTexto: "#0F172A",
+      fonte: "Space Grotesk",
     });
 
     const segunda = await semearMaratonaTechTivit();
@@ -87,18 +102,26 @@ describe("candidatos (ST2)", () => {
     await expect(db().candidato.create({ data: { eventoId, titulo: "Direto", publicado: true, imagemUrl: null } })).rejects.toThrow();
   });
 
-  it("reordena (troca com o vizinho e reindexa 1..n)", async () => {
+  it("ordem na votação: aleatória por padrão; trocar grava e audita; só o admin; trava com o evento concluído", async () => {
     const e = await semearEvento("teste-operacao-ordem");
     const adm = await criarAdminDireto(e);
-    const [a, b, c] = await criarCandidatos(e, 3);
-    expect((await reordenarCandidato(adm, e, c, "SUBIR")).ok).toBe(true);
-    let lista = await db().candidato.findMany({ where: { eventoId: e }, orderBy: { ordem: "asc" } });
-    expect(lista.map((x) => x.id)).toEqual([a, c, b]);
-    expect(lista.map((x) => x.ordem)).toEqual([1, 2, 3]);
-    // no limite não faz nada
-    await reordenarCandidato(adm, e, a, "SUBIR");
-    lista = await db().candidato.findMany({ where: { eventoId: e }, orderBy: { ordem: "asc" } });
-    expect(lista.map((x) => x.id)).toEqual([a, c, b]);
+    const ordemAtual = async () => (await db().evento.findUniqueOrThrow({ where: { id: e } })).ordemCandidatos;
+    const registros = () => db().auditoria.findMany({ where: { eventoId: e, acao: "CONFIG_ALTERADA", entidade: "evento" } });
+    expect(await ordemAtual()).toBe("ALEATORIA");
+
+    expect((await salvarOrdemCandidatos(adm, e, "ALFABETICA")).ok).toBe(true);
+    expect(await ordemAtual()).toBe("ALFABETICA");
+    const [registro] = await registros();
+    expect(registro.detalhes).toMatchObject({ campos: ["ordemCandidatos"], de: "ALEATORIA", para: "ALFABETICA" });
+    // a mesma ordem de novo não grava nem audita
+    expect((await salvarOrdemCandidatos(adm, e, "ALFABETICA")).ok).toBe(true);
+    expect(await registros()).toHaveLength(1);
+
+    const publico = await criarUsuarioDireto(e);
+    expect(await salvarOrdemCandidatos(publico, e, "ALEATORIA")).toMatchObject({ ok: false, erro: { codigo: "NAO_AUTORIZADO" } });
+    await db().evento.update({ where: { id: e }, data: { estado: "CONCLUIDO", estadoUrna: "ENCERRADA" } });
+    expect(await salvarOrdemCandidatos(adm, e, "ALEATORIA")).toMatchObject({ ok: false, erro: { codigo: "EVENTO_CONCLUIDO" } });
+    expect(await ordemAtual()).toBe("ALFABETICA");
   });
 
   it("remove sem votos; com a urna aberta a remoção é travada", async () => {

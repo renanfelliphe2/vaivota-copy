@@ -25,7 +25,7 @@ O **MVP Ver e Fazer Filmes** (novembro) será praticamente a versão final do pr
 | Domínio e e-mail | Domínio próprio `.space` (a comprar), ligado à Vercel e verificado no **Resend** (subdomínio `mail.`) para enviar os códigos |
 | Autenticação | Better Auth: **e-mail e senha** + **Google**. Código por e-mail (Resend) para verificar o e-mail e recuperar a senha. Rate limiting no servidor |
 | Evento público | Landing `/e/maratona-tech-tivit` com tema, rótulos e candidatos vindos do banco |
-| Votação popular | Voto único garantido no banco, voto sem vínculo com o usuário, ordem embaralhada por usuário, estados da urna, recibo aleatório. **Pode votar em si mesmo** |
+| Votação popular | Voto único garantido no banco, voto sem vínculo com o usuário, ordem aleatória a cada carga da página (ou alfabética, escolha do admin; 19/10/2026), estados da urna, recibo aleatório. **Pode votar em si mesmo** |
 | Candidatos (admin) | Cadastro, edição, publicar/despublicar, ordenar e remover, com **upload de imagem** (Supabase Storage) |
 | Operação (admin) | Ativar evento, abrir urna, encerrar urna (**sempre manual**), concluir evento |
 | Apuração | `apurar` no servidor, 100% público, resultado oficial congelado na transação do encerramento |
@@ -70,7 +70,7 @@ Regra geral: a assinatura de cada serviço é mantida. Por dentro, passa a ser u
 | `sair` | Better Auth | `sessao.entrarComo` sai (toolbar) |
 | `votarPopular`, `consultarEstadoVoto` | Transação no Postgres | `votarJuri` sai |
 | `ativarEvento`, `abrirUrna`, `encerrarUrna`, `concluirEvento` | Transação + `congelarResultado` | Encerrar e congelar na mesma transação |
-| `criarCandidato`, `salvarCandidato`, `alterarPublicacao`, `reordenarCandidato`, `removerCandidato` | Prisma + Storage | Upload via servidor; `desqualificarCandidato` e `salvarCamposExtras` são opcionais (ST7) |
+| `criarCandidato`, `salvarCandidato`, `alterarPublicacao`, `salvarOrdemCandidatos`, `removerCandidato` | Prisma + Storage | Upload via servidor; `desqualificarCandidato` e `salvarCamposExtras` são opcionais (ST7). `salvarOrdemCandidatos` (19/10/2026) substitui `reordenarCandidato`: aleatória ou alfabética |
 | `obterOperacao`, `obterResultado`, `listarAuditoria` | Consultas agregadas | `obterVotosJuri` sai. Cálculo e filtro no servidor |
 | `prepararExportacao`, `registrarRelatorioGerado` | Servidor, auditado | Só os CSVs aplicáveis (sem jurados nem infantil) |
 
@@ -91,7 +91,7 @@ Regra geral: a assinatura de cada serviço é mantida. Por dentro, passa a ser u
 - **Voto único:** `UPDATE participacao SET votou = true WHERE id = ? AND votou = false`; se afetar 0 linhas, `JA_VOTOU`. O `INSERT` do `Voto` e esse `UPDATE` ficam **na mesma transação**. `hashRecibo` é aleatório de 32 bytes (C20).
 - **Sigilo:** `Voto` sem usuário; `Participacao` sem nenhum horário (já é o schema).
 - **Imagens:** bucket público para leitura no Supabase Storage; escrita só pelo servidor (chave de serviço nunca vai ao cliente). Aceitar PNG, JPG e WebP até 2 MB, validando tipo e tamanho **no servidor**. **Remover SVG do upload em produção** (risco de script embutido). Configurar o domínio do Storage em `next.config` para as imagens remotas (o protótipo só aceitava `public/`).
-- **Seed/script (idempotente):** evento `maratona-tech-tivit` (`estado = RASCUNHO`, `estadoUrna = NAO_INICIADA`, `encerramentoAutomatico = false`, `bloquearVotoProprio = false`, módulos desligados), tema escuro com Space Grotesk e rótulos Projeto/Projetos, campos extras `equipe` e `tecnologias`, `ConfigPlacar` 100/0/0, `metodoIdentificacao = GOOGLE_OU_EMAIL`. Script `promover-admin <e-mail>` cria ou promove a participação `ADMIN`.
+- **Seed/script (idempotente):** evento `maratona-tech-tivit` (`estado = RASCUNHO`, `estadoUrna = NAO_INICIADA`, `encerramentoAutomatico = false`, `bloquearVotoProprio = false`, módulos desligados), tema Tivit turquesa e verde com Space Grotesk e rótulos Projeto/Projetos, campos extras `equipe` e `tecnologias`, `ConfigPlacar` 100/0/0, `metodoIdentificacao = GOOGLE_OU_EMAIL`. Script `promover-admin <e-mail>` cria ou promove a participação `ADMIN`.
 
 ## 5. Etapas
 
@@ -123,7 +123,7 @@ Prefixo **ST** (Maratona Tech Tivit) para não colidir com as Etapas 0–9 da Fa
 - [ ] Arquivo inválido (tipo ou tamanho) é recusado no servidor.
 
 ### ST3 — Votação popular
-**Entrega:** `votarPopular` e `consultarEstadoVoto` reais, ordem embaralhada por usuário, estados da urna, tratamento de falha de rede (reenvio só após `consultarEstadoVoto`).
+**Entrega:** `votarPopular` e `consultarEstadoVoto` reais, ordem embaralhada (19/10/2026: a cada carga da página, ou alfabética por escolha do admin), estados da urna, tratamento de falha de rede (reenvio só após `consultarEstadoVoto`).
 **Aceite:**
 - [ ] Segundo voto é impedido, **inclusive com requisições simultâneas** (teste automatizado).
 - [ ] Com a urna não iniciada ou encerrada, não vota nem por link direto.

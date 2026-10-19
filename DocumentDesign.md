@@ -213,7 +213,7 @@ erDiagram
 
 - **Identificação [Decidido]:** usuário global com participação por evento. Login **sem senha**: Google ou **código enviado por e-mail** (o código confirmado verifica o e-mail). Não há recuperação de senha. Só e-mail verificado vota. Método configurável por evento (por seed).
 - **Estados:** urna não iniciada, encerrada, "já votou" e aberta.
-- **Candidatos:** apenas publicados, em **ordem embaralhada por usuário**, estável durante a sessão.
+- **Candidatos:** apenas publicados, na ordem escolhida pelo admin para o evento (19/10/2026, no lugar da ordem manual): **aleatória** (padrão; embaralhada de novo a cada carga da página) ou **alfabética** (A–Z).
 - **Voto:** irrevogável, um por usuário por evento, com revisão antes de confirmar.
 - **Erros tratados:** duplo clique e reenvio (idempotência), queda de rede na confirmação, urna fechada durante a confirmação, link direto com urna fechada, nenhum candidato publicado.
 - **Sigilo [Decidido]:** quem votou (`Participacao`) e em quem votou (`Voto`) ficam desvinculados.
@@ -523,7 +523,7 @@ Uma funcionalidade entregue numa fase não é reimplementada na seguinte. O cont
 1. VaiVota é **white-label**: núcleo único com tema por evento.
 2. Stack: **React/TS + Next.js**, **Supabase (PostgreSQL)**, **Prisma**, **Better Auth**, **Vercel**, **Resend**, rate limiting no PostgreSQL ou Upstash Redis, **Sentry** + logs da Vercel, k6 para carga (seção 5.3).
 3. Conta global + **participação por evento** com papel; login **sem senha**: Google ou código por e-mail.
-4. Voto popular único (restrição no banco), irrevogável, sem vínculo com o usuário; ordem embaralhada.
+4. Voto popular único (restrição no banco), irrevogável, sem vínculo com o usuário; ordem aleatória a cada carga da página (ou alfabética, se o admin escolher).
 5. Júri: convites individuais de uso único em lote; **voto simples na Maratona Tech Tivit; por critério no Festival**; **identificado** ao admin, nunca exibido no telão; alterável até o fim da urna.
 6. Placar por **percentual ponderado** com três pesos (popular, júri, infantil), configuráveis; desempate configurável (júri ou público).
 7. Infantil: totem como **dispositivo pareado**; placar próprio "Escolha das Crianças" **e** peso; mediador adulto; fila offline depois.

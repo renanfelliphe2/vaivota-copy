@@ -14,6 +14,7 @@ import { PainelAvaliacaoJuri, filtrarPorAvaliacao, type FiltroAvaliacao } from "
 import { useAvaliacaoJuri } from "@/components/avaliacao/useAvaliacaoJuri";
 import { DetalheCandidato } from "@/components/candidato/DetalheCandidato";
 import { ListaCandidatos } from "@/components/candidato/ListaCandidatos";
+import { useDestaqueCandidato } from "@/components/landing/DestaqueCandidato";
 import { Botao } from "@/components/ui/Botao";
 import { Selo } from "@/components/ui/Selo";
 import { formatarDecimal } from "@/lib/formatar";
@@ -38,7 +39,7 @@ const ID_TITULO = "titulo-candidatos";
 /**
  * Votação na entrada do evento (08/10/2026: substitui a página /votar e a vitrine de 6 candidatos). Todos os
  * votáveis, sempre; o que muda é o modo:
- * - VISITANTE (sem sessão ou sem e-mail verificado): "Ver detalhes" e, com a urna aberta, "Votar" pedem o acesso e
+ * - VISITANTE (sem sessão ou sem e-mail verificado): o cartão (detalhe) e, com a urna aberta, "Votar" pedem o acesso e
  *   voltam com o detalhe aberto ou direto na revisão (`?votar=`).
  * - ESCOLHA (gate LISTA): "Votar" no cartão escolhe e abre a revisão; detalhe, barra de seleção, revisão e sucesso em modais.
  * - LEITURA (demais telas da gate: já votou, admin, urna fechada…): lista e detalhe, sem escolher. Nunca mostra
@@ -58,6 +59,7 @@ export function SecaoVotacao() {
   const pathname = usePathname();
   const router = useRouter();
   const anunciar = useAnunciar();
+  const { destaqueId } = useDestaqueCandidato();
 
   const tela = estado?.tela ?? "ACESSO_PENDENTE";
   const papelVoto = estado?.papelVoto ?? null;
@@ -253,8 +255,8 @@ export function SecaoVotacao() {
         ? 'Toque em "Avaliar" em cada um e dê uma nota de 0 a 10 em cada critério.'
         : 'Toque em "Avaliar" para dizer em quais critérios cada um é o melhor.'
       : mostraVotar
-        ? 'Toque em "Votar" no seu favorito, ou em "Ver detalhes" para conhecer melhor antes de decidir.'
-        : 'Use "Ver detalhes" para conhecer melhor cada um.';
+        ? 'Toque em "Votar" no seu favorito, ou no cartão para conhecer melhor antes de decidir.'
+        : "Toque em um cartão para conhecer melhor cada um.";
   // Na leitura, só os avisos que explicam por que não há escolha (JA_VOTOU_ANTES, NAO_REGISTRADO).
   const aviso =
     modo === "ESCOLHA"
@@ -267,20 +269,27 @@ export function SecaoVotacao() {
   const tituloSucesso = lista.itens.find((i) => i.candidato.id === votacao.ultimoVoto?.candidatoId)?.candidato.titulo ?? null;
 
   return (
+    // 19/10/2026: fundo água → menta claros, o mesmo da onda que fecha o hero (a passagem não tem emenda).
     <section
       id="candidatos"
       aria-labelledby={ID_TITULO}
-      className={`w-full scroll-mt-40 border-t border-tema-borda bg-tema-superficie ${escolhendo ? "pb-40 sm:pb-28" : ""}`}
+      className={`w-full scroll-mt-40 bg-linear-to-r from-marca-agua-clara to-marca-menta-clara ${escolhendo ? "pb-40 sm:pb-28" : ""}`}
     >
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-16 sm:px-6">
-        <header className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id={ID_TITULO} tabIndex={-1} className="text-2xl font-bold sm:text-3xl">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-16 pt-6 sm:gap-8 sm:px-6 sm:pb-24 sm:pt-8">
+        <header className="flex flex-col gap-3">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-tema-primaria-texto">
+            <span aria-hidden className="h-1 w-6 rounded-full bg-linear-to-r from-tema-primaria to-tema-secundaria" />
+            {jurado ? "Votação do júri" : "Votação popular"}
+          </p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 id={ID_TITULO} tabIndex={-1} className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
               {tema.rotuloCandidatos}
             </h2>
-            <p className="text-sm font-semibold text-tema-primaria-texto">{textoContador(lista.total, tema)}</p>
+            <p className="rounded-full bg-tema-fundo px-4 py-1.5 text-sm font-semibold text-tema-primaria-texto shadow-sm ring-1 ring-tema-borda/80">
+              {textoContador(lista.total, tema)}
+            </p>
           </div>
-          <p className="text-tema-texto-suave">{instrucao}</p>
+          <p className="max-w-2xl text-tema-texto-suave">{instrucao}</p>
         </header>
         <AvisoVotacao aviso={aviso} />
         {porCriterio && modo === "ESCOLHA" && modoJuri !== "VOTO_UNICO" && (
@@ -302,6 +311,7 @@ export function SecaoVotacao() {
         <ListaCandidatos
           itens={itensVisiveis}
           campos={lista.campos}
+          destaqueId={destaqueId}
           aoVerDetalhes={visitante ? (id) => pedirAcesso(id, "candidato") : abrirDetalhe}
           renderAcao={(item) =>
             !mostraVotar || item.bloqueadoVotoProprio || ehVotoAtual(item) ? null : porCriterio ? (

@@ -23,6 +23,7 @@ export const seedEventos = [
     moduloJuri: true,
     moduloInfantil: true,
     bloquearVotoProprio: true,
+    ordemCandidatos: "ALEATORIA",
     avisoPrivacidadeUrl: "https://festivalverefazerfilmes.org.br/privacidade", // placeholder externo
     prazoAnonimizacaoDias: 90,
     urnaAbertaEm: null,

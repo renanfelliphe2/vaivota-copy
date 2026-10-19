@@ -3,15 +3,17 @@
 import { Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import type { OrdemCandidatos } from "@/dominio/tipos";
 import type { Travas } from "@/dominio/travas";
 import { Botao } from "@/components/ui/Botao";
+import { Campo, Select } from "@/components/ui/Campo";
 import { DialogoConfirmacao } from "@/components/ui/DialogoConfirmacao";
 import { minusculas } from "@/lib/rotulos";
 import {
   alterarPublicacao,
   desqualificarCandidato,
   removerCandidato,
-  reordenarCandidato,
+  salvarOrdemCandidatos,
 } from "@/servicos/candidatosAdmin";
 import { useCandidatosAdmin } from "@/store/seletores/candidatosAdmin";
 import { useEventoAtivo } from "@/store/seletores/evento";
@@ -23,7 +25,10 @@ import { DesqualificarDialog } from "./DesqualificarDialog";
 import { ListaCandidatosAdmin } from "./ListaCandidatosAdmin";
 import { PainelCandidato } from "./PainelCandidato";
 
-/** Seção Candidatos (Etapa 6, CP3 e CP4). O painel de edição vive em ?editar=<id|novo>. */
+/**
+ * Seção Candidatos (Etapa 6, CP3 e CP4). O painel de edição vive em ?editar=<id|novo>. 19/10/2026: a ordem na votação
+ * deixou de ser manual (Subir/Descer): é um select, aleatória (padrão) ou alfabética, salvo assim que muda.
+ */
 export function SecaoCandidatos({ travas }: { travas: Travas }) {
   const ativo = useEventoAtivo();
   const dados = useCandidatosAdmin();
@@ -33,6 +38,8 @@ export function SecaoCandidatos({ travas }: { travas: Travas }) {
   const servico = useServico();
   const [remover, setRemover] = useState<string | null>(null);
   const [desqualificar, setDesqualificar] = useState<string | null>(null);
+  // Escolha ainda sendo salva: o select mostra a nova na hora, sem voltar à antiga até o estado recarregar.
+  const [ordemEscolhida, setOrdemEscolhida] = useState<OrdemCandidatos | null>(null);
   if (!ativo || !dados) return null;
 
   const eventoId = ativo.evento.id;
@@ -41,6 +48,14 @@ export function SecaoCandidatos({ travas }: { travas: Travas }) {
   const candidatoEditado = editar && editar !== "novo" ? (dados.itens.find((i) => i.candidato.id === editar)?.candidato ?? null) : null;
   const podeAdicionar = travas.permite("CANDIDATOS_PUBLICACAO");
   const titulo = (id: string | null) => dados.itens.find((i) => i.candidato.id === id)?.candidato.titulo ?? "";
+  const ordem = ordemEscolhida ?? ativo.evento.ordemCandidatos;
+
+  async function trocarOrdem(nova: OrdemCandidatos) {
+    setOrdemEscolhida(nova);
+    await servico.executar(() => salvarOrdemCandidatos(eventoId, nova), "Ordem na votação salva");
+    // Volta a seguir o estado: no sucesso ele já foi recarregado; na falha, mostra de novo a ordem salva.
+    setOrdemEscolhida(null);
+  }
 
   const abrirPainel = (valor: string) => router.replace(`${pathname}?secao=candidatos&editar=${encodeURIComponent(valor)}`, { scroll: false });
   const fecharPainel = () => router.replace(`${pathname}?secao=candidatos`, { scroll: false });
@@ -67,8 +82,31 @@ export function SecaoCandidatos({ travas }: { travas: Travas }) {
       </p>
       <DicaTrava motivo={podeAdicionar ? null : travas.motivo("CANDIDATOS_PUBLICACAO")} />
       {travas.nivel("CANDIDATOS_CORRIGIR") === "AUDITADO" && (
-        <p className="text-sm text-tema-texto-suave">Corrigir texto ou imagem continua possível, com confirmação e registro. Reordenar é livre.</p>
+        <p className="text-sm text-tema-texto-suave">
+          Corrigir texto ou imagem continua possível, com confirmação e registro. A ordem na votação pode mudar a qualquer momento.
+        </p>
       )}
+
+      <Campo
+        id="ordem-candidatos"
+        rotulo="Ordem na votação"
+        dica={
+          ordem === "ALEATORIA"
+            ? "Para ficar justo, a lista aparece embaralhada, numa ordem nova a cada vez que a página é aberta."
+            : "A lista aparece sempre na mesma ordem, de A a Z."
+        }
+        className="max-w-md"
+      >
+        <Select
+          value={ordem}
+          disabled={!travas.permite("CANDIDATOS_ORDEM") || servico.carregando}
+          aria-busy={servico.carregando || undefined}
+          onChange={(e) => void trocarOrdem(e.target.value as OrdemCandidatos)}
+        >
+          <option value="ALEATORIA">Aleatória (padrão)</option>
+          <option value="ALFABETICA">Alfabética</option>
+        </Select>
+      </Campo>
 
       {dados.itens.length === 0 ? (
         <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-tema-borda p-6">
@@ -88,7 +126,6 @@ export function SecaoCandidatos({ travas }: { travas: Travas }) {
             aoEditar: abrirPainel,
             aoPublicar: (id, publicado) =>
               void servico.executar(() => alterarPublicacao(eventoId, id, publicado), publicado ? "Colocado na votação" : "Tirado da votação"),
-            aoReordenar: (id, direcao) => void servico.executar(() => reordenarCandidato(eventoId, id, direcao), null),
             aoRemover: setRemover,
             aoDesqualificar: setDesqualificar,
           }}

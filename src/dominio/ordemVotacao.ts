@@ -1,22 +1,27 @@
-import { embaralharComSemente, hashDeTexto } from "@/lib/aleatorio";
+import { embaralharComSemente } from "@/lib/aleatorio";
 import { votaveis } from "./candidatos";
-import type { Candidato } from "./tipos";
+import type { Candidato, Evento } from "./tipos";
 
-// Etapa 4 (D4): ordem dos cartões da votação, determinística por usuário e evento. Usada pela lista,
-// pelo detalhe e pela revisão (Etapa 5). Nunca Math.random() no render.
+// Ordem dos cartões da votação, usada pela lista, pelo detalhe, pela revisão e pelo mosaico do hero. 19/10/2026: no
+// lugar da ordem manual do admin e do embaralhamento fixo por usuário (Etapa 4, D4), o evento escolhe:
+//  - ALEATORIA (padrão): embaralhada com a semente da carga da página, sorteada no servidor a cada requisição e mantida
+//    no navegador até a próxima carga. Servidor e hidratação dão a mesma ordem; nunca Math.random() no render.
+//  - ALFABETICA: A–Z pelo título, sem diferenciar maiúsculas e acentos, com números em ordem natural.
 
-/** Semente da ordem: `${usuarioId}:${eventoId}`. */
-export function sementeDaOrdem(usuarioId: string, eventoId: string): number {
-  return hashDeTexto(`${usuarioId}:${eventoId}`);
+function porTitulo(a: Candidato, b: Candidato): number {
+  return a.titulo.localeCompare(b.titulo, "pt-BR", { sensitivity: "base", numeric: true }) || a.id.localeCompare(b.id);
 }
 
-/**
- * Votáveis do evento (publicados e não desqualificados), ordenados por `ordem` (desempate por `id`)
- * e embaralhados com a semente do usuário. Não muta a lista recebida.
- */
-export function ordenarParaVotacao(candidatos: readonly Candidato[], usuarioId: string, eventoId: string): Candidato[] {
-  const base = votaveis(candidatos.filter((c) => c.eventoId === eventoId));
-  return embaralharComSemente(base, sementeDaOrdem(usuarioId, eventoId));
+/** Votáveis do evento (publicados e não desqualificados) na ordem que ele escolheu. Não muta a lista recebida. */
+export function ordenarParaVotacao(
+  candidatos: readonly Candidato[],
+  evento: Pick<Evento, "id" | "ordemCandidatos">,
+  semente: number,
+): Candidato[] {
+  // `votaveis` devolve uma lista nova, já em ordem fixa (`ordem`, `id`): o embaralhamento parte sempre do mesmo ponto.
+  const base = votaveis(candidatos.filter((c) => c.eventoId === evento.id));
+  if (evento.ordemCandidatos === "ALFABETICA") return base.sort(porTitulo);
+  return embaralharComSemente(base, `${semente}:${evento.id}`);
 }
 
 type ItemComId = { id: string } | { candidato: { id: string } };

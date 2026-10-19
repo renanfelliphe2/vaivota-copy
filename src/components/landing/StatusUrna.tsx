@@ -61,13 +61,15 @@ export function StatusUrna() {
   }
 
   // Texto do estado com override do tema (o que era o cartão da urna na entrada): título na linha dos selos,
-  // corpo numa segunda linha só a partir do sm, para a faixa presa no cabeçalho não crescer no celular.
+  // corpo numa segunda linha, os dois só a partir do sm, para a faixa presa no cabeçalho não crescer no celular.
+  // 19/10/2026: no celular a faixa é uma linha só, selos e contagem (o título quase sempre repete o selo, e o
+  // texto, a contagem); o rótulo da contagem vira um relógio, e o nome acessível do timer continua com ele.
   const estado = visao ? textoDoEstado(chaveTextoDaVisao(visao), ativo.tema) : null;
 
   return (
-    <div className="w-full border-t border-tema-borda bg-tema-superficie">
-      <div className="mx-auto flex max-w-5xl flex-col items-center gap-1 px-4 py-2.5 text-center text-sm sm:px-6">
-        <div className="flex flex-col items-center justify-center gap-2 sm:flex-row sm:flex-wrap sm:gap-x-4">
+    <div className="w-full border-t border-tema-borda/70 bg-tema-superficie/70">
+      <div className="mx-auto flex max-w-5xl flex-col items-center gap-1 px-4 py-2 text-center text-sm sm:px-6 sm:py-2.5">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-x-4">
           <div role="status" className="flex flex-wrap items-center justify-center gap-2">
             <Selo variante={selo.variante} icone={selo.icone} pulsar={situacao === "ABERTA" && !visao?.seloVoto}>
               {selo.texto}
@@ -82,17 +84,18 @@ export function StatusUrna() {
                 Obrigado por votar
               </Selo>
             )}
-            {estado && <span className="font-semibold">{estado.titulo}</span>}
-            {texto && <span>{texto}</span>}
+            {estado && <span className="hidden font-semibold sm:inline">{estado.titulo}</span>}
+            {texto && <span className="hidden sm:inline">{texto}</span>}
           </div>
           {contagem && (
-            <span className="flex items-center gap-1.5">
-              <span>{contagem.rotulo}</span>
+            <span className="flex items-center gap-1.5 rounded-full bg-tema-fundo px-3 py-1 shadow-sm ring-1 ring-tema-borda/80">
+              <Clock aria-hidden className="size-4 shrink-0 text-tema-primaria-texto sm:hidden" />
+              <span className="hidden text-tema-texto-suave sm:inline">{contagem.rotulo}</span>
               <ContagemRegressiva
                 alvoMs={contagem.alvoMs}
                 rotulo={contagem.rotulo}
                 textoZerado={contagem.zerado}
-                className={situacao === "RETA_FINAL" ? "text-tema-aviso" : undefined}
+                className={situacao === "RETA_FINAL" ? "text-tema-aviso" : "text-tema-primaria-texto"}
               />
             </span>
           )}

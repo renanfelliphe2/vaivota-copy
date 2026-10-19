@@ -1,17 +1,17 @@
 "use client";
 
 import { useMemo } from "react";
-import { votaveis } from "@/dominio/candidatos";
 import { ordenarParaVotacao } from "@/dominio/ordemVotacao";
 import type { CampoCandidato, Candidato } from "@/dominio/tipos";
 import { candidatoBloqueadoParaVoto } from "@/dominio/votoProprio";
+import { useSementeOrdem } from "../AppProvider";
 import { useEventoAtivo } from "./evento";
 import { useSessao } from "./sessao";
 
 export type ItemLista = { candidato: Candidato; bloqueadoVotoProprio: boolean };
 
 export type CandidatosParaVotacao = {
-  /** Votáveis na ordem do usuário (D4 da Etapa 4); sem usuário, na ordem cadastrada. */
+  /** Votáveis na ordem do evento (19/10/2026): embaralhados a cada carga da página ou A–Z. A mesma para todos os papéis. */
   itens: ItemLista[];
   /** Campos extras do evento, ordenados por `ordem`. */
   campos: CampoCandidato[];
@@ -25,15 +25,15 @@ export type CandidatosParaVotacao = {
 export function useCandidatosParaVotacao(): CandidatosParaVotacao | null {
   const ativo = useEventoAtivo();
   const usuarioId = useSessao().usuario?.id ?? null;
+  const semente = useSementeOrdem();
 
   return useMemo(() => {
     if (!ativo) return null;
     const { evento } = ativo;
-    const ordem = usuarioId ? ordenarParaVotacao(ativo.candidatos, usuarioId, evento.id) : votaveis(ativo.candidatos);
-    const itens = ordem.map((candidato) => ({
+    const itens = ordenarParaVotacao(ativo.candidatos, evento, semente).map((candidato) => ({
       candidato,
       bloqueadoVotoProprio: usuarioId ? candidatoBloqueadoParaVoto(candidato, usuarioId, evento) : false,
     }));
     return { itens, campos: ativo.camposCandidato, total: itens.length };
-  }, [ativo, usuarioId]);
+  }, [ativo, usuarioId, semente]);
 }
