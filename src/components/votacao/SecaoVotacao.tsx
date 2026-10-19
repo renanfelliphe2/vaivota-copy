@@ -13,6 +13,7 @@ import { useAnunciar } from "@/components/a11y/LiveRegion";
 import { PainelAvaliacaoJuri, filtrarPorAvaliacao, type FiltroAvaliacao } from "@/components/avaliacao/PainelAvaliacaoJuri";
 import { useAvaliacaoJuri } from "@/components/avaliacao/useAvaliacaoJuri";
 import { DetalheCandidato } from "@/components/candidato/DetalheCandidato";
+import { temDetalhes } from "@/components/candidato/CamposExtras";
 import { ListaCandidatos } from "@/components/candidato/ListaCandidatos";
 import { useDestaqueCandidato } from "@/components/landing/DestaqueCandidato";
 import { Botao } from "@/components/ui/Botao";
@@ -131,7 +132,9 @@ export function SecaoVotacao() {
   const modo = visitante ? "VISITANTE" : tela === "LISTA" ? "ESCOLHA" : "LEITURA";
   const jurado = papel === "JURADO";
   const emModal = passo === "REVISAO" || passo === "SUCESSO";
-  const posicao = visitante || emModal ? null : localizarNaOrdem(lista.itens, candidatoUrl);
+  // Só os cartões com detalhe entram na navegação (e na URL `?candidato=`): sem nada além do título, não há tela.
+  const itensComDetalhe = itens.filter((i) => temDetalhes(i.candidato, lista.campos));
+  const posicao = visitante || emModal ? null : localizarNaOrdem(itensComDetalhe, candidatoUrl);
   const urlCom = (busca: string) => (busca ? `${pathname}?${busca}` : pathname);
   const ehVotoAtual = (item: ItemLista) => jurado && !porCriterio && item.candidato.id === candidatoAtualId;
   const criterios = ativo.criteriosJuri;
@@ -249,14 +252,19 @@ export function SecaoVotacao() {
   const mostraVotar =
     votacaoAberta(ativo.evento) && (modo === "ESCOLHA" || (modo === "VISITANTE" && estado.visao.variante === "ABERTA"));
   // Mesmo texto para todos (08/10/2026); só depende de o "Votar" estar na tela. O jurado por critério tem o seu.
+  const temCartaoComDetalhe = itensComDetalhe.length > 0;
   const instrucao =
     mostraVotar && porCriterio
       ? modoJuri === "NOTAS_POR_CRITERIO"
         ? 'Toque em "Avaliar" em cada um e dê uma nota de 0 a 10 em cada critério.'
         : 'Toque em "Avaliar" para dizer em quais critérios cada um é o melhor.'
       : mostraVotar
-        ? 'Toque em "Votar" no seu favorito, ou no cartão para conhecer melhor antes de decidir.'
-        : "Toque em um cartão para conhecer melhor cada um.";
+        ? temCartaoComDetalhe
+          ? 'Toque em "Votar" no seu favorito, ou no cartão para conhecer melhor antes de decidir.'
+          : 'Toque em "Votar" no seu favorito.'
+        : temCartaoComDetalhe
+          ? "Toque em um cartão para conhecer melhor cada um."
+          : "";
   // Na leitura, só os avisos que explicam por que não há escolha (JA_VOTOU_ANTES, NAO_REGISTRADO).
   const aviso =
     modo === "ESCOLHA"
@@ -289,7 +297,7 @@ export function SecaoVotacao() {
               {textoContador(lista.total, tema)}
             </p>
           </div>
-          <p className="max-w-2xl text-tema-texto-suave">{instrucao}</p>
+          {instrucao && <p className="max-w-2xl text-tema-texto-suave">{instrucao}</p>}
         </header>
         <AvisoVotacao aviso={aviso} />
         {porCriterio && modo === "ESCOLHA" && modoJuri !== "VOTO_UNICO" && (

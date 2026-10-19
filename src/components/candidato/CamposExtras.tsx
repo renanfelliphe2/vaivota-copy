@@ -8,6 +8,11 @@ export function camposComValor(candidato: Candidato, campos: readonly CampoCandi
     .filter((c) => c.valor !== "");
 }
 
+/** 19/10/2026: o detalhe só existe se houver o que mostrar além do título e da imagem (que o cartão já exibe inteira). */
+export function temDetalhes(candidato: Candidato, campos: readonly CampoCandidato[]) {
+  return camposComValor(candidato, campos).length > 0;
+}
+
 export type CamposExtrasProps = {
   candidato: Candidato;
   campos: readonly CampoCandidato[];

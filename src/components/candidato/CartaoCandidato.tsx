@@ -5,7 +5,7 @@ import type { CampoCandidato } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 import type { ItemLista } from "@/store/seletores/candidatos";
 import { AvisoVotoProprio } from "./AvisoVotoProprio";
-import { CamposExtras } from "./CamposExtras";
+import { CamposExtras, temDetalhes } from "./CamposExtras";
 import { ImagemCandidato } from "./ImagemCandidato";
 
 /** Destaque vindo do mosaico do hero (19/10/2026): este cartão em evidência, os demais em tons de cinza. */
@@ -68,14 +68,17 @@ export function CartaoCandidato({ item, campos, aoVerDetalhes, selo, acao, desta
         </h3>
         <CamposExtras candidato={candidato} campos={campos} modo="resumo" />
         {bloqueadoVotoProprio && <AvisoVotoProprio dicaId={dicaId} />}
-        {/* Cobre o cartão inteiro (posicionado no article); o anel de foco fica por dentro, que o article corta o de fora. */}
-        <button
-          type="button"
-          data-candidato-id={candidato.id}
-          aria-label={`Ver detalhes: ${candidato.titulo}`}
-          onClick={() => aoVerDetalhes(candidato.id)}
-          className="absolute inset-0 z-10 cursor-pointer rounded-2xl focus-visible:outline-offset-[-4px] sm:rounded-3xl"
-        />
+        {/* Cobre o cartão inteiro (posicionado no article); o anel de foco fica por dentro, que o article corta o de fora.
+            Sem nada além do título (nem campo com valor), não há detalhe para abrir. */}
+        {temDetalhes(candidato, campos) && (
+          <button
+            type="button"
+            data-candidato-id={candidato.id}
+            aria-label={`Ver detalhes: ${candidato.titulo}`}
+            onClick={() => aoVerDetalhes(candidato.id)}
+            className="absolute inset-0 z-10 cursor-pointer rounded-2xl focus-visible:outline-offset-[-4px] sm:rounded-3xl"
+          />
+        )}
         {acao && <div className="relative z-20 mt-auto flex pt-1 *:w-full">{acao}</div>}
       </div>
     </article>
