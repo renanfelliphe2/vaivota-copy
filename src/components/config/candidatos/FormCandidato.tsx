@@ -25,10 +25,10 @@ export type FormCandidatoProps = {
 };
 
 function inicial(c: Candidato | null): DadosCandidato {
-  return { titulo: c?.titulo ?? "", descricao: c?.descricao ?? "", imagemUrl: c?.imagemUrl ?? null, camposExtras: { ...(c?.camposExtras ?? {}) } };
+  return { titulo: c?.titulo ?? "", imagemUrl: c?.imagemUrl ?? null, camposExtras: { ...(c?.camposExtras ?? {}) } };
 }
 
-/** Etapa 6 (CP4): título, descrição, imagem e valores dos campos extras. Nunca muda publicação nem ordem. */
+/** Etapa 6 (CP4): título, imagem e valores dos campos extras. Nunca muda publicação nem ordem. */
 export function FormCandidato({ eventoId, candidato, campos, travas, aoSalvar, aoCancelar }: FormCandidatoProps) {
   const salvo = inicial(candidato);
   const [d, setD] = useState<DadosCandidato>(salvo);
@@ -90,9 +90,6 @@ export function FormCandidato({ eventoId, candidato, campos, travas, aoSalvar, a
         <Campo id="cand-titulo" rotulo="Título" obrigatorio erro={mostrar("titulo")} dica={`${d.titulo.length}/150`}>
           <Input value={d.titulo} onChange={(e) => mudar({ titulo: e.target.value })} maxLength={150} />
         </Campo>
-        <Campo id="cand-descricao" rotulo="Descrição" obrigatorio erro={mostrar("descricao")} dica={`${d.descricao.length}/1500`}>
-          <Textarea value={d.descricao} onChange={(e) => mudar({ descricao: e.target.value })} maxLength={1500} className="min-h-32" />
-        </Campo>
         <SeletorImagem
           titulo={d.titulo}
           valor={d.imagemUrl}
@@ -104,12 +101,27 @@ export function FormCandidato({ eventoId, candidato, campos, travas, aoSalvar, a
           }}
         />
         {campos.map((campo) => (
-          <Campo key={campo.chave} id={`cand-campo-${campo.chave}`} rotulo={campo.rotulo} erro={mostrar(`campo:${campo.chave}`)}>
-            <Input
-              value={d.camposExtras[campo.chave] ?? ""}
-              onChange={(e) => mudar({ camposExtras: { ...d.camposExtras, [campo.chave]: e.target.value } })}
-              maxLength={200}
-            />
+          <Campo
+            key={campo.chave}
+            id={`cand-campo-${campo.chave}`}
+            rotulo={campo.rotulo}
+            erro={mostrar(`campo:${campo.chave}`)}
+            dica={campo.chave === "descricao" ? `${(d.camposExtras[campo.chave] ?? "").length}/1500` : undefined}
+          >
+            {campo.chave === "descricao" ? (
+              <Textarea
+                value={d.camposExtras[campo.chave] ?? ""}
+                onChange={(e) => mudar({ camposExtras: { ...d.camposExtras, [campo.chave]: e.target.value } })}
+                maxLength={1500}
+                className="min-h-32"
+              />
+            ) : (
+              <Input
+                value={d.camposExtras[campo.chave] ?? ""}
+                onChange={(e) => mudar({ camposExtras: { ...d.camposExtras, [campo.chave]: e.target.value } })}
+                maxLength={200}
+              />
+            )}
           </Campo>
         ))}
       </fieldset>

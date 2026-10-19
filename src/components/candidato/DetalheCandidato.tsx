@@ -51,7 +51,6 @@ export function DetalheCandidato({ posicao, campos, aoFechar, aoNavegar, focoAoF
         <div className="flex flex-col gap-4">
           <ImagemCandidato titulo={candidato.titulo} imagemUrl={candidato.imagemUrl} proporcao="16/9" className="rounded-xl" sizes="(min-width: 640px) 640px, 100vw" />
           {item.bloqueadoVotoProprio && dicaId && <AvisoVotoProprio dicaId={dicaId} />}
-          {candidato.descricao && <p className="whitespace-pre-line leading-7">{candidato.descricao}</p>}
           <CamposExtras candidato={candidato} campos={campos} modo="completo" />
           {posicao.total > 1 && (
             <nav aria-label="Navegar entre opções" className="flex items-center justify-between gap-2 border-t border-tema-borda pt-4">

@@ -31,8 +31,9 @@ export const seedConfigsApresentacao = [
 ] satisfies ConfigApresentacao[];
 
 export const seedCamposCandidato = [
-  { id: "campo-fv-direcao", eventoId: ID_FESTIVAL, chave: "direcao", rotulo: "Direção", ordem: 1 },
-  { id: "campo-fv-duracao", eventoId: ID_FESTIVAL, chave: "duracao", rotulo: "Duração", ordem: 2 },
+  { id: "campo-fv-descricao", eventoId: ID_FESTIVAL, chave: "descricao", rotulo: "Descrição", ordem: 1 },
+  { id: "campo-fv-direcao", eventoId: ID_FESTIVAL, chave: "direcao", rotulo: "Direção", ordem: 2 },
+  { id: "campo-fv-duracao", eventoId: ID_FESTIVAL, chave: "duracao", rotulo: "Duração", ordem: 3 },
 ] satisfies CampoCandidato[];
 
 /** Critérios do júri do Festival (documento de requisitos, §3.3). O modo começa em VOTO_UNICO; a toolbar troca. */

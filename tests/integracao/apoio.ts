@@ -64,7 +64,6 @@ export async function criarCandidatos(eventoId: string, quantidade: number, opco
       data: {
         eventoId,
         titulo: `Projeto ${i}`,
-        descricao: `Descrição do projeto ${i}`,
         imagemUrl: IMAGEM_FALSA,
         publicado: opcoes.publicados ?? true,
         ordem: i,

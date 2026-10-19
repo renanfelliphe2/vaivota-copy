@@ -38,7 +38,7 @@ export function CamposExtras({ candidato, campos, modo, className }: CamposExtra
         ) : (
           <div key={campo.id} className="contents">
             <dt className="text-tema-texto-suave">{campo.rotulo}</dt>
-            <dd className="font-medium">{valor}</dd>
+            <dd className={cx("font-medium", campo.chave === "descricao" && "whitespace-pre-line")}>{valor}</dd>
           </div>
         ),
       )}

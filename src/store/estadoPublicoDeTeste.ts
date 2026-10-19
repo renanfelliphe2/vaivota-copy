@@ -39,7 +39,6 @@ export function candidato(id: string, ordem: number): Candidato {
     id,
     eventoId: "evt-1",
     titulo: `Projeto ${ordem}`,
-    descricao: "d",
     imagemUrl: "https://x.supabase.co/storage/v1/object/public/candidatos/a.png",
     publicado: true,
     desqualificado: false,

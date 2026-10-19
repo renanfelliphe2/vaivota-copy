@@ -77,7 +77,6 @@ export async function criarCandidato(usuario: UsuarioSessao | null, eventoId: st
       data: {
         eventoId,
         titulo: dados.titulo.trim(),
-        descricao: dados.descricao.trim(),
         imagemUrl: dados.imagemUrl,
         publicado: false, // sempre nasce como rascunho
         ordem: (maior._max.ordem ?? 0) + 1,
@@ -115,10 +114,8 @@ export async function salvarCandidato(
     const chaves = await chavesDosCampos(eventoId);
     const camposExtras = limparCampos(chaves, dados.camposExtras);
     const titulo = dados.titulo.trim();
-    const descricao = dados.descricao.trim();
     const alterados: string[] = [];
     if (titulo !== atual.titulo) alterados.push("titulo");
-    if (descricao !== (atual.descricao ?? "")) alterados.push("descricao");
     if (dados.imagemUrl !== atual.imagemUrl) alterados.push("imagemUrl");
     if (JSON.stringify(camposExtras) !== JSON.stringify(atual.camposExtras ?? {})) alterados.push("camposExtras");
     if (alterados.length === 0) return sucesso(null);
@@ -127,7 +124,7 @@ export async function salvarCandidato(
     await db().$transaction(async (tx) => {
       await tx.candidato.update({
         where: { id: candidatoId },
-        data: { titulo, descricao, imagemUrl: dados.imagemUrl, camposExtras },
+        data: { titulo, imagemUrl: dados.imagemUrl, camposExtras },
       });
       if (fase === "URNA_ABERTA" || fase === "URNA_ENCERRADA") {
         await registrarAuditoria(tx, {
@@ -297,7 +294,7 @@ export async function salvarCamposExtras(
   }
   if (!removidos.length && !adicionados.length && !renomeados.length && !reordenado) return sucesso(null);
 
-  if (campos.length > LIMITES.maxCampos) return falha("VALIDACAO", { campos: { campos: "Use no máximo 6 campos." } });
+  if (campos.length > LIMITES.maxCampos) return falha("VALIDACAO", { campos: { campos: `Use no máximo ${LIMITES.maxCampos} campos.` } });
   const erros: Record<string, string> = {};
   campos.forEach((c, i) => {
     const outros = campos.filter((_, k) => k !== i).map((o) => o.rotulo);

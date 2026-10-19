@@ -14,7 +14,7 @@ export const LIMITES = {
   descricaoCandidato: 1500,
   valorCampoExtra: 200,
   rotuloCampo: [2, 30],
-  maxCampos: 6,
+  maxCampos: 7,
   nomeCriterio: [2, 30],
   maxCriterios: 8,
   nomeParceiro: [2, 60],
@@ -94,7 +94,6 @@ export function validarMotivo(motivo: string, obrigatorio: boolean): string | nu
 
 export type DadosCandidato = {
   titulo: string;
-  descricao: string;
   imagemUrl: string | null;
   camposExtras: Record<string, string>;
 };
@@ -105,12 +104,10 @@ export function validarCandidato(dados: DadosCandidato, { naVotacao }: { naVotac
   const titulo = dados.titulo.trim();
   if (!titulo) erros.titulo = "Informe o título.";
   else if (titulo.length > LIMITES.tituloCandidato) erros.titulo = "Use até 150 caracteres.";
-  const descricao = dados.descricao.trim();
-  if (!descricao) erros.descricao = "Informe a descrição.";
-  else if (descricao.length > LIMITES.descricaoCandidato) erros.descricao = "Use até 1500 caracteres.";
   if (naVotacao && !dados.imagemUrl) erros.imagemUrl = "Imagem obrigatória enquanto estiver na votação.";
   for (const [chave, valor] of Object.entries(dados.camposExtras)) {
-    if (valor.length > LIMITES.valorCampoExtra) erros[`campo:${chave}`] = "Use até 200 caracteres.";
+    const limite = chave === "descricao" ? LIMITES.descricaoCandidato : LIMITES.valorCampoExtra;
+    if (valor.length > limite) erros[`campo:${chave}`] = `Use até ${limite} caracteres.`;
   }
   return erros;
 }

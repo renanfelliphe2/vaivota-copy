@@ -42,7 +42,6 @@ export function CartaoCandidato({ item, campos, aoVerDetalhes, selo, acao }: Car
         <h2 id={tituloId} className="line-clamp-2 text-lg font-bold leading-snug">
           {candidato.titulo}
         </h2>
-        {candidato.descricao && <p className="line-clamp-3 text-sm text-tema-texto-suave">{candidato.descricao}</p>}
         <CamposExtras candidato={candidato} campos={campos} modo="resumo" />
         {bloqueadoVotoProprio && <AvisoVotoProprio dicaId={dicaId} />}
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">

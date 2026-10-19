@@ -172,7 +172,6 @@ function CabecalhoCandidato({ item, campos, posicao }: { item: ItemLista; campos
         <h1 tabIndex={-1} className="text-2xl font-bold leading-tight">
           {candidato.titulo}
         </h1>
-        {candidato.descricao && <p className="line-clamp-3 text-sm text-tema-texto-suave">{candidato.descricao}</p>}
         <CamposExtras candidato={candidato} campos={campos} modo="resumo" />
       </div>
     </header>

@@ -120,7 +120,6 @@ export function candidatoParaDominio(c: P.Candidato, fuso: string, usuarioId: st
     id: c.id,
     eventoId: c.eventoId,
     titulo: c.titulo,
-    descricao: c.descricao,
     imagemUrl: c.imagemUrl,
     publicado: c.publicado,
     desqualificado: c.desqualificado,

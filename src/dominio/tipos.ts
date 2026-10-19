@@ -190,7 +190,6 @@ export type Candidato = {
   id: string;
   eventoId: string;
   titulo: string;
-  descricao: string | null;
   /** D16: `placeholder:<n>`, caminho de public/, `blob:` ou null (só em rascunho). */
   imagemUrl: string | null;
   publicado: boolean;

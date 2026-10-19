@@ -51,17 +51,24 @@ describe("Geral", () => {
 });
 
 describe("Candidatos", () => {
-  const base = { titulo: "Título", descricao: "Descrição", imagemUrl: null, camposExtras: {} };
+  const base = { titulo: "Título", imagemUrl: null, camposExtras: {} };
 
-  it("imagem obrigatória só na votação (D12)", () => {
+  it("só exige o título; imagem é obrigatória apenas na votação (D12)", () => {
     expect(validarCandidato(base, { naVotacao: false })).toEqual({});
     expect(validarCandidato(base, { naVotacao: true })).toHaveProperty("imagemUrl");
+    expect(validarCandidato({ ...base, titulo: " " }, { naVotacao: false })).toHaveProperty("titulo");
+  });
+
+  it("descrição é um campo extra opcional, multilinha e com limite de 1500 caracteres", () => {
+    expect(validarCandidato({ ...base, camposExtras: { descricao: "Linha 1\nLinha 2" } }, { naVotacao: false })).toEqual({});
+    expect(validarCandidato({ ...base, camposExtras: { descricao: "x".repeat(1501) } }, { naVotacao: false })).toHaveProperty("campo:descricao");
+    expect(validarCandidato({ ...base, camposExtras: { equipe: "x".repeat(201) } }, { naVotacao: false })).toHaveProperty("campo:equipe");
   });
 
   it("limites cobrem o seed", () => {
     for (const c of criarEstadoInicial().banco.candidatos) {
       expect(c.titulo.length).toBeLessThanOrEqual(LIMITES.tituloCandidato);
-      expect((c.descricao ?? "").length).toBeLessThanOrEqual(LIMITES.descricaoCandidato);
+      expect((c.camposExtras?.descricao ?? "").length).toBeLessThanOrEqual(LIMITES.descricaoCandidato);
     }
   });
 

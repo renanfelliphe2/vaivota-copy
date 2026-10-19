@@ -96,6 +96,7 @@ export async function semearSemanaTech(opcoes: OpcoesSemente = {}): Promise<{ ev
   await db().configApresentacao.upsert({ where: { eventoId: evento.id }, update: {}, create: { eventoId: evento.id } });
 
   for (const [ordem, campo] of [
+    { chave: "descricao", rotulo: "Descrição" },
     { chave: "equipe", rotulo: "Equipe" },
     { chave: "tecnologias", rotulo: "Tecnologias" },
   ].entries()) {

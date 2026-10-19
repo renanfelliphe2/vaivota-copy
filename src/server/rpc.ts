@@ -30,9 +30,8 @@ const instanteOuNulo = z.string().max(40).nullable();
 
 const dadosCandidato = z.object({
   titulo: texto(400),
-  descricao: texto(5000),
   imagemUrl: z.string().max(500).nullable(),
-  camposExtras: z.record(z.string().max(60), texto(500)),
+  camposExtras: z.record(z.string().max(60), texto(1500)),
 });
 
 const gruposAuditoria = z.enum(["ESTADO", "CONFIGURACAO", "JURI", "SEGURANCA", "EXPORTACAO", "APRESENTACAO", "OUTRAS"]);

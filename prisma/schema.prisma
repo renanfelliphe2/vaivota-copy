@@ -298,7 +298,6 @@ model Candidato {
   id                 String   @id @default(uuid())
   eventoId           String   @map("evento_id")
   titulo             String   @db.VarChar(200)
-  descricao          String?
   // URL pública da imagem no Supabase Storage. CHECK na migração: `NOT publicado OR imagem_url IS NOT NULL`.
   imagemUrl          String?  @map("imagem_url") @db.VarChar(500)
   publicado          Boolean  @default(false)

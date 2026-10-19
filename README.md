@@ -172,7 +172,7 @@ Os módulos de júri e infantil são opcionais por evento.
 ## Conceitos
 
 - **Evento:** uma votação com seus candidatos, regras, tema e participantes.
-- **Candidato:** o item votado (filme, projeto, música, jogo). Título, descrição e imagem são obrigatórios; o evento pode definir campos extras.
+- **Candidato:** o item votado (filme, projeto, música, jogo). O título é fixo; descrição e outros dados são campos extras configuráveis pelo evento. A imagem é obrigatória para publicar.
 - **Urna:** controla quando se pode votar (`NAO_INICIADA`, `ABERTA`, `ENCERRADA`).
 - **Participação:** vínculo de um usuário com um evento, com papel (`PUBLICO`, `JURADO`, `ADMIN`).
 - **Placar:** contagem de votos de um grupo (popular, júri ou infantil).

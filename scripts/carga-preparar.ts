@@ -24,7 +24,7 @@ async function main() {
   if ((await db().candidato.count({ where: { eventoId } })) === 0) {
     for (let i = 1; i <= 8; i++) {
       await db().candidato.create({
-        data: { eventoId, titulo: `Projeto ${i}`, descricao: `Projeto de teste ${i}`, imagemUrl: "/uploads/carga.png", publicado: true, ordem: i },
+        data: { eventoId, titulo: `Projeto ${i}`, imagemUrl: "/uploads/carga.png", publicado: true, ordem: i },
       });
     }
   }

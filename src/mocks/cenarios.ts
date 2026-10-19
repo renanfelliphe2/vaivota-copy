@@ -65,7 +65,6 @@ function completarCandidatos(atual: EstadoApp, { eventoId }: ContextoCenario): E
       id,
       eventoId,
       titulo: `${tema.rotuloCandidato} ${nn}`,
-      descricao: `Descrição curta de exemplo número ${nn}.`,
       imagemUrl: `placeholder:${((n - 1) % 8) + 1}`,
       publicado: true,
       desqualificado: false,

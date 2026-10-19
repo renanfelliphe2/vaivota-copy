@@ -108,16 +108,28 @@ describe("candidatos (ST2)", () => {
     const e = await semearEvento("teste-operacao-campos");
     const adm = await criarAdminDireto(e);
     const campos = await db().campoCandidato.findMany({ where: { eventoId: e }, orderBy: { ordem: "asc" } });
-    expect(campos.map((c) => c.chave)).toEqual(["equipe", "tecnologias"]);
-    const c = await criarCandidato(adm, e, { ...dados("Com campos"), camposExtras: { equipe: "Time A", tecnologias: "Next.js", invalido: "x" } });
+    expect(campos.map((c) => c.chave)).toEqual(["descricao", "equipe", "tecnologias"]);
+    const c = await criarCandidato(adm, e, {
+      ...dados("Com campos"),
+      camposExtras: { descricao: "Descrição do projeto", equipe: "Time A", tecnologias: "Next.js", invalido: "x" },
+    });
     expect(c.ok).toBe(true);
     if (!c.ok) return;
-    expect((await db().candidato.findUniqueOrThrow({ where: { id: c.dados.id } })).camposExtras).toEqual({ equipe: "Time A", tecnologias: "Next.js" });
+    expect((await db().candidato.findUniqueOrThrow({ where: { id: c.dados.id } })).camposExtras).toEqual({
+      descricao: "Descrição do projeto",
+      equipe: "Time A",
+      tecnologias: "Next.js",
+    });
 
-    expect((await salvarCamposExtras(adm, e, [{ chave: "equipe", rotulo: "Time" }, { rotulo: "Cidade" }])).ok).toBe(true);
+    expect(
+      (await salvarCamposExtras(adm, e, [{ chave: "descricao", rotulo: "Descrição" }, { chave: "equipe", rotulo: "Time" }, { rotulo: "Cidade" }])).ok,
+    ).toBe(true);
     const depois = await db().campoCandidato.findMany({ where: { eventoId: e }, orderBy: { ordem: "asc" } });
-    expect(depois.map((x) => [x.chave, x.rotulo])).toEqual([["equipe", "Time"], ["cidade", "Cidade"]]);
-    expect((await db().candidato.findUniqueOrThrow({ where: { id: c.dados.id } })).camposExtras).toEqual({ equipe: "Time A" }); // tecnologias foi removido junto
+    expect(depois.map((x) => [x.chave, x.rotulo])).toEqual([["descricao", "Descrição"], ["equipe", "Time"], ["cidade", "Cidade"]]);
+    expect((await db().candidato.findUniqueOrThrow({ where: { id: c.dados.id } })).camposExtras).toEqual({
+      descricao: "Descrição do projeto",
+      equipe: "Time A",
+    }); // tecnologias foi removido junto
   });
 });
 
