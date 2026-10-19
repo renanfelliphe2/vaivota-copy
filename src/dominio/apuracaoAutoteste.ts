@@ -27,7 +27,7 @@ function candidatos(ids: string[]) {
   return ids.map((id, i) => ({ id, ordem: i + 1, desqualificado: false }));
 }
 
-function semanaTech(popular: number[], juri: number[], ids = IDS_ST): EntradaApuracao {
+function maratonaTechTIVIT(popular: number[], juri: number[], ids = IDS_ST): EntradaApuracao {
   return {
     candidatos: candidatos(ids),
     votos: { POPULAR: mapa(ids, popular), JURI: mapa(ids, juri), INFANTIL: {} },
@@ -40,7 +40,7 @@ function semanaTech(popular: number[], juri: number[], ids = IDS_ST): EntradaApu
 export const FIXTURES_APURACAO: FixtureApuracao[] = [
   {
     nome: "PADRAO",
-    entrada: semanaTech([118, 96, 61, 52, 41, 24, 15, 5], [2, 2, 1, 1, 1, 0, 0, 0]),
+    entrada: maratonaTechTIVIT([118, 96, 61, 52, 41, 24, 15, 5], [2, 2, 1, 1, 1, 0, 0, 0]),
     esperado: {
       pontuacoes: mapa(IDS_ST, [28.62, 24.88, 14.65, 13.12, 11.25, 4.08, 2.55, 0.85]),
       posicoes: mapa(IDS_ST, [1, 2, 3, 4, 5, 6, 7, 8]),
@@ -50,7 +50,7 @@ export const FIXTURES_APURACAO: FixtureApuracao[] = [
   },
   {
     nome: "RESULTADO_EMPATE_RESOLVIDO",
-    entrada: semanaTech([100, 60, 85, 45, 30, 20, 10, 0], [2, 1, 0, 1, 1, 1, 0, 0]),
+    entrada: maratonaTechTIVIT([100, 60, 85, 45, 30, 20, 10, 0], [2, 1, 0, 1, 1, 1, 0, 0]),
     esperado: {
       pontuacoes: mapa(IDS_ST, [30, 17, 17, 14, 11, 9, 2, 0]),
       posicoes: mapa(IDS_ST, [1, 2, 3, 4, 5, 6, 7, 8]),
@@ -60,7 +60,7 @@ export const FIXTURES_APURACAO: FixtureApuracao[] = [
   },
   {
     nome: "RESULTADO_EMPATE_PERSISTENTE",
-    entrada: semanaTech([90, 90, 50, 40, 30, 25, 15, 10], [2, 2, 1, 1, 0, 0, 0, 0]),
+    entrada: maratonaTechTIVIT([90, 90, 50, 40, 30, 25, 15, 10], [2, 2, 1, 1, 0, 0, 0, 0]),
     esperado: {
       pontuacoes: mapa(IDS_ST, [28, 28, 15, 13, 6, 5, 3, 2]),
       posicoes: mapa(IDS_ST, [1, 1, 3, 4, 5, 6, 7, 8]),
@@ -70,7 +70,7 @@ export const FIXTURES_APURACAO: FixtureApuracao[] = [
   },
   {
     nome: "RESULTADO_CO_VENCEDORES",
-    entrada: semanaTech([100, 70, 70, 50, 30, 20, 10, 0], [1, 2, 2, 1, 0, 0, 0, 0]),
+    entrada: maratonaTechTIVIT([100, 70, 70, 50, 30, 20, 10, 0], [1, 2, 2, 1, 0, 0, 0, 0]),
     esperado: {
       pontuacoes: mapa(IDS_ST, [25, 24, 24, 15, 6, 4, 2, 0]),
       posicoes: mapa(IDS_ST, [1, 2, 2, 4, 5, 6, 7, 8]),
@@ -80,7 +80,7 @@ export const FIXTURES_APURACAO: FixtureApuracao[] = [
   },
   {
     nome: "RESULTADO_DOIS_CANDIDATOS",
-    entrada: semanaTech([260, 152], [4, 3], ["c01", "c02"]),
+    entrada: maratonaTechTIVIT([260, 152], [4, 3], ["c01", "c02"]),
     esperado: {
       pontuacoes: { c01: 61.32, c02: 38.68 },
       posicoes: { c01: 1, c02: 2 },
@@ -114,7 +114,7 @@ export const FIXTURES_APURACAO: FixtureApuracao[] = [
   },
   {
     nome: "GRUPO_SEM_VOTOS (júri ligado com base 0: peso redistribuído)",
-    entrada: semanaTech([3, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]),
+    entrada: maratonaTechTIVIT([3, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]),
     esperado: {
       pontuacoes: mapa(IDS_ST, [75, 25, 0, 0, 0, 0, 0, 0]),
       posicoes: mapa(IDS_ST, [1, 2, 3, 3, 3, 3, 3, 3]),
@@ -124,7 +124,7 @@ export const FIXTURES_APURACAO: FixtureApuracao[] = [
   },
   {
     nome: "TODOS_SEM_VOTOS (pontuações 0)",
-    entrada: semanaTech([0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]),
+    entrada: maratonaTechTIVIT([0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]),
     esperado: {
       pontuacoes: mapa(IDS_ST, [0, 0, 0, 0, 0, 0, 0, 0]),
       posicoes: mapa(IDS_ST, [1, 1, 1, 1, 1, 1, 1, 1]),

@@ -64,7 +64,7 @@ Esta etapa precisa garantir:
 | `Dialogo`, `DialogoConfirmacao`, `Toast`, `Alerta`, `Selo`, `Botao`, `Cartao`, `Carregando`, `Abas`, `LiveRegion`, `ContagemRegressiva`, `ImagemCandidato`, `LogoEvento` | Etapa 0 |
 | `lib/aleatorio.ts` (`hashDeTexto`), `lib/formatar.ts`, `lib/tempo.ts`, tokens `--tema-*`, `useEventoAtivo()` | Etapa 0 |
 | `ui.palcoAtivo`, `dev.toolbarModo` (`AUTO`, `OCULTA`, `FORCADA`), regra de visibilidade da toolbar no palco, `Alt+D`, registro de seções da toolbar | Etapa 0 |
-| `dominio/candidatos.ts` (`votaveis()`), `redistribuirPesos`, seed dos eventos, `ConfigApresentacao` do seed (Semana Tech sem `trailerUrl`; Festival com `trailerUrl` de placeholder) | Etapa 0 |
+| `dominio/candidatos.ts` (`votaveis()`), `redistribuirPesos`, seed dos eventos, `ConfigApresentacao` do seed (Maratona Tech Tivit sem `trailerUrl`; Festival com `trailerUrl` de placeholder) | Etapa 0 |
 | `resolverSituacaoEvento(evento, configApresentacao, agoraMs)` (situações `RETA_FINAL`, `TEMPO_ESGOTADO`, `ABERTURA_PENDENTE`, `NAO_INICIADA`, `ABERTA`, `ENCERRADA`, `CONCLUIDO`, `EM_PREPARACAO`) | Etapa 1 |
 | `resolverFaseConfig(evento)` (`FaseConfig` + `incoerente`), `dominio/checklistAtivacao.ts` (o item Trailer da sala usa o mesmo critério), `ConfigPlacar`, tema | Etapa 6 |
 | `apurar`, `DadosResultado` por versão (com `ranking[].pontosPorGrupo`, `desqualificados` e `pesosEfetivos`, D16 rev. 3), `SimuladorVotos` já montado no `GateEvento` (D15 rev. 3), `contarVotos`, `servicos/dashboard.ts` (`obterResultado`; `obterVotosJuri` **não** é consumido aqui, rev. 4, E21), `mocks/volume/` (`gerarVolume`, `restaurarNucleo`, `DISTRIBUICOES`, tipo `DistribuicaoAlvo`), cenários `FESTIVAL_ENCERRADO`, `RESULTADO_PADRAO`, `RESULTADO_EMPATE_RESOLVIDO`, `RESULTADO_EMPATE_PERSISTENTE`, `RESULTADO_CO_VENCEDORES`, `RESULTADO_SEM_INFANTIL`, `RESULTADO_DOIS_CANDIDATOS`, `conferirApuracao`, invariante I8, `dominio/auditoria.ts` (catálogo de exibição) | Etapa 7 |
@@ -119,7 +119,7 @@ Só as decisões **novas** desta etapa. As do conjunto vivem na Etapa 0 e as da 
 | D17 | **Instância única** (D18 da Etapa 0). A sala avisa que a apresentação deve abrir **nesta mesma janela**: outra aba ou o F5 volta ao seed. O QR Code usa `window.location.origin` + `/e/<slug atual>`, montado no clique de Apresentar (cliente), e fica numa **placa clara fixa** com módulos escuros (`currentColor`), independente do tema, para leitura confiável. | E8-13, E8-14 e A15. QR invertido (claro sobre escuro) falha em alguns leitores. |
 | D18 | **Ao vivo.** Total geral = soma **bruta** dos três grupos, lida por `obterEstadoAoVivo` a cada 5 s (`useConsulta`). Votos por candidato nos cards **só** com `ConfigApresentacao.parcialAoVivo` ligado **e** urna `ABERTA` (a flag é a única, D8 da Etapa 7) e **o serviço omite** os números quando desligada (não estão no DOM). As mensagens de abertura e de reta final são **derivadas do relógio**: abertura enquanto `agora − urnaAbertaEm` ≤ `duracoes.mensagemAberturaMs`; reta final pela situação `RETA_FINAL` (limiar do `ConfigApresentacao`). Sem timers próprios. | T14, T17 e F2. Evita estado local que se perde ao reabrir o palco. |
 | D19 | **Paginação.** Mais de 8 candidatos na pré-votação, no ao vivo e no trailer gerado: páginas de 8 em rotação (`duracoes.paginaMs`; sem rotação animada em `prefers-reduced-motion`, só troca). Classificação completa: uma página de 10 linhas por **passo**. Candidatos do palco: só votáveis, na ordem de `ordem` (sem embaralhar). | E8-17. O cenário `MUITOS_CANDIDATOS` (24) precisa continuar legível. |
-| D20 | **Cenários.** O ensaio lista os cenários da Etapa 7 **do evento atual** (tabela `CENARIOS_ENSAIO`, conferida contra o registro no CP1). Como a Etapa 7 desenhou os empates só para a Semana Tech, esta etapa registra **três cenários do Festival** (empate resolvido, empate persistente e co-vencedores) sobre o gerador e o `restaurarNucleo` da Etapa 7, também aplicáveis ao estado real pela toolbar. | O Festival tem tema claro e três categorias: é onde cenas de empate e contraste mais precisam ser vistas. Não reregistra `RESULTADO_*` (P16 da Etapa 7). |
+| D20 | **Cenários.** O ensaio lista os cenários da Etapa 7 **do evento atual** (tabela `CENARIOS_ENSAIO`, conferida contra o registro no CP1). Como a Etapa 7 desenhou os empates só para a Maratona Tech Tivit, esta etapa registra **três cenários do Festival** (empate resolvido, empate persistente e co-vencedores) sobre o gerador e o `restaurarNucleo` da Etapa 7, também aplicáveis ao estado real pela toolbar. | O Festival tem tema claro e três categorias: é onde cenas de empate e contraste mais precisam ser vistas. Não reregistra `RESULTADO_*` (P16 da Etapa 7). |
 | D21 | **Final estático com marca discreta.** O final estático mostra pódio e categorias na mesma tela e, ao pé, uma linha discreta "Apuração por VaiVota" (A16). É o único lugar do telão com a marca do produto. | Proposta A16 do Contexto, confirmada na rev. 3 (E25, P6). |
 
 ---
@@ -233,7 +233,7 @@ descreverRoteiroPublico(opcoes: {
 
 | Cenário (evento) | Roteiro real |
 |---|---|
-| `RESULTADO_PADRAO` (Semana Tech) | TRAILER, CAT:POPULAR, CAT:JURI, P:3, P:2, P:1, FINAL |
+| `RESULTADO_PADRAO` (Maratona Tech Tivit) | TRAILER, CAT:POPULAR, CAT:JURI, P:3, P:2, P:1, FINAL |
 | `RESULTADO_EMPATE_RESOLVIDO` | TRAILER, CAT:POPULAR, CAT:JURI, **D:0**, P:3, P:2, P:1, FINAL |
 | `RESULTADO_EMPATE_PERSISTENTE` | TRAILER, CAT:POPULAR, CAT:JURI, P:3, **D:0**, P:1, FINAL (não há 2º lugar; 1º compartilhado) |
 | `RESULTADO_CO_VENCEDORES` | TRAILER, CAT:POPULAR, CAT:JURI, **D:0**, P:2, P:1, FINAL (não há 3º; 2º compartilhado) |
@@ -392,7 +392,7 @@ As cenas **não conhecem** `DadosResultado` inteiro: recebem fatias montadas por
 
 | Evento | Cenários (ids) |
 |---|---|
-| Semana Tech | `RESULTADO_PADRAO`, `RESULTADO_EMPATE_RESOLVIDO`, `RESULTADO_EMPATE_PERSISTENTE`, `RESULTADO_CO_VENCEDORES`, `RESULTADO_DOIS_CANDIDATOS` |
+| Maratona Tech Tivit | `RESULTADO_PADRAO`, `RESULTADO_EMPATE_RESOLVIDO`, `RESULTADO_EMPATE_PERSISTENTE`, `RESULTADO_CO_VENCEDORES`, `RESULTADO_DOIS_CANDIDATOS` |
 | Festival | `FESTIVAL_ENCERRADO`, `RESULTADO_SEM_INFANTIL`, `FESTIVAL_EMPATE_RESOLVIDO`, `FESTIVAL_EMPATE_PERSISTENTE`, `FESTIVAL_CO_VENCEDORES` |
 
 O ensaio de um evento **sem** cenário próprio (evento criado no futuro) não existe na Fase 1; o CP1 confere que toda entrada de `CENARIOS_ENSAIO` existe no registro.
@@ -405,7 +405,7 @@ O ensaio de um evento **sem** cenário próprio (evento criado no futuro) não e
 
 ### 5.11 Fixtures do Festival (três cenários novos)
 
-A Etapa 7 desenhou os empates só para a Semana Tech. Esta etapa acrescenta três distribuições do **Festival** em `mocks/volume/distribuicoesApresentacao.ts`, reutilizando `gerarVolume` e `restaurarNucleo` da Etapa 7 com a mesma configuração do `FESTIVAL_ENCERRADO` (pesos 50/30/20; 260 públicos cadastrados e 240 votaram; 2 jurados votaram em candidatos diferentes; infantil 138 em 3 totens: Hall 70, Pátio 41, Oficinas 27; `incluirNucleo: false`; janela do evento inteira). Critério de desempate: `JURI`. Pontuação = Σ peso × votos ÷ base, **recalculada com frações exatas** (`50/240`, `30/2` e `20/138` por voto) e arredondada a duas casas **só aqui**.
+A Etapa 7 desenhou os empates só para a Maratona Tech Tivit. Esta etapa acrescenta três distribuições do **Festival** em `mocks/volume/distribuicoesApresentacao.ts`, reutilizando `gerarVolume` e `restaurarNucleo` da Etapa 7 com a mesma configuração do `FESTIVAL_ENCERRADO` (pesos 50/30/20; 260 públicos cadastrados e 240 votaram; 2 jurados votaram em candidatos diferentes; infantil 138 em 3 totens: Hall 70, Pátio 41, Oficinas 27; `incluirNucleo: false`; janela do evento inteira). Critério de desempate: `JURI`. Pontuação = Σ peso × votos ÷ base, **recalculada com frações exatas** (`50/240`, `30/2` e `20/138` por voto) e arredondada a duas casas **só aqui**.
 
 | Cenário | | c01 | c02 | c03 | c04 | c05 | c06 | Resultado esperado |
 |---|---|---|---|---|---|---|---|---|
@@ -465,11 +465,11 @@ A Etapa 7 desenhou os empates só para a Semana Tech. Esta etapa acrescenta trê
 
 ### 5.14 Matriz de verificação (AP1–AP45)
 
-Conferência manual pela toolbar, pelo inspetor (`verificarInvariantes` e os autotestes) e pelas rotas. "ST" = Semana Tech; "FV" = Festival.
+Conferência manual pela toolbar, pelo inspetor (`verificarInvariantes` e os autotestes) e pelas rotas. "ST" = Maratona Tech Tivit; "FV" = Festival.
 
 | ID | Verificação | Como |
 |---|---|---|
-| AP1 | Deslogado vai a `/e/{slug}?de=…`; Ana, Bruno e Davi veem `AcessoRestrito` sem dado de resultado; Hugo em `/e/semana-tech/admin/apresentar` também; Carla entra nos dois eventos e Hugo só no Festival | Entrar como |
+| AP1 | Deslogado vai a `/e/{slug}?de=…`; Ana, Bruno e Davi veem `AcessoRestrito` sem dado de resultado; Hugo em `/e/maratona-tech-tivit/admin/apresentar` também; Carla entra nos dois eventos e Hugo só no Festival | Entrar como |
 | AP2 | `RASCUNHO`: a sala abre e o palco mostra "Em breve" com logo e candidatos votáveis; combinação incoerente mostra o `Alerta` | Toolbar: evento |
 | AP3 | FV `NAO_INICIADA`: "A votação começa em" com contagem até 25/11 (≈34 dias) e os 6 votáveis na ordem de `ordem`; sem QR Code | Padrão |
 | AP4 | `ABERTURA_PENDENTE`: com `janelaInicio` vencida e urna não iniciada, "Aguardando a abertura pela organização" | Relógio: "Fim da janela" no FV (a urna continua não iniciada) |
@@ -795,7 +795,7 @@ Regras de entrega, convenções de código e dependências aprovadas são as da 
 
 **Tarefas**
 - [ ] Percorrer a **matriz AP1–AP45** (AP30 removido, rev. 4) e marcar cada item (comparar pelo inspetor).
-- [ ] Conferir o palco em 1080p, 4K e 800×450; **tema claro do Festival** e **tema escuro da Semana Tech** nas cenas de pódio, desempate e categoria (contraste ≥ 4,5:1 e texto ≥ 36 px); comparar com a prévia "Telão" da Etapa 6 e registrar divergências visuais (P5).
+- [ ] Conferir o palco em 1080p, 4K e 800×450; **tema claro do Festival** e **tema escuro da Maratona Tech Tivit** nas cenas de pódio, desempate e categoria (contraste ≥ 4,5:1 e texto ≥ 36 px); comparar com a prévia "Telão" da Etapa 6 e registrar divergências visuais (P5).
 - [ ] `prefers-reduced-motion`; acessibilidade da sala (foco, teclado, rótulos, 360, 768 e 1280 px); `LiveRegion` do palco; DOM só com o passo atual.
 - [ ] **`grep`s de fronteira:** nenhum acesso a `votos`, `votosJuri`, `historicoVotosJuri`, `votosInfantis` nem `resultados` fora de `store/seletores/**`, `servicos/**`, `store/transicoes.ts` e `mocks/**`; nenhum hex de marca fora de `src/mocks/seed/`, `globals.css` e `components/dev/`; nenhum `<a href>` interno; nenhum `Date.now`, `performance.now` nem `Math.random` fora de `relogio.ts`; nenhum `localStorage`; nenhum import de `@/mocks` em `src/app/**`, `src/components/**` e `src/lib/**`.
 - [ ] Revisar textos em pt-BR, neutralidade de gênero e rótulos; nenhum e-mail em tela.

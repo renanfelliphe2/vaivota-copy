@@ -2,14 +2,14 @@ import { argumento, temFlag } from "./_ambiente";
 import { db, desconectarBanco } from "@/server/db";
 
 // ST6: remove os dados do ensaio antes do evento e devolve o evento ao estado inicial (rascunho, urna não iniciada).
-// `pnpm db:limpar-ensaio --slug semana-tech --confirmar`
+// `pnpm db:limpar-ensaio --slug maratona-tech-tivit --confirmar`
 //   apaga: votos, resultados oficiais, auditoria, participações do público e as contas que ficaram sem participação
 //          (as do ensaio), mais os contadores de limite de taxa e os códigos de e-mail pendentes.
 //   mantém: o evento, o tema, os campos extras, os admins (e suas contas) e os candidatos (a menos que --remover-candidatos).
 // Sem --confirmar, só mostra o que seria apagado.
 
 async function main() {
-  const slug = argumento("slug") ?? process.env.SEED_SLUG ?? "semana-tech";
+  const slug = argumento("slug") ?? process.env.SEED_SLUG ?? "maratona-tech-tivit";
   const confirmar = temFlag("confirmar");
   const removerCandidatos = temFlag("remover-candidatos");
   const evento = await db().evento.findUnique({ where: { slug }, select: { id: true, estado: true, estadoUrna: true } });

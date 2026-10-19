@@ -276,7 +276,7 @@ Não há `CampoSenha`, `FluxoRecuperacaoSenha` nem página `recuperar-senha` (re
 - [ ] `BotaoGoogle` com o seletor de três contas (D8), respeitando `metodoIdentificacao`.
 - [ ] `/verificar-email` com `AvisoVerificacaoEmail` (tela de código, seção 5.5): "Digite o código enviado para {email}.", campo de 6 dígitos, dica "Protótipo: use 123456", "Reenviar código" com cooldown de 30 s anunciado em `aria-live`, "Usar outro e-mail" (limpa `ui.loginPendente`, sai se houver sessão e volta ao painel de acesso) e bloqueio do código de login com `ContagemRegressiva` (D5). Quem já está logado e verificado é redirecionado para o `?de=` (se interno) ou para a entrada.
 - [ ] Ao concluir (`entrar`, `confirmarCodigo`, Google), `router.push(destino)`.
-- [ ] Só tokens de tema: alternar Semana Tech e Festival troca cores, logo e nome.
+- [ ] Só tokens de tema: alternar Maratona Tech Tivit e Festival troca cores, logo e nome.
 
 **Fica fake:** envio do código (fixo `123456`) e Google.
 
@@ -313,7 +313,7 @@ Não há `CampoSenha`, `FluxoRecuperacaoSenha` nem página `recuperar-senha` (re
 
 **Fica fake:** hash, auditoria e rate limiting reais.
 
-**Pronto quando:** `K7M3-QX9P` cria um jurado na Semana Tech; repetir o código, `H4TR-9WNB` (usado), `P8CD-2VXF` (revogado), `M6ZQ-4KTA` (expirado), um código aleatório e um código do Festival usado na Semana Tech mostram todos "Código inválido ou expirado. Fale com a organização.", e a auditoria do inspetor traz o motivo exato em `detalhes` (D4); com a urna encerrada, o registro como Jurado recusa com `URNA_ENCERRADA` sem consumir tentativa; cinco recusas seguidas bloqueiam o campo por 60 s e ele volta sozinho (inclusive ao avançar o relógio pela toolbar); o seletor alterna sem perder dados e é operável por teclado; recusas e bloqueio aparecem na auditoria do inspetor.
+**Pronto quando:** `K7M3-QX9P` cria um jurado na Maratona Tech Tivit; repetir o código, `H4TR-9WNB` (usado), `P8CD-2VXF` (revogado), `M6ZQ-4KTA` (expirado), um código aleatório e um código do Festival usado na Maratona Tech Tivit mostram todos "Código inválido ou expirado. Fale com a organização.", e a auditoria do inspetor traz o motivo exato em `detalhes` (D4); com a urna encerrada, o registro como Jurado recusa com `URNA_ENCERRADA` sem consumir tentativa; cinco recusas seguidas bloqueiam o campo por 60 s e ele volta sozinho (inclusive ao avançar o relógio pela toolbar); o seletor alterna sem perder dados e é operável por teclado; recusas e bloqueio aparecem na auditoria do inspetor.
 
 **Entrega:** `VaiVota-E3-CP4.zip`
 
@@ -329,7 +329,7 @@ Não há `CampoSenha`, `FluxoRecuperacaoSenha` nem página `recuperar-senha` (re
 
 **Fica fake:** a promoção só altera o store.
 
-**Pronto quando:** Ana com `K7M3-QX9P` vira jurado e o menu passa a mostrar "Jurado"; Eva é bloqueada com texto claro e sem formulário; Bruno recebe o aviso de que já é jurado; Carla recebe o aviso de conta administrativa; na Semana Tech com módulo júri desligado a tela é informativa; deslogado e não verificado são redirecionados pela guarda; o invariante de convites segue verde.
+**Pronto quando:** Ana com `K7M3-QX9P` vira jurado e o menu passa a mostrar "Jurado"; Eva é bloqueada com texto claro e sem formulário; Bruno recebe o aviso de que já é jurado; Carla recebe o aviso de conta administrativa; na Maratona Tech Tivit com módulo júri desligado a tela é informativa; deslogado e não verificado são redirecionados pela guarda; o invariante de convites segue verde.
 
 **Entrega:** `VaiVota-E3-CP5.zip`
 
@@ -345,7 +345,7 @@ Não há `CampoSenha`, `FluxoRecuperacaoSenha` nem página `recuperar-senha` (re
 
 **Fica fake:** nada além do já descrito.
 
-**Pronto quando:** a tabela 5.3 se cumpre para cada seed (Ana vai a `/votar` com a urna aberta; Carla, ao painel; Davi forçado pela toolbar, à tela de código; Ana na urna não iniciada fica na entrada); deslogado abrindo `/votar` volta ao login e, depois de entrar pelo código, retorna a `/votar`; alternar a urna na toolbar com um usuário logado muda a entrada sem recarregar; sair e entrar com outro papel funciona sem recarregar; Ana logada na Semana Tech, ao trocar para o Festival pela toolbar, ganha participação `PUBLICO` ali (`garantirParticipacao`, visível no inspetor); jurado não acessa `/admin`.
+**Pronto quando:** a tabela 5.3 se cumpre para cada seed (Ana vai a `/votar` com a urna aberta; Carla, ao painel; Davi forçado pela toolbar, à tela de código; Ana na urna não iniciada fica na entrada); deslogado abrindo `/votar` volta ao login e, depois de entrar pelo código, retorna a `/votar`; alternar a urna na toolbar com um usuário logado muda a entrada sem recarregar; sair e entrar com outro papel funciona sem recarregar; Ana logada na Maratona Tech Tivit, ao trocar para o Festival pela toolbar, ganha participação `PUBLICO` ali (`garantirParticipacao`, visível no inspetor); jurado não acessa `/admin`.
 
 **Entrega:** `VaiVota-E3-CP6.zip`
 
@@ -362,7 +362,7 @@ Não há `CampoSenha`, `FluxoRecuperacaoSenha` nem página `recuperar-senha` (re
 - [ ] `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build` sem erros; sem warnings de hidratação.
 - [ ] Contas, códigos seed e o código de login do protótipo (`123456`) conferidos no README da Fase 1.
 
-| Fluxo \ Tema | Semana Tech | Festival |
+| Fluxo \ Tema | Maratona Tech Tivit | Festival |
 |---|---|---|
 | Login por código (público, jurado, admin, não verificado) | ☐ | ☐ |
 | Código de login errado e bloqueio da tela de código | ☐ | ☐ |

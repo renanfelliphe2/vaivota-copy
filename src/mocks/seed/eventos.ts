@@ -1,6 +1,6 @@
 import type { Evento } from "@/dominio/tipos";
 
-// Datas absolutas (D6). Protótipo só do Festival: a Semana Tech trabalha direto com dados reais (fora do mock).
+// Datas absolutas (D6). Protótipo só do Festival: a Maratona Tech Tivit trabalha direto com dados reais (fora do mock).
 
 export const ID_FESTIVAL = "evt-ver-e-fazer-filmes";
 

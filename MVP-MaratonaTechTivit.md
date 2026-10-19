@@ -1,17 +1,17 @@
-# MVP Semana Tech — Planner de implementação real
+# MVP Maratona Tech Tivit — Planner de implementação real
 
-**Projeto:** VaiVota · **Criado em:** 14/10/2026 · **Atualizado em:** 15/10/2026 (implementado: ver seção 10) · **Evento:** Semana Tech (≈ 19/10/2026, daqui a 5 dias; dia e hora exatos a confirmar)
+**Projeto:** VaiVota · **Criado em:** 14/10/2026 · **Atualizado em:** 15/10/2026 (implementado: ver seção 10) · **Evento:** Maratona Tech Tivit (≈ 19/10/2026, daqui a 5 dias; dia e hora exatos a confirmar)
 **Base:** protótipo da Fase 1 (Etapas 0 a 9) + `docs/FRONTEIRA-DADOS.md` + `DocumentDesign.md` (v1.2)
 
 ---
 
 ## 1. Objetivo
 
-Trocar o protótipo (dados em memória) por um sistema **funcional com dados reais**, só com o necessário para a Semana Tech.
+Trocar o protótipo (dados em memória) por um sistema **funcional com dados reais**, só com o necessário para a Maratona Tech Tivit.
 
 > **Único objetivo do evento: apurar os votos do público de 8 projetos.**
 
-O júri da Semana Tech é feito por **outro sistema**. Não há votação infantil, telão nem modo apresentação.
+O júri da Maratona Tech Tivit é feito por **outro sistema**. Não há votação infantil, telão nem modo apresentação.
 
 O **MVP Ver e Fazer Filmes** (novembro) será praticamente a versão final do produto e reaproveita tudo o que for feito aqui. Nada do que entra neste MVP deve ser descartado depois.
 
@@ -24,7 +24,7 @@ O **MVP Ver e Fazer Filmes** (novembro) será praticamente a versão final do pr
 | Fundação | Supabase PostgreSQL, Prisma, migração, seed, deploy na Vercel, variáveis de ambiente |
 | Domínio e e-mail | Domínio próprio `.space` (a comprar), ligado à Vercel e verificado no **Resend** (subdomínio `mail.`) para enviar os códigos |
 | Autenticação | Better Auth: **e-mail e senha** + **Google**. Código por e-mail (Resend) para verificar o e-mail e recuperar a senha. Rate limiting no servidor |
-| Evento público | Landing `/e/semana-tech` com tema, rótulos e candidatos vindos do banco |
+| Evento público | Landing `/e/maratona-tech-tivit` com tema, rótulos e candidatos vindos do banco |
 | Votação popular | Voto único garantido no banco, voto sem vínculo com o usuário, ordem embaralhada por usuário, estados da urna, recibo aleatório. **Pode votar em si mesmo** |
 | Candidatos (admin) | Cadastro, edição, publicar/despublicar, ordenar e remover, com **upload de imagem** (Supabase Storage) |
 | Operação (admin) | Ativar evento, abrir urna, encerrar urna (**sempre manual**), concluir evento |
@@ -91,16 +91,16 @@ Regra geral: a assinatura de cada serviço é mantida. Por dentro, passa a ser u
 - **Voto único:** `UPDATE participacao SET votou = true WHERE id = ? AND votou = false`; se afetar 0 linhas, `JA_VOTOU`. O `INSERT` do `Voto` e esse `UPDATE` ficam **na mesma transação**. `hashRecibo` é aleatório de 32 bytes (C20).
 - **Sigilo:** `Voto` sem usuário; `Participacao` sem nenhum horário (já é o schema).
 - **Imagens:** bucket público para leitura no Supabase Storage; escrita só pelo servidor (chave de serviço nunca vai ao cliente). Aceitar PNG, JPG e WebP até 2 MB, validando tipo e tamanho **no servidor**. **Remover SVG do upload em produção** (risco de script embutido). Configurar o domínio do Storage em `next.config` para as imagens remotas (o protótipo só aceitava `public/`).
-- **Seed/script (idempotente):** evento `semana-tech` (`estado = RASCUNHO`, `estadoUrna = NAO_INICIADA`, `encerramentoAutomatico = false`, `bloquearVotoProprio = false`, módulos desligados), tema escuro com Space Grotesk e rótulos Projeto/Projetos, campos extras `equipe` e `tecnologias`, `ConfigPlacar` 100/0/0, `metodoIdentificacao = GOOGLE_OU_EMAIL`. Script `promover-admin <e-mail>` cria ou promove a participação `ADMIN`.
+- **Seed/script (idempotente):** evento `maratona-tech-tivit` (`estado = RASCUNHO`, `estadoUrna = NAO_INICIADA`, `encerramentoAutomatico = false`, `bloquearVotoProprio = false`, módulos desligados), tema escuro com Space Grotesk e rótulos Projeto/Projetos, campos extras `equipe` e `tecnologias`, `ConfigPlacar` 100/0/0, `metodoIdentificacao = GOOGLE_OU_EMAIL`. Script `promover-admin <e-mail>` cria ou promove a participação `ADMIN`.
 
 ## 5. Etapas
 
-Prefixo **ST** (Semana Tech) para não colidir com as Etapas 0–9 da Fase 1.
+Prefixo **ST** (Maratona Tech Tivit) para não colidir com as Etapas 0–9 da Fase 1.
 
 ### ST0 — Fundação
 **Entrega:** compra e ligação do domínio `.space`; projeto no ar (Vercel) ligado ao Supabase; schema convertido e migrado; seed e script de admin rodando; variáveis de ambiente; build sem toolbar.
 **Aceite:**
-- [ ] `/e/semana-tech` abre em produção com o tema do evento, lendo do banco.
+- [ ] `/e/maratona-tech-tivit` abre em produção com o tema do evento, lendo do banco.
 - [ ] Migração aplicada com os CHECKs.
 - [ ] Domínio `.space` comprado e ligado ao projeto na Vercel.
 - [ ] Domínio verificado no Resend (SPF/DKIM) e envio de teste recebido em Gmail, Outlook e Hotmail.
@@ -112,7 +112,7 @@ Prefixo **ST** (Semana Tech) para não colidir com as Etapas 0–9 da Fase 1.
 - [ ] Registro → código por e-mail → sessão com e-mail verificado.
 - [ ] Login com Google cria usuário e participação `PUBLICO`.
 - [ ] Recuperação de senha funciona de ponta a ponta.
-- [ ] Admin de seed acessa `/e/semana-tech/admin`; público recebe `NAO_AUTORIZADO`.
+- [ ] Admin de seed acessa `/e/maratona-tech-tivit/admin`; público recebe `NAO_AUTORIZADO`.
 - [ ] Nenhuma tela, CSV ou auditoria mostra e-mail de terceiros.
 
 ### ST2 — Leitura pública, candidatos e upload
@@ -192,20 +192,20 @@ Telas de Geral, Placar e Tema ligadas ao banco; `desqualificarCandidato`; `salva
 
 ## 8. Pendências [Usuário]
 
-1. Dia e hora exatos da Semana Tech (E3).
+1. Dia e hora exatos da Maratona Tech Tivit (E3).
 2. Número esperado de votantes e pico (A6), para dimensionar o teste de carga e conferir o limite de e-mails do plano B.
 3. Nome do `.space` e onde será registrado (pela Vercel facilita: o DNS já fica com ela e o Resend adiciona os registros pela integração).
 4. Quem serão os admins (e-mails) e se o sistema do júri precisa de algum dado do VaiVota.
-5. Título, descrição, equipe, tecnologias e imagem de cada um dos 8 projetos.
+5. Título e imagem de cada um dos 8 projetos; descrição, equipe e tecnologias como campos extras (a descrição vem pré-configurada).
 6. Textos finais (E30) e aviso de privacidade (E29), mesmo que simples.
 
-## 9. Depois da Semana Tech
+## 9. Depois da Maratona Tech Tivit
 
 Reabrir júri por critério, voto infantil e totem, modo apresentação, telas de configuração completas e as pendências de `docs/DECISOES-PENDENTES.md`, no MVP Ver e Fazer Filmes.
 
 ## 10. Status da implementação (15/10/2026)
 
-O código das etapas **ST0 a ST7** está implementado e verificado por testes e por uma fumaça ponta a ponta em build de produção contra PostgreSQL real. **Falta só o que depende de contas e configuração suas** (domínio, Resend, Google, Supabase, variáveis de ambiente): passo a passo em [`docs/SEMANA-TECH-IMPLANTACAO.md`](docs/SEMANA-TECH-IMPLANTACAO.md); dia do evento e contingência em [`docs/SEMANA-TECH-DIA-DO-EVENTO.md`](docs/SEMANA-TECH-DIA-DO-EVENTO.md).
+O código das etapas **ST0 a ST7** está implementado e verificado por testes e por uma fumaça ponta a ponta em build de produção contra PostgreSQL real. **Falta só o que depende de contas e configuração suas** (domínio, Resend, Google, Supabase, variáveis de ambiente): passo a passo em [`docs/MARATONA-TECH-TIVIT-IMPLANTACAO.md`](docs/MARATONA-TECH-TIVIT-IMPLANTACAO.md); dia do evento e contingência em [`docs/MARATONA-TECH-TIVIT-DIA-DO-EVENTO.md`](docs/MARATONA-TECH-TIVIT-DIA-DO-EVENTO.md).
 
 ### Como foi verificado
 
@@ -219,7 +219,7 @@ O código das etapas **ST0 a ST7** está implementado e verificado por testes e 
 
 Marcado = verificado como acima. Desmarcado = depende de você ou de conferência no navegador (**nenhuma tela foi aberta num navegador nesta máquina**: confira os fluxos de tela no celular durante o ensaio).
 
-**ST0:** [x] migração aplicada com os CHECKs · [ ] `/e/semana-tech` em produção (verificado em build de produção local; falta o deploy) · [ ] domínio `.space` comprado e ligado à Vercel · [ ] domínio verificado no Resend e envio testado em Gmail, Outlook e Hotmail · [ ] credencial do Google criada e app publicado
+**ST0:** [x] migração aplicada com os CHECKs · [ ] `/e/maratona-tech-tivit` em produção (verificado em build de produção local; falta o deploy) · [ ] domínio `.space` comprado e ligado à Vercel · [ ] domínio verificado no Resend e envio testado em Gmail, Outlook e Hotmail · [ ] credencial do Google criada e app publicado
 **ST1:** [x] registro → código → sessão com e-mail verificado · [ ] login com Google (implementado, mas **não exercitado**: exige as credenciais) · [x] recuperação de senha de ponta a ponta · [x] admin de seed acessa o painel; público recebe `NAO_AUTORIZADO` · [x] nenhuma tela, CSV ou auditoria mostra e-mail de terceiros
 **ST2:** [x] cadastro dos projetos com imagem; sem imagem só rascunho (inclusive pelo CHECK do banco) · [ ] imagem na lista e no detalhe, inclusive no celular (conferir na tela) · [x] arquivo inválido recusado no servidor
 **ST3:** [x] segundo voto impedido, inclusive simultâneo (teste automatizado) · [x] urna não iniciada ou encerrada não vota nem por link direto · [x] sem vínculo entre usuário e projeto (colunas das tabelas conferidas) · [x] pode votar em si mesmo · [x] a ordem dos cards varia entre usuários (`ordenarParaVotacao`, semente por usuário e evento)
@@ -256,7 +256,7 @@ Marcado = verificado como acima. Desmarcado = depende de você ou de conferênci
 
 | Decisão | Origem |
 |---|---|
-| MVP Semana Tech = só o necessário; MVP Festival = praticamente a versão final | Dono do produto |
+| MVP Maratona Tech Tivit = só o necessário; MVP Festival = praticamente a versão final | Dono do produto |
 | Júri fora (outro sistema); infantil fora; telão e modo apresentação fora | Dono do produto |
 | Único objetivo: apurar os votos do público; 8 projetos; pode votar em si mesmo | Dono do produto |
 | Login por e-mail (Resend) e Google, os dois obrigatórios | Dono do produto |

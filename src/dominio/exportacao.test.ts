@@ -50,7 +50,7 @@ describe("formato", () => {
   it("vírgula decimal sem milhar e nome do arquivo", () => {
     expect(numeroCsv(1234.5)).toBe("1234,50");
     expect(numeroCsv(28.6182)).toBe("28,62");
-    expect(nomeArquivoCsv("semana-tech", "auditoria", "2026-10-22T14:00:00-03:00")).toBe("semana-tech-auditoria-20261022.csv");
+    expect(nomeArquivoCsv("maratona-tech-tivit", "auditoria", "2026-10-22T14:00:00-03:00")).toBe("maratona-tech-tivit-auditoria-20261022.csv");
   });
 });
 

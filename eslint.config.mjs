@@ -7,7 +7,7 @@ const PROIBE_MOCKS = {
   group: ["@/mocks", "@/mocks/*", "**/mocks/*"],
   message: "Telas, componentes e lib não importam mocks: use seletores (store/seletores) ou serviços (servicos/).",
 };
-// MVP Semana Tech: o código do servidor (Prisma, segredos, Better Auth) nunca entra no pacote do navegador. Só as rotas e
+// MVP Maratona Tech Tivit: o código do servidor (Prisma, segredos, Better Auth) nunca entra no pacote do navegador. Só as rotas e
 // os layouts de servidor (src/app) e src/server importam `@/server`.
 const PROIBE_SERVIDOR = {
   group: ["@/server", "@/server/*", "**/server/*"],

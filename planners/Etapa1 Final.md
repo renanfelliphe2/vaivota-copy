@@ -53,7 +53,7 @@ Esta etapa precisa garantir:
 | `LogoEvento` (cai para o nome em texto sem `logoUrl`), `ImagemCandidato` | Etapa 0 |
 | `dominio/candidatos.ts` (`votaveis`), `lib/tempo.ts` e `lib/formatar.ts` (data e hora no fuso do evento) | Etapa 0 |
 | `servicos/metadados.ts` (`obterMetadadosEvento`) | Etapa 0 |
-| Seed: Semana Tech (escuro, sem logo, sem `linkSobre`, sem `avisoPrivacidadeUrl`) e Festival (claro, com logo, `linkSobre`, aviso de privacidade); `Evento.local` e `Evento.linkSobre` (mock-only) | Etapa 0 |
+| Seed: Maratona Tech Tivit (escuro, sem logo, sem `linkSobre`, sem `avisoPrivacidadeUrl`) e Festival (claro, com logo, `linkSobre`, aviso de privacidade); `Evento.local` e `Evento.linkSobre` (mock-only) | Etapa 0 |
 | Toolbar (evento, estado do evento, urna, relógio, cenários) e registro de cenários | Etapa 0 |
 | `SkipLink` no layout raiz (alvo `#conteudo`) | Etapa 0 |
 | Rotas stub `/e/[slug]` e `/e/[slug]/convite` | Etapa 0 |
@@ -186,7 +186,7 @@ Ordem fixa das seções: **header**, **faixa de status**, **hero** (badge, `h1`,
 - [ ] Trocar os botões e links atuais por `Botao`.
 - [ ] Nenhuma ocorrência de hex de marca nem de classe de paleta em `src/app/page.tsx` (`grep` limpo).
 
-**Pronto quando:** com o tema Festival, a página fica igual às capturas, salvo as diferenças previstas na D1 (texto escuro sobre o laranja, verde e laranja ajustados como texto, fonte do tema); com a Semana Tech, as cores mudam sem tocar em código.
+**Pronto quando:** com o tema Festival, a página fica igual às capturas, salvo as diferenças previstas na D1 (texto escuro sobre o laranja, verde e laranja ajustados como texto, fonte do tema); com a Maratona Tech Tivit, as cores mudam sem tocar em código.
 
 **Entrega:** `VaiVota-E1-CP1.zip`
 
@@ -196,11 +196,11 @@ Ordem fixa das seções: **header**, **faixa de status**, **hero** (badge, `h1`,
 
 **Tarefas**
 - [ ] Criar `LandingHeader`, `LandingHero`, `ComoFunciona` e `LandingFooter` em `src/components/landing/`.
-- [ ] Usar o `LogoEvento` da Etapa 0 no header (com a Semana Tech, o nome aparece em texto no lugar da logo).
+- [ ] Usar o `LogoEvento` da Etapa 0 no header (com a Maratona Tech Tivit, o nome aparece em texto no lugar da logo).
 - [ ] `page.tsx` só compõe as seções (menos de 30 linhas, sem lógica de evento).
 - [ ] Marcos semânticos: `header`, `main id="conteudo"`, `footer`.
 
-**Pronto quando:** a página renderiza igual ao CP1 e, com a Semana Tech, o header mostra o nome em texto.
+**Pronto quando:** a página renderiza igual ao CP1 e, com a Maratona Tech Tivit, o header mostra o nome em texto.
 
 **Entrega:** `VaiVota-E1-CP2.zip`
 
@@ -217,7 +217,7 @@ Ordem fixa das seções: **header**, **faixa de status**, **hero** (badge, `h1`,
 - [ ] Link "Sou jurado" → `/e/[slug]/convite` (só com `moduloJuri`; a regra por situação entra no CP4).
 - [ ] `generateMetadata` em `page.tsx` usando `obterMetadadosEvento`.
 
-**Pronto quando:** alternar entre Semana Tech e Festival na toolbar troca nome, logo, textos, rótulos e links sem nenhuma string de evento no JSX (`grep` por "Festival" e "Semana" limpo em `src/app/page.tsx` e `src/components/landing/`).
+**Pronto quando:** alternar entre Maratona Tech Tivit e Festival na toolbar troca nome, logo, textos, rótulos e links sem nenhuma string de evento no JSX (`grep` por "Festival" e "Semana" limpo em `src/app/page.tsx` e `src/components/landing/`).
 
 **Entrega:** `VaiVota-E1-CP3.zip`
 
@@ -254,7 +254,7 @@ Nenhum dado de resultado aparece em nenhuma delas.
 - [ ] A seção some com menos de 2 votáveis ou na situação `EM_PREPARACAO`.
 - [ ] Desqualificados e rascunhos nunca aparecem.
 
-**Pronto quando:** Semana Tech mostra 6 de 8 + "e mais 2" (com um título longo bem contido; todos os votáveis têm imagem, então o cartão sem imagem não ocorre na landing: esse caso é conferido na galeria `/dev/ui` e na lista do admin da Etapa 6, rev. 3, C5); Festival mostra os 6 sem "e mais"; o rascunho esconde a seção; o cenário `SEM_CANDIDATOS` (Etapa 2, quando existir) também a esconde.
+**Pronto quando:** Maratona Tech Tivit mostra 6 de 8 + "e mais 2" (com um título longo bem contido; todos os votáveis têm imagem, então o cartão sem imagem não ocorre na landing: esse caso é conferido na galeria `/dev/ui` e na lista do admin da Etapa 6, rev. 3, C5); Festival mostra os 6 sem "e mais"; o rascunho esconde a seção; o cenário `SEM_CANDIDATOS` (Etapa 2, quando existir) também a esconde.
 
 **Entrega:** `VaiVota-E1-CP5.zip`
 
@@ -263,7 +263,7 @@ Nenhum dado de resultado aparece em nenhuma delas.
 **Objetivo:** mobile-first utilizável.
 
 **Tarefas**
-- [ ] Layout validado em 360, 768 e 1280 px, sem scroll horizontal. (Rev. 4, E27: na Semana Tech o voto acontece em celulares e computadores; no Festival, em celulares e totens. Dispositivos-alvo consolidados na Etapa 9.)
+- [ ] Layout validado em 360, 768 e 1280 px, sem scroll horizontal. (Rev. 4, E27: na Maratona Tech Tivit o voto acontece em celulares e computadores; no Festival, em celulares e totens. Dispositivos-alvo consolidados na Etapa 9.)
 - [ ] CTA do header visível em todos os tamanhos (D6).
 - [ ] Áreas de toque com pelo menos 44 px; foco visível em todo link e botão.
 - [ ] Hierarquia de títulos sem saltos (um só `h1`); `SkipLink` leva ao `main`.
@@ -288,7 +288,7 @@ Nenhum dado de resultado aparece em nenhuma delas.
 
 | Tema \ Situação | Em preparação | Não iniciada | Abertura pendente | Aberta | Reta final | Tempo esgotado | Encerrada | Concluído |
 |---|---|---|---|---|---|---|---|---|
-| Semana Tech | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |
+| Maratona Tech Tivit | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |
 | Festival | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |
 
 **Pronto quando:** a matriz está inteira marcada e a seção 9 atendida.

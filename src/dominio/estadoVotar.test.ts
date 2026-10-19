@@ -7,7 +7,7 @@ import type { EntradaVisao } from "./visaoEvento";
 const T0 = Date.parse("2026-10-22T14:00:00-03:00");
 const config = { limiarRetaFinalSegundos: 300 };
 
-const semanaTech: EntradaVisao["evento"] = {
+const maratonaTechTIVIT: EntradaVisao["evento"] = {
   estado: "ATIVO",
   estadoUrna: "ABERTA",
   janelaInicio: "2026-10-22T13:00:00-03:00",
@@ -37,28 +37,28 @@ function gate(evento: EntradaVisao["evento"], sessao: EntradaVisao["sessao"], ex
 
 describe("resolverEstadoVotar", () => {
   it("1: deslogado, e-mail não verificado ou sem participação → ACESSO_PENDENTE", () => {
-    expect(gate(semanaTech, visitante).tela).toBe("ACESSO_PENDENTE");
-    expect(gate(semanaTech, davi).tela).toBe("ACESSO_PENDENTE");
-    expect(gate(semanaTech, anaSemParticipacao).tela).toBe("ACESSO_PENDENTE");
+    expect(gate(maratonaTechTIVIT, visitante).tela).toBe("ACESSO_PENDENTE");
+    expect(gate(maratonaTechTIVIT, davi).tela).toBe("ACESSO_PENDENTE");
+    expect(gate(maratonaTechTIVIT, anaSemParticipacao).tela).toBe("ACESSO_PENDENTE");
   });
 
   it("2: administrador em qualquer estado, inclusive rascunho (V8, V14)", () => {
-    expect(gate(semanaTech, carla).tela).toBe("ADMIN_NAO_VOTA");
-    expect(gate({ ...semanaTech, estado: "RASCUNHO" }, carla).tela).toBe("ADMIN_NAO_VOTA");
-    expect(gate({ ...semanaTech, estado: "CONCLUIDO" }, carla).tela).toBe("ADMIN_NAO_VOTA");
+    expect(gate(maratonaTechTIVIT, carla).tela).toBe("ADMIN_NAO_VOTA");
+    expect(gate({ ...maratonaTechTIVIT, estado: "RASCUNHO" }, carla).tela).toBe("ADMIN_NAO_VOTA");
+    expect(gate({ ...maratonaTechTIVIT, estado: "CONCLUIDO" }, carla).tela).toBe("ADMIN_NAO_VOTA");
   });
 
   it("3: rascunho para quem não é admin (V14)", () => {
-    expect(gate({ ...semanaTech, estado: "RASCUNHO" }, ana).tela).toBe("INDISPONIVEL");
-    expect(gate({ ...semanaTech, estado: "RASCUNHO", estadoUrna: "ENCERRADA" }, ana).tela).toBe("INDISPONIVEL");
+    expect(gate({ ...maratonaTechTIVIT, estado: "RASCUNHO" }, ana).tela).toBe("INDISPONIVEL");
+    expect(gate({ ...maratonaTechTIVIT, estado: "RASCUNHO", estadoUrna: "ENCERRADA" }, ana).tela).toBe("INDISPONIVEL");
   });
 
   it("4: concluído, mesmo com a urna aberta forçada (V13)", () => {
-    expect(gate({ ...semanaTech, estado: "CONCLUIDO" }, ana).tela).toBe("CONCLUIDO");
+    expect(gate({ ...maratonaTechTIVIT, estado: "CONCLUIDO" }, ana).tela).toBe("CONCLUIDO");
   });
 
   it("5: encerrada, com agradecimento para quem votou (V12)", () => {
-    const encerrada = { ...semanaTech, estadoUrna: "ENCERRADA" as const };
+    const encerrada = { ...maratonaTechTIVIT, estadoUrna: "ENCERRADA" as const };
     expect(gate(encerrada, ana).tela).toBe("ENCERRADA");
     const r = gate(encerrada, eva);
     expect(r.tela).toBe("ENCERRADA");
@@ -74,30 +74,30 @@ describe("resolverEstadoVotar", () => {
   });
 
   it("7: jurado com módulo júri desligado (V16)", () => {
-    expect(gate({ ...semanaTech, moduloJuri: false }, bruno).tela).toBe("JURI_DESLIGADO");
+    expect(gate({ ...maratonaTechTIVIT, moduloJuri: false }, bruno).tela).toBe("JURI_DESLIGADO");
     // público não é afetado
-    expect(gate({ ...semanaTech, moduloJuri: false }, ana).tela).toBe("LISTA");
+    expect(gate({ ...maratonaTechTIVIT, moduloJuri: false }, ana).tela).toBe("LISTA");
   });
 
   it("8: sem candidatos vem antes de já votou (V15, D9)", () => {
-    expect(gate(semanaTech, ana, { qtdVotaveis: 0 }).tela).toBe("SEM_CANDIDATOS");
-    expect(gate(semanaTech, eva, { qtdVotaveis: 0 }).tela).toBe("SEM_CANDIDATOS");
+    expect(gate(maratonaTechTIVIT, ana, { qtdVotaveis: 0 }).tela).toBe("SEM_CANDIDATOS");
+    expect(gate(maratonaTechTIVIT, eva, { qtdVotaveis: 0 }).tela).toBe("SEM_CANDIDATOS");
   });
 
   it("9: público que já votou; jurado que já votou segue para a lista (V4, V6)", () => {
-    expect(gate(semanaTech, eva).tela).toBe("JA_VOTOU");
-    const r = gate(semanaTech, fabio);
+    expect(gate(maratonaTechTIVIT, eva).tela).toBe("JA_VOTOU");
+    const r = gate(maratonaTechTIVIT, fabio);
     expect([r.tela, r.papelVoto]).toEqual(["LISTA", "JURADO"]);
   });
 
   it("10: lista com o papel de voto (V3, V5)", () => {
-    expect(gate(semanaTech, ana)).toMatchObject({ tela: "LISTA", papelVoto: "PUBLICO", avisoTempoEsgotado: false });
-    expect(gate(semanaTech, bruno)).toMatchObject({ tela: "LISTA", papelVoto: "JURADO" });
+    expect(gate(maratonaTechTIVIT, ana)).toMatchObject({ tela: "LISTA", papelVoto: "PUBLICO", avisoTempoEsgotado: false });
+    expect(gate(maratonaTechTIVIT, bruno)).toMatchObject({ tela: "LISTA", papelVoto: "JURADO" });
   });
 
   it("tempo esgotado continua votável, com aviso (V17)", () => {
     const fim = Date.parse("2026-10-22T17:00:00-03:00");
-    const r = gate(semanaTech, ana, { agoraMs: fim + 60_000 });
+    const r = gate(maratonaTechTIVIT, ana, { agoraMs: fim + 60_000 });
     expect([r.tela, r.avisoTempoEsgotado]).toEqual(["LISTA", true]);
   });
 

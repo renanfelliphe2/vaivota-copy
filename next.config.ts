@@ -20,6 +20,15 @@ const nextConfig: NextConfig = {
   // Permite um diretório de build próprio (por exemplo, para rodar `next build` sem tocar no `next dev` aberto).
   distDir: process.env.NEXT_DIST_DIR || ".next",
   images: { remotePatterns: remotePatterns() },
+  async redirects() {
+    return [
+      {
+        source: "/e/semana-tech/:path*",
+        destination: "/e/maratona-tech-tivit/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

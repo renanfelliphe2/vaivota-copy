@@ -6,7 +6,7 @@ import { desconectarBanco } from "@/server/db";
 //
 // As proteções de origem (CSRF com cookie e callbackURL de outro site) o Better Auth só liga fora de NODE_ENV=test; elas
 // foram conferidas à mão contra o build de produção: `Origin` de fora com cookie dá 403 INVALID_ORIGIN e `callbackURL`
-// externo dá 403 INVALID_CALLBACK_URL (ver a seção 10 do MVP-SemanaTech.md).
+// externo dá 403 INVALID_CALLBACK_URL (ver a seção 10 do MVP-MaratonaTechTivit.md).
 
 beforeAll(() => {
   process.env.GOOGLE_CLIENT_ID = "id-de-teste.apps.googleusercontent.com";
@@ -29,8 +29,8 @@ describe("entrar com Google", () => {
         headers: { "Content-Type": "application/json", Origin: "http://localhost:3000" },
         body: JSON.stringify({
           provider: "google",
-          callbackURL: "/e/semana-tech/continuar?de=%2Fe%2Fsemana-tech%2Fadmin",
-          errorCallbackURL: "/e/semana-tech?erro=google",
+          callbackURL: "/e/maratona-tech-tivit/continuar?de=%2Fe%2Fmaratona-tech-tivit%2Fadmin",
+          errorCallbackURL: "/e/maratona-tech-tivit?erro=google",
         }),
       }),
     );

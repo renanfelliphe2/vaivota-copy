@@ -4,7 +4,7 @@ import { PRESETS_TEMA } from "@/dominio/presetsTema";
 import { db } from "./db";
 import { normalizarEmailAdmin } from "./participacao";
 
-// ST0: seed idempotente do evento da Semana Tech e o `promover-admin`. Rodar de novo NUNCA desfaz o que já existe: se o
+// ST0: seed idempotente do evento da Maratona Tech Tivit e o `promover-admin`. Rodar de novo NUNCA desfaz o que já existe: se o
 // evento já foi ativado, a urna já abriu ou o admin já mudou o tema, nada disso volta ao padrão (só cria o que falta).
 
 export type OpcoesSemente = {
@@ -18,9 +18,9 @@ export type OpcoesSemente = {
 };
 
 const PADRAO = {
-  slug: "semana-tech",
-  nome: "Semana Tech",
-  descricao: "Vote no seu projeto favorito da Semana Tech. Um voto por pessoa, e o voto é secreto.",
+  slug: "maratona-tech-tivit",
+  nome: "Maratona Tech Tivit",
+  descricao: "Vote no seu projeto favorito da Maratona Tech Tivit. Um voto por pessoa, e o voto é secreto.",
   // Dia e hora exatos a confirmar (pendência 1 do planner): ajuste pela tela Geral ou por SEED_JANELA_*.
   janelaInicio: "2026-10-19T08:00:00-03:00",
   janelaFim: "2026-10-19T22:00:00-03:00",
@@ -28,21 +28,21 @@ const PADRAO = {
 
 const TEXTOS_ESTADO = {
   NAO_INICIADA: {
-    titulo: "A votação abre durante a Semana Tech",
+    titulo: "A votação abre durante a Maratona Tech Tivit",
     corpo: "Crie sua conta agora. Quando a urna abrir, é só voltar aqui e escolher seu {rotulo} favorito.",
   },
   ENCERRADA: {
     titulo: "Votação encerrada",
-    corpo: "Obrigado por votar! O resultado será divulgado pela organização da Semana Tech.",
+    corpo: "Obrigado por votar! O resultado será divulgado pela organização da Maratona Tech Tivit.",
   },
-  JA_VOTOU: { titulo: "Seu voto está registrado", corpo: "Obrigado por fazer parte da Semana Tech!" },
+  JA_VOTOU: { titulo: "Seu voto está registrado", corpo: "Obrigado por fazer parte da Maratona Tech Tivit!" },
   SUCESSO: {
     titulo: "Voto confirmado!",
-    corpo: "Obrigado por votar. Acompanhe o anúncio do resultado com a organização da Semana Tech.",
+    corpo: "Obrigado por votar. Acompanhe o anúncio do resultado com a organização da Maratona Tech Tivit.",
   },
 } satisfies Prisma.InputJsonObject;
 
-export async function semearSemanaTech(opcoes: OpcoesSemente = {}): Promise<{ eventoId: string; criado: boolean }> {
+export async function semearMaratonaTechTivit(opcoes: OpcoesSemente = {}): Promise<{ eventoId: string; criado: boolean }> {
   const slug = opcoes.slug ?? PADRAO.slug;
   const escuro = PRESETS_TEMA.find((p) => p.id === "escuro")!;
   const existia = await db().evento.findUnique({ where: { slug }, select: { id: true } });

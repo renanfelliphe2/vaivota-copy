@@ -1,5 +1,5 @@
 // VaiVota — schema Prisma (PostgreSQL, Supabase)
-// Baseado no DocumentDesign.md v1.2 e no MVP da Semana Tech (ST0).
+// Baseado no DocumentDesign.md v1.2 e no MVP da Maratona Tech Tivit (ST0).
 //
 // Banco: Supabase PostgreSQL. Prisma 7: a URL da migração fica em prisma.config.ts (DIRECT_URL) e a conexão da aplicação
 // vai pelo adaptador `pg` em src/server/db.ts (DATABASE_URL, o pooler do Supabase).
@@ -260,7 +260,7 @@ model ConfigPlacar {
   @@map("config_placar")
 }
 
-// Opções do modo apresentação (1:1). Na Semana Tech só alimenta o limiar de "reta final" e a flag de parcial (sempre falsa).
+// Opções do modo apresentação (1:1). Na Maratona Tech Tivit só alimenta o limiar de "reta final" e a flag de parcial (sempre falsa).
 model ConfigApresentacao {
   eventoId                 String     @id @map("evento_id")
   trailerUrl               String?    @map("trailer_url") @db.VarChar(500)

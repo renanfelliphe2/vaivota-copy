@@ -4,7 +4,7 @@ Inventário conferido contra o código em 08/10/2026 (Etapa 9, CP1). Quando um n
 
 ## Cenários (15 registrados em `src/mocks/cenarios.ts`)
 
-Protótipo só do Festival (08/10/2026): a Semana Tech trabalha direto com dados reais. Saíram os 5 cenários `RESULTADO_*` da Semana Tech e o `VOTO_PROPRIO_PERMITIDO` (nenhum usuário do seed está vinculado a um candidato). As tabelas de apuração e de roteiro desses casos continuam nos autotestes (`dominio/apuracaoAutoteste.ts`, `dominio/apresentacao/autotestes.ts`), que não dependem do seed.
+Protótipo só do Festival (08/10/2026): a Maratona Tech Tivit trabalha direto com dados reais. Saíram os 5 cenários `RESULTADO_*` da Maratona Tech Tivit e o `VOTO_PROPRIO_PERMITIDO` (nenhum usuário do seed está vinculado a um candidato). As tabelas de apuração e de roteiro desses casos continuam nos autotestes (`dominio/apuracaoAutoteste.ts`, `dominio/apresentacao/autotestes.ts`), que não dependem do seed.
 
 | # | Id | Grupo | Etapa | O que faz |
 |---|---|---|---|---|
@@ -34,7 +34,7 @@ Rótulo, grupo e descrição de cada uma estão em `src/dominio/auditoria.ts` (`
 |---|---|---|
 | Estado | `EVENTO_ATIVADO`, `URNA_ABERTA`, `URNA_ENCERRADA` (com `origem`), `EVENTO_CONCLUIDO` | Etapa 0 |
 | Júri | `CONVITE_RESGATADO` | Etapa 3 |
-| Segurança | `TENTATIVA_CODIGO_INVALIDA`, `BLOQUEIO_RATE_LIMIT` (alvos `SENHA` e `CODIGO_LOGIN` no MVP da Semana Tech), `ADMIN_CONVITE_RESGATADO` | Etapa 3; MVP Semana Tech |
+| Segurança | `TENTATIVA_CODIGO_INVALIDA`, `BLOQUEIO_RATE_LIMIT` (alvos `SENHA` e `CODIGO_LOGIN` no MVP da Maratona Tech Tivit), `ADMIN_CONVITE_RESGATADO` | Etapa 3; MVP Maratona Tech Tivit |
 | Júri | `VOTO_JURI_REGISTRADO`, `VOTO_JURI_ALTERADO` | Etapa 5 |
 | Configuração | `CONFIG_ALTERADA`, `TEMA_ALTERADO`, `CONVITES_GERADOS`, `CONVITE_REVOGADO`, `CANDIDATO_DESQUALIFICADO`, `CANDIDATO_CORRIGIDO` | Etapa 6 |
 | Exportação | `EXPORTACAO_CSV` (`detalhes.arquivo`), `RELATORIO_GERADO` (`detalhes.versao`) | Etapa 7 |

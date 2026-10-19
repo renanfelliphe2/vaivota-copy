@@ -29,7 +29,7 @@ Esta etapa precisa garantir:
 - **Apuração** (`apurar`, `congelarResultado`, `resumirApuracao`), com as regras de grupo sem votos, desqualificado, tolerância e empates (seção 5.2).
 - **Exportação CSV** (seis arquivos) com disponibilidade por fase, confirmação do arquivo identificado e auditoria de cada download.
 - **Relatório imprimível** (`window.print()` com CSS de impressão) e sua auditoria.
-- **Seed de volume** na Semana Tech (PADRAO), volume do Festival e os sete cenários de resultado.
+- **Seed de volume** na Maratona Tech Tivit (PADRAO), volume do Festival e os sete cenários de resultado.
 - `SimuladorVotos` (votos entrando), seção "Dashboard" da toolbar e `conferirApuracao` (autoteste puro).
 - Catálogo de exibição da auditoria de todas as ações das Etapas 0 a 7 (`dominio/auditoria.ts`).
 - Gráficos em SVG próprio (`LineChart`, `BarChart`).
@@ -39,7 +39,7 @@ Esta etapa precisa garantir:
 - Telão, revelação, trailer, ensaio → **Etapa 8** (aqui só o atalho "Abrir apresentação").
 - Interruptor de admin para `parcialAoVivo` e tela de `ConfigApresentacao` → por seed e toolbar na Fase 1 (pendência P4).
 - Gerar PDF no servidor, retenção e anonimização de dados pessoais (F11), super admin e gráficos avançados → fora da Fase 1 (o PDF continua sendo do navegador; qualquer geração no servidor fica para a trilha de produção, rev. 4, A2/A3).
-- **Apuração do júri por critério (Festival)** → requisito do Festival (rev. 4, A8), com planner próprio: notas por critério (Direção, Roteiro, Fotografia e Som; `Criterio` e `NotaJuri`). Proposta registrada: placar do júri do candidato = soma das médias dos critérios dadas pelos jurados, normalizada como os outros grupos (P21). Esta etapa apura o **voto simples** do júri, que continua valendo para a Semana Tech.
+- **Apuração do júri por critério (Festival)** → requisito do Festival (rev. 4, A8), com planner próprio: notas por critério (Direção, Roteiro, Fotografia e Som; `Criterio` e `NotaJuri`). Proposta registrada: placar do júri do candidato = soma das médias dos critérios dadas pelos jurados, normalizada como os outros grupos (P21). Esta etapa apura o **voto simples** do júri, que continua valendo para a Maratona Tech Tivit.
 - Gestão real de totens e dispositivos (pareamento, quiosque com PIN, voto infantil) → planner próprio **"Totem"** (rev. 4, A7, a escrever). A aba Operação já lê os dispositivos do seed.
 - Criar uma versão `CORRECAO` do resultado: o tipo existe (espelha o schema), mas nenhuma ação da Fase 1 a cria; a desqualificação é a única correção (C16, P13 resolvida).
 - Navegação depois de "Concluir" e consolidação de cenários e documentação → **Etapa 9**.
@@ -185,7 +185,7 @@ gruposDoResultado(dados): Grupo[]   // = dados.categorias.map(c => c.grupo); gru
 7. **Categorias.** Uma por grupo ativo (`POPULAR` sempre): vence quem tem mais votos brutos no grupo, entre os candidatos **não desqualificados**. Empate: desempata pela **pontuação final** (`desempatadoPorPontuacao = true` quando isso decide); se persistir, todos os empatados são **co-vencedores**. Grupo sem nenhum voto: `vencedores = []`.
 8. Devolve `DadosResultado` com `criterioDesempate` = o configurado, `pesosEfetivos`, `desqualificados` e `pontosPorGrupo` em cada item do ranking (D16).
 
-Os passos acima tratam o júri como **voto simples** (Semana Tech). No Festival o júri vota **por critério** (rev. 4, A8); a forma como as notas viram o placar do júri é pendência [Usuário] (P21) e entra com o planner próprio.
+Os passos acima tratam o júri como **voto simples** (Maratona Tech Tivit). No Festival o júri vota **por critério** (rev. 4, A8); a forma como as notas viram o placar do júri é pendência [Usuário] (P21) e entra com o planner próprio.
 
 **`congelarResultado`** lê `contarVotos` e a configuração do evento (`ConfigPlacar`, módulos, candidatos), chama `apurar`, e grava `ResultadoOficial` com `versao`, `motivo`, os três pesos, `dados`, `calculadoPorId` e `calculadoEm` = relógio simulado. Não audita (quem chamou já audita: `URNA_ENCERRADA` ou `CANDIDATO_DESQUALIFICADO`).
 
@@ -278,7 +278,7 @@ Todos `Promise<Resultado<T>>`, com `atraso()`, relendo `store.getState()` depois
 
 ### 5.5 Aba Operação
 
-Blocos, do mais importante ao mais detalhado. Módulo desligado **some** do painel (Semana Tech: júri ligado, infantil desligado; Festival: ambos ligados).
+Blocos, do mais importante ao mais detalhado. Módulo desligado **some** do painel (Maratona Tech Tivit: júri ligado, infantil desligado; Festival: ambos ligados).
 
 | Bloco | Conteúdo e regras |
 |---|---|
@@ -317,7 +317,7 @@ Ordem dos blocos (D7: o aviso vem primeiro):
 
 ### 5.7 Seed de volume e fixtures de resultado
 
-**Estrutura.** A Etapa 0 (rev. 2) já entrega `criarEstadoNucleo()` e um `criarEstadoInicial()` que o compõe. O CP2 mantém o núcleo intacto e faz `criarEstadoInicial()` passar a compor **núcleo + volume da Semana Tech**. O cenário `PADRAO` da Etapa 0 continua chamando `criarEstadoInicial`.
+**Estrutura.** A Etapa 0 (rev. 2) já entrega `criarEstadoNucleo()` e um `criarEstadoInicial()` que o compõe. O CP2 mantém o núcleo intacto e faz `criarEstadoInicial()` passar a compor **núcleo + volume da Maratona Tech Tivit**. O cenário `PADRAO` da Etapa 0 continua chamando `criarEstadoInicial`.
 
 ```ts
 gerarVolume(estado: EstadoApp, opcoes: {
@@ -344,7 +344,7 @@ Regras do gerador
 - **Auditoria** (`auditoria: true`): entradas coerentes com os dados, com `criadoEm` explícito (ver conferência do CP1) e ordenadas no tempo.
 - **Totens:** `votosPorDispositivo` cria `VotoInfantil` por dispositivo, **inclusive** `PAUSADO` e `REVOGADO` (A19).
 
-**Metas da Semana Tech no `PADRAO`** (resolve E7-8 e E7-10)
+**Metas da Maratona Tech Tivit no `PADRAO`** (resolve E7-8 e E7-10)
 
 | Meta (em `T0`) | Valor | Nota |
 |---|---|---|
@@ -361,7 +361,7 @@ Regras do gerador
 
 > **Conferência rev. 3 (C3):** nenhuma distribuição abaixo tem grupo **ligado** com base 0 (júri 7, 6, 7 e 2 votos; infantil 138 no Festival; em `RESULTADO_SEM_INFANTIL` o infantil está **desligado**, não ligado sem votos). Logo `pesosEfetivos = pesos` em todas e os números não mudam. A redistribuição é coberta pelos testes extras da 5.2 e pela V27.
 
-*`PADRAO`* (Semana Tech; pesos 70/30; popular 412, júri 7; sem empates):
+*`PADRAO`* (Maratona Tech Tivit; pesos 70/30; popular 412, júri 7; sem empates):
 
 | | c01 | c02 | c03 | c04 | c05 | c06 | c07 | c08 |
 |---|---|---|---|---|---|---|---|---|
@@ -371,7 +371,7 @@ Regras do gerador
 
 (`cNN` = `cand-st-NN`. O candidato que recebeu o voto de Fábio tem de estar entre c01 e c05; conferir no CP2.)
 
-*Fixtures de empate* (Semana Tech; pesos 70/30; popular 350, júri 6; `incluirNucleo: false`, então 3 jurados ficam pendentes):
+*Fixtures de empate* (Maratona Tech Tivit; pesos 70/30; popular 350, júri 6; `incluirNucleo: false`, então 3 jurados ficam pendentes):
 
 | Cenário | | c01 | c02 | c03 | c04 | c05 | c06 | c07 | c08 | Resultado esperado |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -385,7 +385,7 @@ Regras do gerador
 | | Júri | 1 | 2 | 2 | 1 | 0 | 0 | 0 | 0 | |
 | | Pontuação | 25,00 | 24,00 | 24,00 | 15,00 | 6,00 | 4,00 | 2,00 | 0,00 | |
 
-*`RESULTADO_DOIS_CANDIDATOS`* (Semana Tech; 412/7; só c01 e c02 publicados, os outros viram rascunho): popular 260 e 152, júri 4 e 3, pontuação **61,32** e **38,68**; pódio com dois nomes.
+*`RESULTADO_DOIS_CANDIDATOS`* (Maratona Tech Tivit; 412/7; só c01 e c02 publicados, os outros viram rascunho): popular 260 e 152, júri 4 e 3, pontuação **61,32** e **38,68**; pódio com dois nomes.
 
 *`RESULTADO_PADRAO`:* a distribuição `PADRAO` com a urna encerrada em `T0`, sem empates.
 
@@ -402,7 +402,7 @@ Totens: Hall 70, Pátio 41, Oficinas 27 (soma 138). Categorias esperadas: popula
 
 *`RESULTADO_SEM_INFANTIL`:* a mesma distribuição do Festival sem os votos infantis e com o módulo infantil **desligado antes** do cálculo (`alternarModulo`, que redistribui os pesos mantendo a soma em 100). Esperado: sem categoria infantil, `totais.INFANTIL = 0` e soma das pontuações = 100.
 
-Em todos os cenários, o **estado de partida** é o núcleo do evento (ver 5.12), e a urna é encerrada em `urnaEncerradaEm = T0` (Semana Tech) ou `janelaFim` (Festival).
+Em todos os cenários, o **estado de partida** é o núcleo do evento (ver 5.12), e a urna é encerrada em `urnaEncerradaEm = T0` (Maratona Tech Tivit) ou `janelaFim` (Festival).
 
 ### 5.8 Série temporal e gráficos
 
@@ -482,17 +482,17 @@ Regras
 
 | Cenário | Evento | O que faz |
 |---|---|---|
-| `RESULTADO_PADRAO` | Semana Tech | Núcleo + volume `PADRAO` + urna encerrada em `T0` (resultado v1) |
-| `RESULTADO_EMPATE_RESOLVIDO` | Semana Tech | Núcleo + fixture da seção 5.7 + urna encerrada |
-| `RESULTADO_EMPATE_PERSISTENTE` | Semana Tech | idem, com a fixture de empate no 1º |
-| `RESULTADO_CO_VENCEDORES` | Semana Tech | idem, com a fixture de co-vencedores |
-| `RESULTADO_DOIS_CANDIDATOS` | Semana Tech | idem, só c01 e c02 votáveis |
+| `RESULTADO_PADRAO` | Maratona Tech Tivit | Núcleo + volume `PADRAO` + urna encerrada em `T0` (resultado v1) |
+| `RESULTADO_EMPATE_RESOLVIDO` | Maratona Tech Tivit | Núcleo + fixture da seção 5.7 + urna encerrada |
+| `RESULTADO_EMPATE_PERSISTENTE` | Maratona Tech Tivit | idem, com a fixture de empate no 1º |
+| `RESULTADO_CO_VENCEDORES` | Maratona Tech Tivit | idem, com a fixture de co-vencedores |
+| `RESULTADO_DOIS_CANDIDATOS` | Maratona Tech Tivit | idem, só c01 e c02 votáveis |
 | `FESTIVAL_ENCERRADO` | Festival | Núcleo + volume do Festival (com infantil) + urna encerrada em `janelaFim` |
 | `RESULTADO_SEM_INFANTIL` | Festival | Como acima, sem infantil (módulo desligado antes do cálculo) |
 
 Como cada cenário constrói o estado (todos idempotentes: aplicar duas vezes dá o mesmo resultado)
 1. `restaurarNucleo(estado, eventoId)` (em `mocks/volume/`) remove **todas** as entidades do evento (usuários `usr-v-*`, participações, convites gerados, votos, histórico, votos infantis, auditoria gerada e resultados) e reinsere as do núcleo do seed, sem tocar no outro evento, na sessão, em `ui` nem em `dev` (exceto o `slugPadrao`).
-2. Ajusta o evento: `estado = ATIVO`, `estadoUrna = ENCERRADA`, `urnaAbertaEm`, `urnaEncerradaEm` (Semana Tech: 13h e `T0`; Festival: `janelaInicio` e `janelaFim`).
+2. Ajusta o evento: `estado = ATIVO`, `estadoUrna = ENCERRADA`, `urnaAbertaEm`, `urnaEncerradaEm` (Maratona Tech Tivit: 13h e `T0`; Festival: `janelaInicio` e `janelaFim`).
 3. `gerarVolume` com a distribuição do cenário.
 4. `congelarResultado(…, "ENCERRAMENTO", { calculadoEm: urnaEncerradaEm })`.
 5. Confere `verificarInvariantes` vazia (I7 e I8 incluídas), nos dois eventos.
@@ -512,16 +512,16 @@ Os cenários **não usam** `forcarEstadoUrna`, porque o relógio não faz parte 
 
 ### 5.14 Matriz de verificação (V1–V40)
 
-Todos os testes são feitos **na mesma aba** (D18 da Etapa 0), navegando por `Link` e trocando de usuário pela toolbar ("Entrar como"). Confirme `verificarInvariantes` vazia (I7 e I8 incluídas) **depois de cada linha** e use o `InspetorEstado` para conferir `banco.resultados` e `banco.auditoria`. Salvo indicação, o evento é a Semana Tech no `PADRAO`.
+Todos os testes são feitos **na mesma aba** (D18 da Etapa 0), navegando por `Link` e trocando de usuário pela toolbar ("Entrar como"). Confirme `verificarInvariantes` vazia (I7 e I8 incluídas) **depois de cada linha** e use o `InspetorEstado` para conferir `banco.resultados` e `banco.auditoria`. Salvo indicação, o evento é a Maratona Tech Tivit no `PADRAO`.
 
 | # | Cenário | Como provocar | Resultado esperado |
 |---|---|---|---|
-| V1 | Acesso | Carla em `/e/semana-tech/admin`; depois Ana, Hugo e deslogado; Hugo em `/e/ver-e-fazer-filmes/admin` | Carla entra; Ana e Hugo veem `AcessoRestrito` sem nenhum dado; deslogado vai para `/e/semana-tech?de=…`; Hugo entra no Festival |
+| V1 | Acesso | Carla em `/e/maratona-tech-tivit/admin`; depois Ana, Hugo e deslogado; Hugo em `/e/ver-e-fazer-filmes/admin` | Carla entra; Ana e Hugo veem `AcessoRestrito` sem nenhum dado; deslogado vai para `/e/maratona-tech-tivit?de=…`; Hugo entra no Festival |
 | V2 | Abas na URL | Abrir `?aba=operacao`, `?aba=resultado` (urna aberta), `?aba=xyz` | Operação abre; Resultado fora de fase e valor inválido normalizam para Operação; foco no painel ao trocar de aba |
 | V3 | Fases | Toolbar: Rascunho, Ativo + não iniciada, urna Aberta, Encerrada, Concluído | Cada fase mostra o que a tabela 5.1 diz (inclusive a linha de Rascunho, com só `auditoria` disponível, C11); concluído fica em somente leitura |
 | V4 | Estados incoerentes | Toolbar: Concluído com urna Aberta; Rascunho com urna Encerrada | Aviso de combinação criada pela toolbar; a fase manda; Resultado vazio ou desabilitado conforme 5.1; nenhum erro no console |
 | V5 | Totais e participantes | Painel no `PADRAO` | Popular 412; júri 7; sem infantil; público 511 cadastrados e 412 votaram; jurado 9 e 7 |
-| V6 | Módulos | Toolbar: desligar e ligar júri e infantil, nos dois eventos | O que está desligado some de totais, jurados, totens, convites, categorias e CSV; Semana Tech nasce sem infantil e Festival com |
+| V6 | Módulos | Toolbar: desligar e ligar júri e infantil, nos dois eventos | O que está desligado some de totais, jurados, totens, convites, categorias e CSV; Maratona Tech Tivit nasce sem infantil e Festival com |
 | V7 | Sigilo da Operação | Urna aberta, parcial desligado; inspecionar a resposta no `InspetorEstado` ou no console | `parcial = null`; nenhuma tela mostra voto por candidato; faixa "Placar por candidato oculto durante a votação" |
 | V8 | Voto reflete no painel | Ana vota (Etapa 5) e volta ao painel | Popular +1, votaram +1 e % atualizados, sem recarregar a página |
 | V9 | Simulador | Ligar "Simular votos entrando"; trocar de aba do navegador; desligar; encerrar a urna | Totais sobem a cada ciclo, também fora do painel (montado no `GateEvento`, D12); para com a aba oculta e retoma; para ao desligar e ao encerrar; invariante 3 verde (cada voto simulado criou a participação **antes** do voto, com `criadoEm` anterior) |
@@ -626,7 +626,7 @@ src/mocks/
     distribuicoes.ts                # DISTRIBUICOES (tabelas da 5.7)
     nomes.ts
   cenarios/resultado.ts             # 7 cenários, registrados em mocks/cenarios.ts
-  criarEstadoInicial.ts             # compõe núcleo + volume da Semana Tech (criarEstadoNucleo separado)
+  criarEstadoInicial.ts             # compõe núcleo + volume da Maratona Tech Tivit (criarEstadoNucleo separado)
 ```
 
 Arquivos de outras etapas **que esta etapa não toca** (se faltar algo, ajusta-se aqui, não lá): `lib/csv.ts`, `dominio/travas.ts`, `dominio/convites.ts`, `dominio/aplicarVoto.ts`, `lib/tempo.ts`, `lib/useConsulta.ts`, `RotaGuard`, `Abas`. Exceções: as erratas mínimas da pendência P15, os registros de cenário e de seção da toolbar e, na rev. 3, o ajuste mínimo no `GateEvento` (Etapa 0) que monta o `SimuladorVotos` (D12, registrado no Anexo C da Etapa 0) e os campos novos de `DadosResultado` (D16) e de `ui.dashboard` (C17).
@@ -681,7 +681,7 @@ Regras de entrega, convenções de código e dependências aprovadas são as da 
 
 **Tarefas**
 - [ ] `mocks/volume/`: `gerarVolume`, `restaurarNucleo`, tipo `DistribuicaoAlvo`, `distribuicoes.ts` (tabelas da 5.7) e `nomes.ts`, conforme a seção 5.7. `gerarVolume` cria **primeiro** as participações (`criadoEm` no início da janela ou antes, nunca igual ao de um voto) e só depois aplica os votos (C2).
-- [ ] Conferir que `criarEstadoNucleo()` existe (Etapa 0 rev. 2) e fazer `criarEstadoInicial()` compor núcleo + volume da Semana Tech (as metas da 5.7). Conferir o núcleo intacto (ids e fatos) e que o candidato votado por Fábio está entre c01 e c05 na distribuição `PADRAO`.
+- [ ] Conferir que `criarEstadoNucleo()` existe (Etapa 0 rev. 2) e fazer `criarEstadoInicial()` compor núcleo + volume da Maratona Tech Tivit (as metas da 5.7). Conferir o núcleo intacto (ids e fatos) e que o candidato votado por Fábio está entre c01 e c05 na distribuição `PADRAO`.
 - [ ] Auditoria do volume: as 25 entradas da tabela de metas, com `criadoEm` crescente e `detalhes` coerentes (`historicoId` nas do júri; nenhum código de convite).
 - [ ] `mocks/cenarios/resultado.ts` com os sete cenários da 5.12, registrados em `mocks/cenarios.ts`. Aplicar **cada um duas vezes seguidas** e confirmar o mesmo estado e `verificarInvariantes` vazia nos dois eventos.
 - [ ] `store/simularVotos.ts`: criação de votos simulados (usuário gerado, **depois** a participação com `criadoEm` anterior ao voto, **depois** o `Voto` via `aplicarVotoPopular`, que não cria participação; C2), quantidade determinística.
@@ -858,7 +858,7 @@ Regras de entrega, convenções de código e dependências aprovadas são as da 
 - [ ] Atualizar o Contexto (seções 2, 4.1, 4.4, 4.7, 4.8, 7.1 e 10) com o que a etapa acrescentou (seção 3.2) e registrar se alguma errata da P15 precisou ser aplicada no código (a rev. 2 da Etapa 0 já as traz).
 - [ ] Atualizar o README da Fase 1 com o que a seção Dashboard da toolbar controla.
 
-| Grupo \ Tema | Semana Tech | Festival |
+| Grupo \ Tema | Maratona Tech Tivit | Festival |
 |---|---|---|
 | Acesso, abas e fases (V1 a V4) | ☐ | ☐ |
 | Operação: totais, módulos e sigilo (V5 a V10) | ☐ | ☐ |
@@ -931,4 +931,4 @@ Regras de entrega, convenções de código e dependências aprovadas são as da 
 - **P18 — Textos finais** dos avisos, confirmações e descrições de auditoria. **[Usuário]** (pendência E30, revisão única de textos com a organização).
 - **P19 — Citações do `DocumentDesign.md`:** **Resolvida (rev. 3, B1):** o `DocumentDesign.md` v1.1 existe e é citado nas Fontes; `ConfiguracaoEvento.md` não existe e a referência é DD §7.6 (B2).
 - **P20 — Série do Festival por hora:** com a janela de mais de 80 h, o gráfico usa passo de 1 h. Confirmar se é a leitura desejada para eventos longos.
-- **P21 — Apuração do júri por critério no Festival (rev. 4, A8):** requisito do Festival (voto simples continua na Semana Tech); modelo previsto `Criterio` e `NotaJuri`. Proposta: placar do júri do candidato = soma das médias dos critérios dadas pelos jurados, normalizada como os outros grupos. Pendentes: escala da nota, peso por critério, confirmação da proposta e desempate por critério. **[Usuário]**
+- **P21 — Apuração do júri por critério no Festival (rev. 4, A8):** requisito do Festival (voto simples continua na Maratona Tech Tivit); modelo previsto `Criterio` e `NotaJuri`. Proposta: placar do júri do candidato = soma das médias dos critérios dadas pelos jurados, normalizada como os outros grupos. Pendentes: escala da nota, peso por critério, confirmação da proposta e desempate por critério. **[Usuário]**

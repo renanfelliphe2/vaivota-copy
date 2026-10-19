@@ -78,7 +78,7 @@ Esta etapa precisa garantir:
 | D2 | **Rascunho:** quem é `ADMIN` **deste evento** vê a página normal com banner de rascunho. Qualquer outro vê a variante `INDISPONIVEL`, com casca mínima (header e rodapé, sem hero). | Admin precisa de acesso em qualquer estado. Evita expor conteúdo de um evento não publicado. |
 | D3 | **A entrada não lista candidatos:** mostra só "{n} {rótulo} concorrendo", contando os **votáveis** (`votaveis()`). | A lista é a Etapa 4. |
 | D4 | **Sessão pela `useSessao()` da Etapa 0.** Verificado sem participação (`papel` nulo) é tratado como público. Não verificado leva à ação `VERIFICAR_EMAIL`, que continua e leva à **tela de código** (`/e/{slug}/verificar-email`; rev. 4, A5: login sem senha, por Google ou código por e-mail). A criação da participação é da Etapa 3: login e registro criam; quem já tem sessão e chega a outro evento ganha `PUBLICO` por `garantirParticipacao`, chamada pelo slot de acesso da Etapa 3 ao montar. A participação nunca nasce junto com o voto (rev. 3, C2). | `Login.md`, passo 3. |
-| D5 | **Admin não vota** e `ADMIN` é por evento: admin de outro evento (Hugo na Semana Tech) é um usuário comum aqui. **Confirmado no DD §4 (papel por participação única por evento; rev. 3, B1).** | D13 da Etapa 0. |
+| D5 | **Admin não vota** e `ADMIN` é por evento: admin de outro evento (Hugo na Maratona Tech Tivit) é um usuário comum aqui. **Confirmado no DD §4 (papel por participação única por evento; rev. 3, B1).** | D13 da Etapa 0. |
 | D6 | **Jurado com módulo júri desligado** fica sem botão de voto, com aviso "A votação do júri não está ativa neste evento". Não vira público. Rev. 3 (E32): com convite `USADO` no evento, o módulo júri fica travado e não pode ser desligado (regra da Etapa 6); o caso só ocorre antes de qualquer resgate ou forçado pela toolbar. | `Jurado.md`: o jurado não vota na apuração popular. |
 | D7 | **Login e criação de conta também com a urna não iniciada.** Compatível com o DD (nada proíbe; rev. 3, B1). | A pessoa já deixa a conta e o e-mail verificados. P2 resolvida. |
 | D8 | **Sem texto sobre gradiente.** O hero tem uma faixa decorativa (gradiente primária → secundária, ou `capaUrl` se houver) sem texto em cima; o texto fica sobre o fundo do tema. | Texto sobre gradiente quebraria a política de 4,5:1 (D15 da Etapa 0). |
@@ -168,11 +168,11 @@ Cada cenário é testado com os usuários seed pela toolbar ("Entrar como").
 |---|---|---|---|---|---|
 | E1 | Não iniciada, visitante | Festival, deslogado | `NAO_INICIADA` | `ENTRAR_OU_CRIAR` | "Abre em" (contagem) |
 | E2 | Não iniciada, logado verificado | Festival, Ana | `NAO_INICIADA` | `NENHUMA` | "Abre em" |
-| E3 | Aberta, visitante | Semana Tech, deslogado | `ABERTA` | `ENTRAR_OU_CRIAR` | "Encerra em" |
-| E4 | Aberta, público, não votou | Semana Tech, Ana | `ABERTA` | `VOTAR` | link de convite (módulo júri ligado) |
-| E5 | Aberta, público, já votou | Semana Tech, Eva | `ABERTA` | `VER_CONFIRMACAO` | selo "Seu voto foi registrado" |
-| E6 | Aberta, jurado, não votou | Semana Tech, Bruno | `ABERTA` | `VOTAR_JURADO` | |
-| E7 | Aberta, jurado, já votou | Semana Tech, Fábio | `ABERTA` | `ALTERAR_VOTO_JURADO` | aviso "pode alterar até encerrar" |
+| E3 | Aberta, visitante | Maratona Tech Tivit, deslogado | `ABERTA` | `ENTRAR_OU_CRIAR` | "Encerra em" |
+| E4 | Aberta, público, não votou | Maratona Tech Tivit, Ana | `ABERTA` | `VOTAR` | link de convite (módulo júri ligado) |
+| E5 | Aberta, público, já votou | Maratona Tech Tivit, Eva | `ABERTA` | `VER_CONFIRMACAO` | selo "Seu voto foi registrado" |
+| E6 | Aberta, jurado, não votou | Maratona Tech Tivit, Bruno | `ABERTA` | `VOTAR_JURADO` | |
+| E7 | Aberta, jurado, já votou | Maratona Tech Tivit, Fábio | `ABERTA` | `ALTERAR_VOTO_JURADO` | aviso "pode alterar até encerrar" |
 | E8 | Urna encerrada | Urna "Encerrada", qualquer sessão | `ENCERRADA` | `NENHUMA` | com `jaVotou`: "Obrigado por votar" |
 | E9 | Evento concluído | Estado "Concluído" | `CONCLUIDO` | `NENHUMA` | |
 | E10 | Rascunho, não admin | Estado "Rascunho", Ana ou deslogado | `INDISPONIVEL` | `NENHUMA` | casca mínima |
@@ -183,7 +183,7 @@ Cada cenário é testado com os usuários seed pela toolbar ("Entrar como").
 | E15 | Logado, e-mail não verificado | Davi ("Entrar como" força o estado; rev. 4: código nunca confirmado), urna aberta ou não iniciada | `ABERTA` ou `NAO_INICIADA` | `VERIFICAR_EMAIL` (→ tela de código) | sem link de convite (`mostrarCodigoConvite` exige e-mail verificado; rev. 3, D3) |
 | E16 | Jurado, módulo júri desligado | Bruno + módulo júri desligado | `ABERTA` | `NENHUMA` | `avisoJuriDesligado` |
 | E17 | Tempo esgotado | Cenário `SEM_ENCERRAMENTO_AUTOMATICO` + relógio em "Fim da janela" | `ABERTA` | conforme sessão | aviso "Tempo esgotado" |
-| E18 | Admin de outro evento | Semana Tech, Hugo | `ABERTA` | `VOTAR` | tratado como usuário comum (D5) |
+| E18 | Admin de outro evento | Maratona Tech Tivit, Hugo | `ABERTA` | `VOTAR` | tratado como usuário comum (D5) |
 
 Casos de tempo cobertos pela situação da Etapa 1: **abertura pendente** (urna "Não iniciada" + relógio em "Fim da janela") mostra "Aguardando a abertura pela organização" no lugar da contagem; **reta final** destaca a contagem de "Encerra em".
 
@@ -274,7 +274,7 @@ Não são criados aqui: `EventoLogo`, `Countdown`, `use-agora`, `contraste`, `no
 
 ### CP2 — Casca do evento e metadata
 
-**Objetivo:** `/e/semana-tech` e `/e/ver-e-fazer-filmes` abrem dentro de uma casca temática.
+**Objetivo:** `/e/maratona-tech-tivit` e `/e/ver-e-fazer-filmes` abrem dentro de uma casca temática.
 
 **Tarefas**
 - [ ] `(participante)/layout.tsx` (servidor) com `generateMetadata` via `obterMetadadosEvento` e renderizando `EventoShell`.
@@ -298,7 +298,7 @@ Não são criados aqui: `EventoLogo`, `Countdown`, `use-agora`, `contraste`, `no
 - [ ] Rótulos do tema nos textos, conforme a seção 5.5.
 - [ ] Conferir os dois temas lado a lado pela toolbar.
 
-**Pronto quando:** Semana Tech (sem logo) e Festival (com logo) renderizam sem imagem quebrada; trocar o evento muda cores, fonte, logo e rótulos sem recarregar; nenhum valor de cor fixo no JSX; texto sempre sobre o fundo do tema.
+**Pronto quando:** Maratona Tech Tivit (sem logo) e Festival (com logo) renderizam sem imagem quebrada; trocar o evento muda cores, fonte, logo e rótulos sem recarregar; nenhum valor de cor fixo no JSX; texto sempre sobre o fundo do tema.
 
 **Entrega:** `VaiVota-E2-CP3.zip`
 
@@ -362,7 +362,7 @@ Não são criados aqui: `EventoLogo`, `Countdown`, `use-agora`, `contraste`, `no
 
 ## 9. Critérios de aceitação
 
-- [ ] `/e/semana-tech` e `/e/ver-e-fazer-filmes` funcionam com os dois temas e todos os cenários da matriz 5.4.
+- [ ] `/e/maratona-tech-tivit` e `/e/ver-e-fazer-filmes` funcionam com os dois temas e todos os cenários da matriz 5.4.
 - [ ] A variante e a ação vêm só de `resolverVisaoEvento`; nenhum componente repete a regra.
 - [ ] Nenhum texto de estado, cor de marca ou nome de evento fixo no código.
 - [ ] A entrada nunca lista candidatos, nem mostra contagem de votos ou resultado.
@@ -378,7 +378,7 @@ Não são criados aqui: `EventoLogo`, `Countdown`, `use-agora`, `contraste`, `no
 - **P2 — Criar conta antes da abertura:** **Resolvida (rev. 3, B1):** compatível com o DD (nada proíbe); D7 vale como está.
 - **P3 — Jurado com módulo desligado:** **Resolvida (rev. 3, E32):** o módulo júri fica travado (não pode ser desligado) quando existe convite `USADO` no evento; a regra é da Etapa 6 (travas). O aviso da D6 continua para o caso sem resgates ou forçado pela toolbar.
 - **P4 — Criação da participação:** **Resolvida (rev. 3, C2):** login e registro criam (Etapa 3); quem já tem sessão e chega a outro evento ganha `PUBLICO` por `garantirParticipacao`, chamada pelo slot de acesso da Etapa 3 no `EventoShell`. A participação nunca nasce junto com o voto. Até a Etapa 3, usuário verificado sem participação é tratado como público.
-- **P5 — Capa e logo da Semana Tech:** sem eles valem os fallbacks (D8).
+- **P5 — Capa e logo da Maratona Tech Tivit:** sem eles valem os fallbacks (D8).
 - **P6 — Textos finais das telas de estado:** os da seção 5.5 são provisórios.
 - **P7 — Marca do Festival:** **Resolvida (rev. 4, E1):** texto escuro sobre o laranja `#F15A29` (≈5,3:1), verde ajustado quando for texto; aprovação visual com a organização.
 - **P8 — Aviso de privacidade (rev. 4, E29):** a controladora dos dados é a VaiVota; o `RodapeEvento` mostra sempre o link do aviso da plataforma; `avisoPrivacidadeUrl` do evento é opcional e complementar. Texto do aviso pendente (rascunho a partir do DD §10.4).

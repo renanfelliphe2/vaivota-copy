@@ -6,7 +6,7 @@ import { MODULOS_FESTIVAL } from "@/lib/modulos";
 
 /** "Tenho um código de convite": logado com e-mail verificado (guarda da Etapa 0). */
 export default function PaginaConvite() {
-  // Fora do MVP da Semana Tech (ver src/lib/modulos.ts).
+  // Fora do MVP da Maratona Tech Tivit (ver src/lib/modulos.ts).
   if (!MODULOS_FESTIVAL) notFound();
   return (
     <RotaGuard exigencia={{ tipo: "EMAIL_VERIFICADO" }}>

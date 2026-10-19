@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-// Testes de integração do MVP Semana Tech: rodam o código de `src/server/**` contra um PostgreSQL real embutido
+// Testes de integração do MVP Maratona Tech Tivit: rodam o código de `src/server/**` contra um PostgreSQL real embutido
 // (embedded-postgres), com a migração de `prisma/migrations` aplicada. Separados de `pnpm test` (que é só de funções
 // puras): sobem um banco e levam mais tempo. `pnpm test:integracao`.
 export default defineConfig({

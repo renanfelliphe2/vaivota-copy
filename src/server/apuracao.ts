@@ -15,7 +15,7 @@ export async function contarVotosPopulares(cliente: Cliente, eventoId: string): 
   return Object.fromEntries(linhas.map((l) => [l.candidatoId, l._count._all]));
 }
 
-/** Calcula os dados do resultado com o estado atual do banco. Na Semana Tech só o grupo POPULAR conta (peso 100). */
+/** Calcula os dados do resultado com o estado atual do banco. Na Maratona Tech Tivit só o grupo POPULAR conta (peso 100). */
 export async function calcularDadosDoResultado(cliente: Cliente, eventoId: string): Promise<{
   dados: DadosResultado;
   pesos: Record<Grupo, number>;

@@ -12,7 +12,7 @@ import { intervaloDePollingMs, recarregarEstado } from "./servidor";
 const AmbienteContext = createContext<Ambiente | null>(null);
 
 /**
- * MVP Semana Tech: estado único no navegador, montado no layout raiz com o estado público que o servidor já entregou
+ * MVP Maratona Tech Tivit: estado único no navegador, montado no layout raiz com o estado público que o servidor já entregou
  * (a primeira tela sai renderizada com dados reais, sem espera). O relógio é o real, alinhado ao do servidor. Depois
  * disso, o estado se atualiza a cada ação (os serviços chamam `recarregarEstado`) e por polling enquanto a aba está visível
  * (10 s para quem espera a urna; 30 s para quem já votou ou administra; 60 s com a urna encerrada: ver `intervaloDePollingMs`).

@@ -38,7 +38,7 @@ export const seedTemas = [
   },
 ] satisfies Tema[];
 
-/** Paleta escura oferecida como predefinição na configuração de tema (era a da Semana Tech). */
+/** Paleta escura oferecida como predefinição na configuração de tema (era a da Maratona Tech Tivit). */
 export const PRESET_TEMA_ESCURO = {
   corPrimaria: "#38BDF8",
   corSecundaria: "#A78BFA",

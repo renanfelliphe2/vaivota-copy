@@ -28,7 +28,7 @@ export const LIMITES = {
   imagemBytes: 2 * 1024 * 1024,
 } as const;
 
-// SVG fora (MVP Semana Tech, seção 4): pode carregar script. Só PNG, JPG e WebP.
+// SVG fora (MVP Maratona Tech Tivit, seção 4): pode carregar script. Só PNG, JPG e WebP.
 export const TIPOS_IMAGEM = ["image/png", "image/jpeg", "image/webp"] as const;
 
 const RE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;

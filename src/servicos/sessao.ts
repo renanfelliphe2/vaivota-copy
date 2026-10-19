@@ -4,7 +4,7 @@ import { chamar } from "./rpc";
 import { atraso, falha, simularFalha, sucesso, type Resultado } from "./resultado";
 
 /**
- * Só toolbar do protótipo ("Entrar como" um usuário seed). Não existe no MVP da Semana Tech: a sessão é a do cookie do
+ * Só toolbar do protótipo ("Entrar como" um usuário seed). Não existe no MVP da Maratona Tech Tivit: a sessão é a do cookie do
  * Better Auth e o estado vem do servidor.
  */
 export async function entrarComo(usuarioId: string): Promise<Resultado<{ usuarioId: string }>> {

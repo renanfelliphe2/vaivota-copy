@@ -2,9 +2,9 @@
 
 O que a trilha de produção (Prisma + Supabase) precisa trocar. O protótipo guarda todo o `banco` no navegador; esta página diz por onde os dados passam hoje e o que não pode continuar assim.
 
-## Situação: trilha de produção implementada (MVP Semana Tech, 15/10/2026)
+## Situação: trilha de produção implementada (MVP Maratona Tech Tivit, 15/10/2026)
 
-A troca descrita abaixo foi feita para o que a Semana Tech usa. O que **não** foi trocado (júri, voto infantil, totem, apresentação, parceiros, convites) segue como protótipo, com as rotas fechadas por `NEXT_PUBLIC_MODULOS_FESTIVAL`.
+A troca descrita abaixo foi feita para o que a Maratona Tech Tivit usa. O que **não** foi trocado (júri, voto infantil, totem, apresentação, parceiros, convites) segue como protótipo, com as rotas fechadas por `NEXT_PUBLIC_MODULOS_FESTIVAL`.
 
 - **Fronteira real:** cada serviço de `src/servicos/` mantém a assinatura e chama `POST /api/servico/<nome>` (`src/servicos/rpc.ts` → `src/app/api/servico/[nome]/route.ts` → `src/server/rpc.ts`). O servidor valida os argumentos (zod), resolve a sessão do cookie (nunca de um campo enviado) e revalida papel e fase a cada chamada.
 - **Leitura pública:** `src/server/estadoPublico.ts` monta o estado já filtrado (eventos, tema, candidatos publicados, a própria pessoa e participação); o layout raiz o entrega ao `AppProvider` e o polling o renova (`obterEstado`: a cada 10 s para quem espera a urna, 30 s para quem já votou, 60 s com a urna encerrada; cache de 3 s por instância, sem cache para o admin). `src/store/estadoReal.ts` o transforma no mesmo `EstadoApp` do protótipo, então **seletores e telas não mudaram**.

@@ -4,13 +4,13 @@
 
 Plataforma web **white-label de votação para eventos**. Um mesmo software atende festivais, torneios e campeonatos: cada evento tem seus candidatos, regras e identidade visual, sem alterar código.
 
-> **Status:** o **MVP da Semana Tech** está implementado com dados reais (PostgreSQL/Supabase, Better Auth, upload de imagens, votação, operação, apuração, painel, exportação). O que falta é a configuração do ambiente (variáveis, domínio, e-mail, Google): ver [`docs/SEMANA-TECH-IMPLANTACAO.md`](docs/SEMANA-TECH-IMPLANTACAO.md). O protótipo da Fase 1 (Etapas 0 a 9) segue no código para o MVP do Festival. Ver [`docs/`](docs/).
+> **Status:** o **MVP da Maratona Tech Tivit** está implementado com dados reais (PostgreSQL/Supabase, Better Auth, upload de imagens, votação, operação, apuração, painel, exportação). O que falta é a configuração do ambiente (variáveis, domínio, e-mail, Google): ver [`docs/MARATONA-TECH-TIVIT-IMPLANTACAO.md`](docs/MARATONA-TECH-TIVIT-IMPLANTACAO.md). O protótipo da Fase 1 (Etapas 0 a 9) segue no código para o MVP do Festival. Ver [`docs/`](docs/).
 
 ---
 
 ## Sumário
 
-- [MVP Semana Tech (dados reais)](#mvp-semana-tech-dados-reais)
+- [MVP Maratona Tech Tivit (dados reais)](#mvp-maratona-tech-tivit-dados-reais)
 - [Fase 1 — protótipo (sem banco)](#fase-1--protótipo-sem-banco)
 - [O que é](#o-que-é)
 - [Recursos](#recursos)
@@ -27,9 +27,9 @@ Plataforma web **white-label de votação para eventos**. Um mesmo software aten
 - [Roadmap](#roadmap)
 - [Licença](#licença)
 
-## MVP Semana Tech (dados reais)
+## MVP Maratona Tech Tivit (dados reais)
 
-Plano completo em [`MVP-SemanaTech.md`](MVP-SemanaTech.md). Único objetivo do evento: **apurar os votos do público de 8 projetos**. Voto único garantido no banco, voto secreto, sem parcial por projeto, urna só abre e fecha pela organização, resultado oficial congelado no encerramento.
+Plano completo em [`MVP-MaratonaTechTivit.md`](MVP-MaratonaTechTivit.md). Único objetivo do evento: **apurar os votos do público de 8 projetos**. Voto único garantido no banco, voto secreto, sem parcial por projeto, urna só abre e fecha pela organização, resultado oficial congelado no encerramento.
 
 | Peça | Como é |
 |---|---|
@@ -47,7 +47,7 @@ pnpm install
 pnpm db:local                          # PostgreSQL embutido + migração + seed (deixe rodando)
 cp .env.example .env.local             # preencha: DATABASE_URL, DIRECT_URL, BETTER_AUTH_SECRET, APP_URL; EMAIL_PROVIDER=console
 pnpm db:promover-admin seu@email.com   # o primeiro admin
-pnpm dev                               # http://localhost:3000/e/semana-tech
+pnpm dev                               # http://localhost:3000/e/maratona-tech-tivit
 ```
 
 | Comando | Para quê |
@@ -60,11 +60,11 @@ pnpm dev                               # http://localhost:3000/e/semana-tech
 | `pnpm db:limpar-ensaio --confirmar` | Limpa os dados do ensaio antes do evento |
 | `pnpm db:carga-preparar` · `k6 run tests/carga/votar.js` · `pnpm db:carga-conferir` | Teste de carga e conferência de integridade |
 
-Implantação (Supabase, Vercel, domínio, Resend, Google): [`docs/SEMANA-TECH-IMPLANTACAO.md`](docs/SEMANA-TECH-IMPLANTACAO.md). Dia do evento e contingência: [`docs/SEMANA-TECH-DIA-DO-EVENTO.md`](docs/SEMANA-TECH-DIA-DO-EVENTO.md).
+Implantação (Supabase, Vercel, domínio, Resend, Google): [`docs/MARATONA-TECH-TIVIT-IMPLANTACAO.md`](docs/MARATONA-TECH-TIVIT-IMPLANTACAO.md). Dia do evento e contingência: [`docs/MARATONA-TECH-TIVIT-DIA-DO-EVENTO.md`](docs/MARATONA-TECH-TIVIT-DIA-DO-EVENTO.md).
 
 ## Fase 1 — protótipo (sem banco)
 
-> O texto abaixo descreve o protótipo da Fase 1, que continua no repositório. No MVP da Semana Tech ele roda com dados reais (seção acima): sem relógio simulado, sem toolbar, sem contas seed e sem `123456`.
+> O texto abaixo descreve o protótipo da Fase 1, que continua no repositório. No MVP da Maratona Tech Tivit ele roda com dados reais (seção acima): sem relógio simulado, sem toolbar, sem contas seed e sem `123456`.
 
 O protótipo navegável roda **só no navegador**: todo o estado fica em memória (store no layout raiz). **As abas do mesmo navegador ficam sincronizadas** (`BroadcastChannel`): o palco da apresentação abre numa aba própria, que vai para o telão, enquanto o admin opera na outra; F5 ou uma aba nova com outra aberta recuperam o estado, e **fechar todas as abas volta ao seed**. A navegação entre telas preserva o estado. Todas as etapas da Fase 1 estão implementadas (0 a 9). O que é fake, a fronteira de dados e o roteiro de demonstração estão em [`docs/`](docs/).
 
@@ -110,7 +110,7 @@ Botão **Dev ▲** no canto da tela (visual neutro, fora do tema). Age sobre o e
 - **Opções avançadas** (botão; fica aberto ou fechado entre telas): **Módulos e pesos** (júri/infantil, redistribui os pesos), **Rede e falhas** (latência 0/400/1500 ms, erro de rede, falha no próximo envio), **Cenários**, **Votação** ("Modo do júri": voto único, notas por critério ou melhor por critério, ignorando a trava da urna aberta; "Resetar meu voto" e "Enviar direto"), **Dashboard** ("Simular votos entrando", 1 a 3 votos a cada 3 s com a urna aberta e a aba visível; "Adicionar votos agora" +10/+50/+200; "Mostrar parcial por candidato"; "Conferir apuração"), **Apresentação** (toolbar no palco, trailer válido/inválido/ausente, trailer gerado, candidatos no trailer, classificação completa, avanço padrão, limiar da reta final, falha do trailer, "Resetar apresentação", "Conferir roteiro e motor"), **Inspetor** (invariantes) e **Mostrar JSON** (o estado inteiro).
 - **Gerais** (rodapé): **Resetar mock**, **Ocultar** e **Recolher**.
 
-O protótipo é **só do Festival** (a Semana Tech trabalha direto com dados reais). O seed começa **sem votos** e com a urna **não iniciada**, para a demonstração mostrar o primeiro voto de cada conta. Os cenários do grupo **Resultado** (`FESTIVAL_*`, `RESULTADO_SEM_INFANTIL`) montam o Festival encerrado com volume e resultado congelado, inclusive empates.
+O protótipo é **só do Festival** (a Maratona Tech Tivit trabalha direto com dados reais). O seed começa **sem votos** e com a urna **não iniciada**, para a demonstração mostrar o primeiro voto de cada conta. Os cenários do grupo **Resultado** (`FESTIVAL_*`, `RESULTADO_SEM_INFANTIL`) montam o Festival encerrado com volume e resultado congelado, inclusive empates.
 
 ### Build sem toolbar (público)
 
@@ -260,7 +260,7 @@ O schema completo está em [`prisma/schema.prisma`](prisma/schema.prisma) e a mi
 
 ### Instalação, banco e execução
 
-Ver [MVP Semana Tech (dados reais)](#mvp-semana-tech-dados-reais) e [`docs/SEMANA-TECH-IMPLANTACAO.md`](docs/SEMANA-TECH-IMPLANTACAO.md). Eventos e o primeiro admin são criados por **seed e script** (`pnpm db:seed`, `pnpm db:promover-admin`). Não há painel de super admin nesta versão.
+Ver [MVP Maratona Tech Tivit (dados reais)](#mvp-maratona-tech-tivit-dados-reais) e [`docs/MARATONA-TECH-TIVIT-IMPLANTACAO.md`](docs/MARATONA-TECH-TIVIT-IMPLANTACAO.md). Eventos e o primeiro admin são criados por **seed e script** (`pnpm db:seed`, `pnpm db:promover-admin`). Não há painel de super admin nesta versão.
 
 ## Variáveis de ambiente
 

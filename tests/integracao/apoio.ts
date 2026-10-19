@@ -3,7 +3,7 @@ import * as acesso from "@/server/acesso";
 import { db } from "@/server/db";
 import { caixaDeSaida } from "@/server/email";
 import { usuarioDaSessao, type UsuarioSessao } from "@/server/sessao";
-import { semearSemanaTech } from "@/server/semente";
+import { semearMaratonaTechTivit } from "@/server/semente";
 import type { PapelParticipacao } from "@/dominio/tipos";
 
 // Apoio dos testes de integração (banco real).
@@ -43,7 +43,7 @@ export async function esperarEmail(email: string, antes: number, ms = 5000): Pro
 }
 
 export async function semearEvento(slug: string, opcoes: { ativo?: boolean; urna?: "NAO_INICIADA" | "ABERTA" | "ENCERRADA" } = {}) {
-  const { eventoId } = await semearSemanaTech({ slug, nome: `Evento ${slug}` });
+  const { eventoId } = await semearMaratonaTechTivit({ slug, nome: `Evento ${slug}` });
   if (opcoes.ativo || opcoes.urna) {
     await db().evento.update({
       where: { id: eventoId },

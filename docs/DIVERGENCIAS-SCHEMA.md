@@ -2,7 +2,7 @@
 
 Comparação entre os tipos do protótipo (`src/dominio/tipos.ts`) e `prisma/schema.prisma`. **Só registra**: nada aqui altera o schema. O banco está decidido (Supabase PostgreSQL, rev. 4, A4); o schema ainda declara `provider = "mysql"` e tipos `@db.*` de MySQL, e **a conversão para PostgreSQL é tarefa da trilha de produção** (F-11).
 
-## Conversão para PostgreSQL (MVP Semana Tech, 15/10/2026)
+## Conversão para PostgreSQL (MVP Maratona Tech Tivit, 15/10/2026)
 
 Feita (F-11): `provider = "postgresql"`, gerador `prisma-client` em `src/generated/prisma`, datas `timestamptz(3)`, ids como `String` (UUID em texto, gerado pelo Prisma), `Json` nativo, URL da migração em `prisma.config.ts` (`DIRECT_URL`) e da aplicação no adaptador `pg` (`DATABASE_URL`, o pooler do Supabase). A migração está em `prisma/migrations/20261015000000_init` e inclui os CHECKs: pesos (`config_placar` e `resultado_oficial`), candidato publicado com imagem, versão e motivo do resultado, ordem do candidato. O `prisma/schema.sql` (referência em MySQL) foi removido: a migração é a referência.
 
@@ -23,7 +23,7 @@ Feita (F-11): `provider = "postgresql"`, gerador `prisma-client` em `src/generat
 | Mock | Schema | Observação |
 |---|---|---|
 | `Instante` (string ISO com offset) | `DateTime` | Serialização; o fuso de exibição é `Evento.fusoHorario` |
-| Ids legíveis (`evt-semana-tech`, `cand-st-01`, `par-ana-st`, `usr-v-0001`, `vj-par-…`, `conv-v-…`, `res-…-v1`) | `uuid()` em `Char(36)` | Só no seed; os serviços tratam ids como opacos |
+| Ids legíveis (`evt-maratona-tech-tivit`, `cand-st-01`, `par-ana-st`, `usr-v-0001`, `vj-par-…`, `conv-v-…`, `res-…-v1`) | `uuid()` em `Char(36)` | Só no seed; os serviços tratam ids como opacos |
 | `Voto.id`, `HistoricoVotoJuri.id`, `VotoInfantil.id`, `Auditoria.id` inteiros via `banco.sequencias` | `autoincrement()` | `sequencias` não existe no schema |
 | `Auditoria.acao: AcaoAuditoria` (união de 21) | `String @db.VarChar(64)` | A lista fechada fica no código (catálogo) |
 | `ResultadoOficial.motivo: MotivoResultado` | `String @db.VarChar(40)` | Valores: `ENCERRAMENTO`, `DESQUALIFICACAO`, `CORRECAO` |

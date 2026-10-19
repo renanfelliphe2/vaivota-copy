@@ -12,7 +12,7 @@ import { falha, falhaInterna, sucesso, type Resultado } from "./resultado";
 import { usuarioDaSessao, type UsuarioSessao } from "./sessao";
 import * as votacao from "./votacao";
 
-// Fronteira entre o navegador e o servidor (MVP Semana Tech, seção 3). Cada serviço do protótipo (`src/servicos/*`) vira
+// Fronteira entre o navegador e o servidor (MVP Maratona Tech Tivit, seção 3). Cada serviço do protótipo (`src/servicos/*`) vira
 // uma entrada aqui, com a MESMA assinatura de argumentos, devolvendo `Resultado<T>`. O cliente chama por
 // `POST /api/servico/<nome>` (src/app/api/servico/[nome]/route.ts). Os argumentos são validados com zod antes de tudo.
 // A identidade vem SEMPRE da sessão (cookie), nunca de um campo enviado pelo cliente.

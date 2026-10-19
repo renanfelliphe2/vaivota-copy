@@ -50,7 +50,7 @@ Esta etapa precisa garantir:
 | Item | Dono |
 |---|---|
 | `lib/aleatorio.ts` (`hashDeTexto`, `criarGerador`, `embaralharComSemente`), `dominio/candidatos.ts` (`publicados`, `votaveis`) | Etapa 0 |
-| Seed: 8 candidatos votáveis na Semana Tech e 6 no Festival, com os casos de borda da seção 5.6 da Etapa 0; `CampoCandidato`; `Evento.bloquearVotoProprio`; Gabi vinculada a `cand-st-08` e `cand-fv-03` | Etapa 0 |
+| Seed: 8 candidatos votáveis na Maratona Tech Tivit e 6 no Festival, com os casos de borda da seção 5.6 da Etapa 0; `CampoCandidato`; `Evento.bloquearVotoProprio`; Gabi vinculada a `cand-st-08` e `cand-fv-03` | Etapa 0 |
 | `ImagemCandidato` (D16: `placeholder:<n>`, caminho, `blob:`, `null`), `Dialogo`, `Botao`, `Selo`, `Alerta`, `Cartao`, `Carregando`, `ContagemRegressiva`, `LiveRegion` | Etapa 0 |
 | `RotaGuard` com `EMAIL_VERIFICADO` no stub de `votar` (cobre deslogado e e-mail não verificado), `AcessoRestrito`, stub `(participante)/votar/page.tsx` | Etapa 0 |
 | `useEventoAtivo()`, `useSessao()`, `useAgora()`, `Resultado<T>`, `CodigoErro`, `servicos/mensagens.ts`, mecanismo de cenários, lint de fronteira de dados, toolbar | Etapa 0 |
@@ -255,15 +255,15 @@ Cada linha é conferida pela toolbar, com os usuários seed ("Entrar como"). Com
 
 | # | Cenário | Como provocar | Tela | Extras |
 |---|---|---|---|---|
-| V1 | Deslogado | Semana Tech, sem sessão | — (`RotaGuard`) | Vai para `/e/{slug}?de=/e/{slug}/votar` |
+| V1 | Deslogado | Maratona Tech Tivit, sem sessão | — (`RotaGuard`) | Vai para `/e/{slug}?de=/e/{slug}/votar` |
 | V2 | E-mail não verificado | Davi | — (`RotaGuard`) | Vai para `/e/{slug}/verificar-email` (tela de código, rev. 4, A5) |
-| V3 | Público, não votou | Semana Tech, Ana | `LISTA` (`PUBLICO`) | 8 cartões, sem contagens |
-| V4 | Público, já votou | Semana Tech, Eva | `JA_VOTOU` | Sem lista, sem dizer em quem |
-| V5 | Jurado, não votou | Semana Tech, Bruno | `LISTA` (`JURADO`) | Mesma lista, ordem própria do Bruno |
-| V6 | Jurado, já votou | Semana Tech, Fábio | `LISTA` (`JURADO`) | Sem marcação de voto atual (Etapa 5) |
-| V7 | Candidato vinculado | Semana Tech, Gabi | `LISTA` | `cand-st-08` com selo e dica |
+| V3 | Público, não votou | Maratona Tech Tivit, Ana | `LISTA` (`PUBLICO`) | 8 cartões, sem contagens |
+| V4 | Público, já votou | Maratona Tech Tivit, Eva | `JA_VOTOU` | Sem lista, sem dizer em quem |
+| V5 | Jurado, não votou | Maratona Tech Tivit, Bruno | `LISTA` (`JURADO`) | Mesma lista, ordem própria do Bruno |
+| V6 | Jurado, já votou | Maratona Tech Tivit, Fábio | `LISTA` (`JURADO`) | Sem marcação de voto atual (Etapa 5) |
+| V7 | Candidato vinculado | Maratona Tech Tivit, Gabi | `LISTA` | `cand-st-08` com selo e dica |
 | V8 | Admin do evento | Carla (qualquer evento) ou Hugo no Festival | `ADMIN_NAO_VOTA` | Link "Ir para o painel" |
-| V9 | Admin de outro evento | Semana Tech, Hugo | `LISTA` | Usuário comum (D5 da Etapa 2) |
+| V9 | Admin de outro evento | Maratona Tech Tivit, Hugo | `LISTA` | Usuário comum (D5 da Etapa 2) |
 | V10 | Não iniciada | Festival (seed), Ana via "Entrar como" | `NAO_INICIADA` | "Abre em", sem lista |
 | V11 | Abertura pendente | Festival + relógio "Fim da janela" | `NAO_INICIADA` | "Aguardando a abertura pela organização" |
 | V12 | Urna encerrada | Urna "Encerrada"; Eva e Ana | `ENCERRADA` | Eva vê o agradecimento |
@@ -328,7 +328,7 @@ Não são criados aqui: `lib/embaralhar.ts` e `criarGeradorComSemente` (já exis
 - [ ] Cenário `VOTO_PROPRIO_PERMITIDO` (grupo `DADOS`): `bloquearVotoProprio = false` no evento ativo.
 - [ ] Nenhuma tela criada ou alterada.
 
-**Pronto quando:** pelos testes Vitest e por uma lista de chamadas conferida à mão (D19 da Etapa 0): `ordenarParaVotacao` repete a ordem para o mesmo usuário e evento, devolve ordens diferentes para Ana e Bruno na Semana Tech (se coincidirem por acaso, comparar com Eva) e não altera a lista recebida; `cand-st-09`, `cand-st-10`, `cand-fv-07` e `cand-fv-08` nunca aparecem; `localizarNaOrdem` devolve `null` para id de outro evento e funciona com uma lista de um só item (sem anterior nem seguinte); `resolverEstadoVotar` devolve o esperado para V3 a V20; `candidatoBloqueadoParaVoto` é `true` para Gabi em `cand-st-08` e `false` com o cenário `VOTO_PROPRIO_PERMITIDO`; `MUITOS_CANDIDATOS` dá 24 votáveis nos dois eventos; `verificarInvariantes` vazia depois de aplicar cada cenário.
+**Pronto quando:** pelos testes Vitest e por uma lista de chamadas conferida à mão (D19 da Etapa 0): `ordenarParaVotacao` repete a ordem para o mesmo usuário e evento, devolve ordens diferentes para Ana e Bruno na Maratona Tech Tivit (se coincidirem por acaso, comparar com Eva) e não altera a lista recebida; `cand-st-09`, `cand-st-10`, `cand-fv-07` e `cand-fv-08` nunca aparecem; `localizarNaOrdem` devolve `null` para id de outro evento e funciona com uma lista de um só item (sem anterior nem seguinte); `resolverEstadoVotar` devolve o esperado para V3 a V20; `candidatoBloqueadoParaVoto` é `true` para Gabi em `cand-st-08` e `false` com o cenário `VOTO_PROPRIO_PERMITIDO`; `MUITOS_CANDIDATOS` dá 24 votáveis nos dois eventos; `verificarInvariantes` vazia depois de aplicar cada cenário.
 
 **Entrega:** `VaiVota-E4-CP1.zip`
 
@@ -417,7 +417,7 @@ Não são criados aqui: `lib/embaralhar.ts` e `criarGeradorComSemente` (já exis
 - [ ] `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build` sem erros; sem warnings de hidratação.
 - [ ] Atualizar a seção 3.2 com o que mudou em relação ao entregue, para a Etapa 5 partir do real.
 
-| Grupo \ Tema | Semana Tech | Festival |
+| Grupo \ Tema | Maratona Tech Tivit | Festival |
 |---|---|---|
 | Guarda e telas de estado (V1, V2, V4, V8, V10 a V16, V25) | ☐ | ☐ |
 | Lista por papel (V3, V5, V6, V9, V18) | ☐ | ☐ |

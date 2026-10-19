@@ -13,7 +13,7 @@ import {
 } from "./mapeadores";
 import type { UsuarioSessao } from "./sessao";
 
-// MVP Semana Tech (seção 3, "leitura pública"): o servidor monta o estado já filtrado.
+// MVP Maratona Tech Tivit (seção 3, "leitura pública"): o servidor monta o estado já filtrado.
 //  - Visitante e público: eventos ATIVO e CONCLUIDO com candidatos publicados; rascunho aparece só como "em breve"
 //    (tema e nome), sem candidatos.
 //  - Admin do evento: também o rascunho completo, com todos os candidatos (inclusive os não publicados).

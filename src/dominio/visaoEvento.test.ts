@@ -6,7 +6,7 @@ import { chaveTextoDaVisao, resolverVisaoEvento, type EntradaVisao } from "./vis
 const T0 = Date.parse("2026-10-22T14:00:00-03:00");
 const config = { limiarRetaFinalSegundos: 300 };
 
-const semanaTech: EntradaVisao["evento"] = {
+const maratonaTechTIVIT: EntradaVisao["evento"] = {
   estado: "ATIVO",
   estadoUrna: "ABERTA",
   janelaInicio: "2026-10-22T13:00:00-03:00",
@@ -48,44 +48,44 @@ describe("resolverVisaoEvento (matriz E1–E18)", () => {
   });
 
   it("E3 aberta, visitante", () => {
-    const v = visao(semanaTech, visitante);
+    const v = visao(maratonaTechTIVIT, visitante);
     expect([v.variante, v.acao]).toEqual(["ABERTA", "ENTRAR_OU_CRIAR"]);
   });
 
   it("E4 aberta, público que não votou: VOTAR + link de convite", () => {
-    const v = visao(semanaTech, ana);
+    const v = visao(maratonaTechTIVIT, ana);
     expect([v.variante, v.acao, v.mostrarCodigoConvite, v.seloVoto]).toEqual(["ABERTA", "VOTAR", true, null]);
   });
 
   it("E5 aberta, público que já votou", () => {
-    const v = visao(semanaTech, eva);
+    const v = visao(maratonaTechTIVIT, eva);
     expect([v.acao, v.seloVoto, v.mostrarCodigoConvite]).toEqual(["VER_CONFIRMACAO", "REGISTRADO", false]);
   });
 
   it("E6 aberta, jurado que não votou", () => {
-    const v = visao(semanaTech, bruno);
+    const v = visao(maratonaTechTIVIT, bruno);
     expect([v.acao, v.mostrarCodigoConvite]).toEqual(["VOTAR_JURADO", false]);
   });
 
   it("E7 aberta, jurado que já votou", () => {
-    const v = visao(semanaTech, fabio);
+    const v = visao(maratonaTechTIVIT, fabio);
     expect([v.acao, v.seloVoto]).toEqual(["ALTERAR_VOTO_JURADO", "REGISTRADO_JURADO"]);
   });
 
   it("E8 urna encerrada: sem ação; agradece quem votou", () => {
-    const encerrada = { ...semanaTech, estadoUrna: "ENCERRADA" as const };
+    const encerrada = { ...maratonaTechTIVIT, estadoUrna: "ENCERRADA" as const };
     expect([visao(encerrada, visitante).variante, visao(encerrada, visitante).acao]).toEqual(["ENCERRADA", "NENHUMA"]);
     expect(visao(encerrada, eva).agradecer).toBe(true);
     expect(visao(encerrada, ana).agradecer).toBe(false);
   });
 
   it("E9 evento concluído", () => {
-    const v = visao({ ...semanaTech, estado: "CONCLUIDO" }, ana);
+    const v = visao({ ...maratonaTechTIVIT, estado: "CONCLUIDO" }, ana);
     expect([v.variante, v.acao]).toEqual(["CONCLUIDO", "NENHUMA"]);
   });
 
   it("E10 rascunho, não admin: indisponível", () => {
-    const rascunho = { ...semanaTech, estado: "RASCUNHO" as const };
+    const rascunho = { ...maratonaTechTIVIT, estado: "RASCUNHO" as const };
     for (const sessao of [visitante, ana]) {
       const v = visao(rascunho, sessao);
       expect([v.variante, v.acao, v.bannerRascunho]).toEqual(["INDISPONIVEL", "NENHUMA", false]);
@@ -93,53 +93,53 @@ describe("resolverVisaoEvento (matriz E1–E18)", () => {
   });
 
   it("E11 rascunho, admin do evento: variante da urna + banner", () => {
-    const v = visao({ ...semanaTech, estado: "RASCUNHO" }, carla);
+    const v = visao({ ...maratonaTechTIVIT, estado: "RASCUNHO" }, carla);
     expect([v.variante, v.acao, v.bannerRascunho]).toEqual(["ABERTA", "PAINEL_ADMIN", true]);
   });
 
   it("E12 aberta sem votáveis", () => {
-    const v = visao(semanaTech, visitante, { qtdVotaveis: 0 });
+    const v = visao(maratonaTechTIVIT, visitante, { qtdVotaveis: 0 });
     expect([v.variante, v.acao]).toEqual(["SEM_CANDIDATOS", "NENHUMA"]);
     // urna não iniciada com zero votáveis continua NAO_INICIADA
     expect(visao(festival, visitante, { qtdVotaveis: 0 }).variante).toBe("NAO_INICIADA");
   });
 
   it("E14 admin em qualquer estado: PAINEL_ADMIN", () => {
-    for (const evento of [semanaTech, festival, { ...semanaTech, estadoUrna: "ENCERRADA" as const }, { ...semanaTech, estado: "CONCLUIDO" as const }]) {
+    for (const evento of [maratonaTechTIVIT, festival, { ...maratonaTechTIVIT, estadoUrna: "ENCERRADA" as const }, { ...maratonaTechTIVIT, estado: "CONCLUIDO" as const }]) {
       expect(visao(evento, carla).acao).toBe("PAINEL_ADMIN");
     }
   });
 
   it("E15 logado, e-mail não verificado: VERIFICAR_EMAIL e sem link de convite", () => {
-    for (const evento of [semanaTech, festival]) {
+    for (const evento of [maratonaTechTIVIT, festival]) {
       const v = visao(evento, davi);
       expect([v.acao, v.mostrarCodigoConvite]).toEqual(["VERIFICAR_EMAIL", false]);
     }
   });
 
   it("E16 jurado com módulo júri desligado: sem botão, com aviso", () => {
-    const v = visao({ ...semanaTech, moduloJuri: false }, bruno);
+    const v = visao({ ...maratonaTechTIVIT, moduloJuri: false }, bruno);
     expect([v.variante, v.acao, v.avisoJuriDesligado]).toEqual(["ABERTA", "NENHUMA", true]);
-    expect(visao(semanaTech, bruno).avisoJuriDesligado).toBe(false);
+    expect(visao(maratonaTechTIVIT, bruno).avisoJuriDesligado).toBe(false);
   });
 
   it("E17 tempo esgotado: continua ABERTA, ação conforme a sessão", () => {
-    const fim = Date.parse(semanaTech.janelaFim!);
-    const v = visao(semanaTech, ana, { agoraMs: fim + 60_000 });
+    const fim = Date.parse(maratonaTechTIVIT.janelaFim!);
+    const v = visao(maratonaTechTIVIT, ana, { agoraMs: fim + 60_000 });
     expect([v.variante, v.situacao, v.acao]).toEqual(["ABERTA", "TEMPO_ESGOTADO", "VOTAR"]);
   });
 
   it("E18 admin de outro evento é usuário comum (participação PUBLICO aqui)", () => {
-    const hugoNaSemanaTech = { logado: true, papel: null, emailVerificado: true, jaVotou: false };
-    expect(visao(semanaTech, hugoNaSemanaTech).acao).toBe("VOTAR");
+    const hugoNaMaratonaTechTivit = { logado: true, papel: null, emailVerificado: true, jaVotou: false };
+    expect(visao(maratonaTechTIVIT, hugoNaMaratonaTechTivit).acao).toBe("VOTAR");
   });
 });
 
 describe("chaveTextoDaVisao", () => {
   it("quem já votou na urna aberta tem texto próprio; o resto segue a variante", () => {
-    expect(chaveTextoDaVisao(visao(semanaTech, eva))).toBe("JA_VOTOU");
-    expect(chaveTextoDaVisao(visao(semanaTech, fabio))).toBe("JURADO_JA_VOTOU");
-    expect(chaveTextoDaVisao(visao(semanaTech, ana))).toBe("ABERTA");
+    expect(chaveTextoDaVisao(visao(maratonaTechTIVIT, eva))).toBe("JA_VOTOU");
+    expect(chaveTextoDaVisao(visao(maratonaTechTIVIT, fabio))).toBe("JURADO_JA_VOTOU");
+    expect(chaveTextoDaVisao(visao(maratonaTechTIVIT, ana))).toBe("ABERTA");
     expect(chaveTextoDaVisao(visao(festival, visitante))).toBe("NAO_INICIADA");
   });
 });

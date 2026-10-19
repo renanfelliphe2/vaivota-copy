@@ -37,7 +37,7 @@ export async function votarPopular(entrada: EntradaVoto): Promise<Resultado<{ re
 /** Voto do júri: fica para o MVP do Festival. */
 export async function votarJuri(entrada: EntradaVoto): Promise<Resultado<{ resultado: ResultadoEnvioVoto }>> {
   void entrada;
-  return falha("PAPEL_INVALIDO", { detalhe: "votarJuri não existe no MVP da Semana Tech" });
+  return falha("PAPEL_INVALIDO", { detalhe: "votarJuri não existe no MVP da Maratona Tech Tivit" });
 }
 
 /**

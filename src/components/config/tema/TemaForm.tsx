@@ -88,7 +88,7 @@ export function TemaForm({ evento, tema, travas }: { evento: Evento; tema: Tema;
           <Campo id="tema-nome" rotulo="Nome de exibição" obrigatorio erro={mostrar("nomeExibicao")}>
             <Input value={r.nomeExibicao} onChange={(e) => mudar({ nomeExibicao: e.target.value })} maxLength={60} />
           </Campo>
-          {/* Envio de logo é do MVP do Festival (a Semana Tech usa o nome em texto). */}
+          {/* Envio de logo é do MVP do Festival (a Maratona Tech Tivit usa o nome em texto). */}
           {MODULOS_FESTIVAL && (
             <SeletorLogo
               nome={r.nomeExibicao}

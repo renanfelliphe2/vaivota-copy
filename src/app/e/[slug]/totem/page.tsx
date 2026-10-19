@@ -9,7 +9,7 @@ import { MODULOS_FESTIVAL } from "@/lib/modulos";
  * é o aparelho pareado). Sem zoom só aqui (Base/VotoInfantil.md §6); as telas do participante mantêm o zoom.
  */
 export default function PaginaTotem() {
-  // Fora do MVP da Semana Tech (ver src/lib/modulos.ts).
+  // Fora do MVP da Maratona Tech Tivit (ver src/lib/modulos.ts).
   if (!MODULOS_FESTIVAL) notFound();
   return <TelaTotem />;
 }

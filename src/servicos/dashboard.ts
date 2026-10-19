@@ -21,5 +21,5 @@ export function listarAuditoria(eventoId: string, opcoes: { grupo?: GrupoAuditor
 /** Votos identificados do júri: fica para o MVP do Festival. */
 export async function obterVotosJuri(eventoId: string): Promise<Resultado<VotosJuriVisao>> {
   void eventoId;
-  return falha("RESULTADO_INDISPONIVEL", { detalhe: "votos do júri não existem no MVP da Semana Tech" });
+  return falha("RESULTADO_INDISPONIVEL", { detalhe: "votos do júri não existem no MVP da Maratona Tech Tivit" });
 }

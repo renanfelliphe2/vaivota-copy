@@ -1,21 +1,21 @@
 import { argumento } from "./_ambiente";
 import { desconectarBanco } from "@/server/db";
-import { semearSemanaTech } from "@/server/semente";
+import { semearMaratonaTechTivit } from "@/server/semente";
 import { garantirBucket } from "@/server/storage";
 
-// ST0: seed idempotente do evento da Semana Tech (e do bucket de imagens no Supabase Storage). `pnpm db:seed`.
+// ST0: seed idempotente do evento da Maratona Tech Tivit (e do bucket de imagens no Supabase Storage). `pnpm db:seed`.
 // Rodar de novo nunca desfaz o que já existe. Opções: --slug, --nome, --janela-inicio, --janela-fim (ISO 8601 com offset;
 // também SEED_SLUG, SEED_NOME, SEED_JANELA_INICIO e SEED_JANELA_FIM).
 
 async function main() {
   const slug = argumento("slug") ?? process.env.SEED_SLUG;
-  const resultado = await semearSemanaTech({
+  const resultado = await semearMaratonaTechTivit({
     slug,
     nome: argumento("nome") ?? process.env.SEED_NOME,
     janelaInicio: argumento("janela-inicio") ?? process.env.SEED_JANELA_INICIO,
     janelaFim: argumento("janela-fim") ?? process.env.SEED_JANELA_FIM,
   });
-  console.info(`Evento ${slug ?? "semana-tech"}: ${resultado.criado ? "criado" : "já existia (nada foi alterado)"} (${resultado.eventoId}).`);
+  console.info(`Evento ${slug ?? "maratona-tech-tivit"}: ${resultado.criado ? "criado" : "já existia (nada foi alterado)"} (${resultado.eventoId}).`);
 
   try {
     const bucket = await garantirBucket();

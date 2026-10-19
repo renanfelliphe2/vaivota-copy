@@ -37,7 +37,7 @@ describe("bancoDoServidor", () => {
 describe("criarEstadoDoServidor", () => {
   it("o slug padrão é o do primeiro evento e a toolbar do protótipo fica oculta", () => {
     const estado = criarEstadoDoServidor(publico());
-    expect(estado.dev.slugPadrao).toBe("semana-tech");
+    expect(estado.dev.slugPadrao).toBe("maratona-tech-tivit");
     expect(estado.dev.toolbarModo).toBe("OCULTA");
     expect(estado.ui.loginPendente).toBeNull();
   });

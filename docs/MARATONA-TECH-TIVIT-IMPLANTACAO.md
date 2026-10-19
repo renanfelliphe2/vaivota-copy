@@ -1,6 +1,6 @@
-# Semana Tech: implantação passo a passo
+# Maratona Tech Tivit: implantação passo a passo
 
-O código do MVP está pronto (ver [`MVP-SemanaTech.md`](../MVP-SemanaTech.md), seção 10). Falta o que só você pode fazer: criar as contas, comprar o domínio e **preencher as variáveis de ambiente**. Este guia leva do zero ao evento no ar. Tempo: cerca de 1 hora de trabalho, mais a espera do DNS.
+O código do MVP está pronto (ver [`MVP-MaratonaTechTivit.md`](../MVP-MaratonaTechTivit.md), seção 10). Falta o que só você pode fazer: criar as contas, comprar o domínio e **preencher as variáveis de ambiente**. Este guia leva do zero ao evento no ar. Tempo: cerca de 1 hora de trabalho, mais a espera do DNS.
 
 Ordem sugerida: **A** (banco) → **B** (rodar local, opcional) → **C** (deploy) → **D** (domínio) → **E** (e-mail) → **F** (Google) → **G** (primeiro acesso) → **H** (ensaio) → **I** (véspera).
 
@@ -37,7 +37,7 @@ EMAIL_PROVIDER=console    # o código do e-mail aparece no terminal do servidor
 
 ```bash
 pnpm db:promover-admin seu@email.com   # cria o convite de admin
-pnpm dev                               # http://localhost:3000/e/semana-tech
+pnpm dev                               # http://localhost:3000/e/maratona-tech-tivit
 ```
 
 Crie a conta com **esse e-mail** (o código chega no terminal do `pnpm dev`): você já entra como admin. Sem `GOOGLE_CLIENT_ID`, o botão do Google some; sem `SUPABASE_*`, as imagens vão para `public/uploads`.
@@ -53,7 +53,7 @@ Crie a conta com **esse e-mail** (o código chega no terminal do `pnpm dev`): vo
 | `DIRECT_URL` | conexão direta ou session pooler (porta 5432) |
 | `APP_URL` | o endereço final, ex.: `https://votacao.seudominio.space` |
 | `BETTER_AUTH_SECRET` | `openssl rand -base64 32` |
-| `EVENTO_PADRAO_SLUG` | `semana-tech` (a raiz do site leva ao evento) |
+| `EVENTO_PADRAO_SLUG` | `maratona-tech-tivit` (a raiz do site leva ao evento) |
 | `RESEND_API_KEY`, `EMAIL_FROM` | passo E |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | passo F |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | passo A (a `SUPABASE_URL` precisa existir no **build**) |
@@ -65,13 +65,13 @@ Crie a conta com **esse e-mail** (o código chega no terminal do `pnpm dev`): vo
 
 ```bash
 pnpm db:migrar     # prisma migrate deploy: cria as tabelas, as constraints (CHECK) e o que o Prisma não expressa
-pnpm db:seed       # cria o evento semana-tech (rascunho), o tema escuro, os campos Equipe/Tecnologias e o bucket
+pnpm db:seed       # cria o evento maratona-tech-tivit (rascunho), o tema escuro, os campos Equipe/Tecnologias e o bucket
 ```
 
-O seed **nunca desfaz** o que já existe: pode rodar de novo. Janela da votação: por padrão 19/10/2026 08h–22h (-03:00). Mude pela tela **Configuração > Geral** (o dia e a hora exatos ainda são uma pendência do evento) ou com `SEED_JANELA_INICIO` / `SEED_JANELA_FIM` antes do primeiro seed.
+Ao aplicar as migrações, o evento publicado com o slug antigo é renomeado para `maratona-tech-tivit`; os endereços antigos redirecionam para o novo. Atualize `EVENTO_PADRAO_SLUG` e `SEED_SLUG` nas variáveis da Vercel para `maratona-tech-tivit` antes de fazer o deploy. O seed **nunca desfaz** o que já existe: pode rodar de novo. Janela da votação: por padrão 19/10/2026 08h–22h (-03:00). Mude pela tela **Configuração > Geral** (o dia e a hora exatos ainda são uma pendência do evento) ou com `SEED_JANELA_INICIO` / `SEED_JANELA_FIM` antes do primeiro seed.
 
 4. **Região das funções:** em Settings > Functions, escolha a região mais próxima do banco (**São Paulo, `gru1`**, se o Supabase for em São Paulo). Cada voto faz poucas consultas ao banco; região diferente soma latência em cada uma.
-5. Faça o deploy e abra `/e/semana-tech`: deve aparecer o evento, com o tema escuro e "Em breve".
+5. Faça o deploy e abra `/e/maratona-tech-tivit`: deve aparecer o evento, com o tema escuro e "Em breve".
 
 ## D. Domínio `.space`
 
@@ -83,7 +83,7 @@ O seed **nunca desfaz** o que já existe: pode rodar de novo. Janela da votaçã
 
 1. Crie a conta no [Resend](https://resend.com) e **adicione o domínio** usando um subdomínio, por exemplo `mail.seudominio.space`.
 2. Crie os registros **SPF e DKIM** que o Resend mostrar (com o DNS na Vercel, a integração do Resend faz sozinha). Aguarde **Verified**: de minutos a horas.
-3. Crie uma API key. `RESEND_API_KEY` = a chave; `EMAIL_FROM` = `Semana Tech <votacao@mail.seudominio.space>`.
+3. Crie uma API key. `RESEND_API_KEY` = a chave; `EMAIL_FROM` = `Maratona Tech Tivit <votacao@mail.seudominio.space>`.
 4. **Teste a entrega** criando conta com e-mails Gmail, Outlook e Hotmail; confira que o código chega na caixa de entrada (não no spam).
 5. **Cota:** o plano gratuito do Resend tem limite diário baixo (100 e-mails/dia na data deste guia). Cada cadastro por e-mail e senha envia 1 código (mais 1 por recuperação de senha). Quem entra pelo **Google** não usa o Resend. Dimensione pelo número esperado de cadastros e contrate o plano pago se passar do limite.
 6. **Plano B** (só se o domínio não verificar a tempo): SMTP de um Gmail dedicado ao evento, com **senha de app** (cerca de 500 destinatários por dia). Na Vercel: `EMAIL_PROVIDER=smtp`, `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER`, `SMTP_PASS` e `EMAIL_FROM` com o próprio Gmail. Só a função de envio muda; nada mais.
@@ -100,7 +100,7 @@ O seed **nunca desfaz** o que já existe: pode rodar de novo. Janela da votaçã
 ## G. Primeiro acesso e cadastro dos projetos
 
 1. **Admins:** `pnpm db:promover-admin email1@exemplo.com` (e os demais). Quem já tem conta vira admin na hora; quem ainda não tem recebe um **convite**: ao criar a conta (ou entrar pelo Google) com **esse e-mail**, a pessoa já entra como admin. Antes de o evento ser ativado, **só e-mails convidados** conseguem criar conta.
-2. Entre como admin em `/e/semana-tech` e abra **Configuração**:
+2. Entre como admin em `/e/maratona-tech-tivit` e abra **Configuração**:
    - **Itens** (os projetos): cadastre os 8, com título, descrição, equipe, tecnologias e **imagem** (PNG, JPG ou WebP, até 2 MB). Marque **Colocar na votação** em cada um (sem imagem o projeto só fica em rascunho).
    - **Geral**: confira o nome e a **janela** (informativa: a urna não abre nem fecha sozinha).
    - **Tema** e **Placar** já vêm do seed (tema escuro; placar 100/0/0).
@@ -117,7 +117,7 @@ O seed **nunca desfaz** o que já existe: pode rodar de novo. Janela da votaçã
 
 - **Congele o código**: só correções críticas daqui em diante.
 - Confira: domínio no ar, e-mail chegando em Gmail/Outlook/Hotmail, Google funcionando, `NEXT_PUBLIC_DEV_TOOLBAR` e `NEXT_PUBLIC_MODULOS_FESTIVAL` **sem** valor `true`, projeto do Supabase ativo, admins entrando.
-- Leia o [roteiro do dia](SEMANA-TECH-DIA-DO-EVENTO.md).
+- Leia o [roteiro do dia](MARATONA-TECH-TIVIT-DIA-DO-EVENTO.md).
 
 ---
 

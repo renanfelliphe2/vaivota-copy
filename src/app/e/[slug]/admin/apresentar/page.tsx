@@ -6,7 +6,7 @@ import { MODULOS_FESTIVAL } from "@/lib/modulos";
 
 /** Etapa 8: fora do AdminShell (tela própria do telão), com RotaGuard próprio; a sala é o <main>. */
 export default function PaginaApresentar() {
-  // Fora do MVP da Semana Tech (ver src/lib/modulos.ts).
+  // Fora do MVP da Maratona Tech Tivit (ver src/lib/modulos.ts).
   if (!MODULOS_FESTIVAL) notFound();
   return (
     <RotaGuard exigencia={{ tipo: "PAPEL", papeis: ["ADMIN"] }} comoMain>

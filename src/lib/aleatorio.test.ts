@@ -3,7 +3,7 @@ import { criarGerador, embaralharComSemente, hashDeTexto } from "./aleatorio";
 
 describe("aleatorio", () => {
   it("hashDeTexto é determinístico", () => {
-    expect(hashDeTexto("usr-ana:evt-semana-tech")).toBe(hashDeTexto("usr-ana:evt-semana-tech"));
+    expect(hashDeTexto("usr-ana:evt-maratona-tech-tivit")).toBe(hashDeTexto("usr-ana:evt-maratona-tech-tivit"));
     expect(hashDeTexto("a")).not.toBe(hashDeTexto("b"));
   });
 
@@ -21,8 +21,8 @@ describe("aleatorio", () => {
   it("embaralharComSemente: mesma semente, mesma ordem; lista original intacta", () => {
     const lista = Array.from({ length: 20 }, (_, i) => i);
     const original = [...lista];
-    const x = embaralharComSemente(lista, "usr-ana:evt-semana-tech");
-    const y = embaralharComSemente(lista, "usr-ana:evt-semana-tech");
+    const x = embaralharComSemente(lista, "usr-ana:evt-maratona-tech-tivit");
+    const y = embaralharComSemente(lista, "usr-ana:evt-maratona-tech-tivit");
     expect(x).toEqual(y);
     expect(lista).toEqual(original);
     expect([...x].sort((p, q) => p - q)).toEqual(original);

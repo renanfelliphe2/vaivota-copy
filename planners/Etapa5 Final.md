@@ -42,7 +42,7 @@ Esta etapa precisa garantir:
 - Comprovante ou hash do voto na tela (decisão: **não exibir**, seção 10).
 - Rate limiting de voto (só o bloqueio de código de convite é simulado, na Etapa 3).
 - Totem e voto infantil: entram por planner próprio (rev. 4, A7, a escrever); até lá, `Dispositivo` e `VotoInfantil` são dados seed.
-- Notas por critério do jurado: **requisito do Festival** (rev. 4, A8: Direção, Roteiro, Fotografia e Som, PDF §3.3; modelo previsto `Criterio` e `NotaJuri`). Esta etapa entrega o **voto simples do júri, usado na Semana Tech**. Escala da nota, peso por critério, conversão em placar do júri e desempate ficam pendentes [Usuário].
+- Notas por critério do jurado: **requisito do Festival** (rev. 4, A8: Direção, Roteiro, Fotografia e Som, PDF §3.3; modelo previsto `Criterio` e `NotaJuri`). Esta etapa entrega o **voto simples do júri, usado na Maratona Tech Tivit**. Escala da nota, peso por critério, conversão em placar do júri e desempate ficam pendentes [Usuário].
 
 ---
 
@@ -323,11 +323,11 @@ Todos os testes são feitos **na mesma aba**, navegando por `Link` (D18 da Etapa
 
 | # | Cenário | Como provocar | Resultado esperado |
 |---|---|---|---|
-| W1 | Público, fluxo feliz | Semana Tech, Ana: escolher, "Revisar voto", "Confirmar voto" | Sucesso "Seu voto foi registrado", **sem** o nome do candidato (E8); `votos` +1 (Eva + Ana); Ana `votou`; `vinculosVoto["usr-ana:evt-semana-tech"]` preenchido |
+| W1 | Público, fluxo feliz | Maratona Tech Tivit, Ana: escolher, "Revisar voto", "Confirmar voto" | Sucesso "Seu voto foi registrado", **sem** o nome do candidato (E8); `votos` +1 (Eva + Ana); Ana `votou`; `vinculosVoto["usr-ana:evt-maratona-tech-tivit"]` preenchido |
 | W2 | Depois do sucesso | W1 e "Voltar ao evento"; voltar a `/votar` por `Link` | Entrada com selo "Seu voto foi registrado"; `/votar` mostra `TelaJaVotou` sem dizer em quem |
 | W3 | Trocar escolha | Revisão e "Trocar escolha" | Volta à lista com a seleção mantida; o voltar do navegador não cria entradas duplicadas |
 | W4 | Duplo clique | Latência 1500 e dois cliques rápidos em "Confirmar voto" | **1** voto novo |
-| W5 | Já votou | Semana Tech, Eva | `TelaJaVotou`, sem lista, sem dizer em quem |
+| W5 | Já votou | Maratona Tech Tivit, Eva | `TelaJaVotou`, sem lista, sem dizer em quem |
 | W6 | Rede: não gravou | `Falha no próximo envio = REDE_NAO_GRAVOU`, Ana confirma | "Verificando seu voto…", depois "Seu voto ainda não foi registrado." + "Tentar novamente"; 0 voto novo; tentar de novo dá sucesso |
 | W7 | Rede: gravou | `REDE_GRAVOU` | "Verificando seu voto…" e sucesso, sem permitir novo envio; 1 voto novo |
 | W8 | Urna encerra no envio | `URNA_ENCERRA` | Tela `ENCERRADA` com o alerta "Sua escolha não foi registrada…"; 0 voto; resultado congelado e auditoria `URNA_ENCERRADA` com origem `FALHA_SIMULADA` |
@@ -499,7 +499,7 @@ Não são criados aqui: `sessaoUi`, `ResultadoVoto`, `MotivoRejeicao`, contador 
 - [ ] `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build` sem erros; sem warnings de hidratação.
 - [ ] Atualizar o Contexto (seções 2, 4.4, 4.9, 7.1 e 10) e a seção 3.2 com o que mudou em relação ao entregue.
 
-| Grupo \ Tema | Semana Tech | Festival |
+| Grupo \ Tema | Maratona Tech Tivit | Festival |
 |---|---|---|
 | Seleção (W22, W27, W28) | ☐ | ☐ |
 | Fluxo feliz e navegação (W1 a W5, W25) | ☐ | ☐ |

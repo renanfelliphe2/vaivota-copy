@@ -22,7 +22,7 @@ describe("situacaoTotem", () => {
   const casos: [string, Parameters<typeof situacaoTotem>, SituacaoTotem][] = [
     ["aberto e ativo", [ABERTO, TOTEM, 4], "VOTANDO"],
     ["sem aparelho", [ABERTO, null, 4], "NAO_PAREADO"],
-    ["aparelho de outro evento", [ABERTO, { ...TOTEM, eventoId: "evt-semana-tech" }, 4], "NAO_PAREADO"],
+    ["aparelho de outro evento", [ABERTO, { ...TOTEM, eventoId: "evt-maratona-tech-tivit" }, 4], "NAO_PAREADO"],
     ["revogado vence o módulo desligado", [{ ...ABERTO, moduloInfantil: false }, { ...TOTEM, estado: "REVOGADO" }, 4], "DISPOSITIVO_REVOGADO"],
     ["módulo desligado", [{ ...ABERTO, moduloInfantil: false }, TOTEM, 4], "MODULO_DESLIGADO"],
     ["evento em rascunho", [{ ...ABERTO, estado: "RASCUNHO" }, TOTEM, 4], "EVENTO_INDISPONIVEL"],

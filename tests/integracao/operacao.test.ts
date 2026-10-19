@@ -7,6 +7,7 @@ import { zerarMemoria } from "@/server/limites";
 import { guardarImagem } from "@/server/storage";
 import { votarPopular } from "@/server/votacao";
 import { avaliarChecklist } from "@/dominio/checklistAtivacao";
+import { semearMaratonaTechTivit } from "@/server/semente";
 import { criarAdminDireto, criarCandidatos, criarUsuarioDireto, IMAGEM_FALSA, semearEvento } from "./apoio";
 import type { UsuarioSessao } from "@/server/sessao";
 import { prefixoPublico } from "@/server/storage";
@@ -27,6 +28,20 @@ afterAll(async () => {
 });
 
 const dados = (titulo: string, imagemUrl: string | null = null) => ({ titulo, descricao: `Descrição de ${titulo}`, imagemUrl, camposExtras: {} });
+
+describe("seed da Maratona Tech Tivit", () => {
+  it("usa o nome e o slug públicos atuais de forma idempotente", async () => {
+    const primeira = await semearMaratonaTechTivit();
+    expect(primeira.criado).toBe(true);
+    await expect(db().evento.findUniqueOrThrow({ where: { id: primeira.eventoId } })).resolves.toMatchObject({
+      slug: "maratona-tech-tivit",
+      nome: "Maratona Tech Tivit",
+    });
+
+    const segunda = await semearMaratonaTechTivit();
+    expect(segunda).toEqual({ eventoId: primeira.eventoId, criado: false });
+  });
+});
 
 describe("só o admin do evento opera", () => {
   it("público e visitante recebem NAO_AUTORIZADO", async () => {
@@ -245,14 +260,14 @@ describe("configuração (ST7)", () => {
   it("salvarGeral: janela e nome; recusa encerramento automático e fim antes do início; slug travado depois de ativar", async () => {
     const e = await semearEvento("teste-operacao-geral");
     const adm = await criarAdminDireto(e);
-    const r = await salvarGeral(adm, e, { nome: "Semana Tech 2026", janelaInicio: "2026-10-19T09:00:00-03:00", janelaFim: "2026-10-19T21:00:00-03:00" });
+    const r = await salvarGeral(adm, e, { nome: "Maratona Tech Tivit 2026", janelaInicio: "2026-10-19T09:00:00-03:00", janelaFim: "2026-10-19T21:00:00-03:00" });
     expect(r.ok).toBe(true);
     const evento = await db().evento.findUniqueOrThrow({ where: { id: e } });
-    expect(evento.nome).toBe("Semana Tech 2026");
+    expect(evento.nome).toBe("Maratona Tech Tivit 2026");
     expect(evento.janelaInicio?.toISOString()).toBe("2026-10-19T12:00:00.000Z");
     expect(await salvarGeral(adm, e, { janelaFim: "2026-10-19T08:00:00-03:00" })).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
     expect(await salvarGeral(adm, e, { encerramentoAutomatico: true })).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
-    expect(await salvarGeral(adm, e, { slug: "semana-tech-2026" })).toMatchObject({ ok: true });
+    expect(await salvarGeral(adm, e, { slug: "maratona-tech-tivit-2026" })).toMatchObject({ ok: true });
     await db().evento.update({ where: { id: e }, data: { estado: "ATIVO" } });
     expect(await salvarGeral(adm, e, { slug: "outro-endereco" })).toMatchObject({ ok: false, erro: { codigo: "TRAVADO" } });
   });
@@ -261,7 +276,7 @@ describe("configuração (ST7)", () => {
     const e = await semearEvento("teste-operacao-tema");
     const adm = await criarAdminDireto(e);
     const tema = {
-      nomeExibicao: "Semana Tech",
+      nomeExibicao: "Maratona Tech Tivit",
       corPrimaria: "#38BDF8",
       corSecundaria: "#A78BFA",
       corFundo: "#0F172A",

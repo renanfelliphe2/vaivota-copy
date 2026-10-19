@@ -11,7 +11,7 @@ import { falha, falhaInterna, sucesso, type Resultado } from "./resultado";
 import { exigirAdmin, type UsuarioSessao } from "./sessao";
 import { urlDeImagemValida } from "./storage";
 
-// ST2: candidatos (os "projetos" da Semana Tech) e campos extras (equipe, tecnologias). Só o admin do evento chama.
+// ST2: candidatos (os "projetos" da Maratona Tech Tivit) e campos extras (equipe, tecnologias). Só o admin do evento chama.
 // A imagem vem do upload (src/server/upload.ts): aqui `imagemUrl` só aceita o que o próprio sistema gravou.
 
 function limparCampos(chavesDoEvento: Set<string>, campos: Record<string, string>): Record<string, string> {

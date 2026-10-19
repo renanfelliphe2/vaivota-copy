@@ -1,6 +1,6 @@
 import type { CampoCandidato, Candidato, ConfigApresentacao, ConfigPlacar, Evento, Participacao, Tema } from "./tipos";
 
-// MVP Semana Tech (seção 3): o que o servidor entrega ao navegador. É o "estado público": evento, tema, candidatos
+// MVP Maratona Tech Tivit (seção 3): o que o servidor entrega ao navegador. É o "estado público": evento, tema, candidatos
 // publicados (o admin recebe também os rascunhos), a participação e o perfil da própria pessoa. Nunca vão ao cliente:
 // votos, auditoria, e-mails de terceiros, participações de outras pessoas (tabela 5.11 do FRONTEIRA-DADOS.md).
 

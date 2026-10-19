@@ -28,29 +28,29 @@ afterEach(() => vi.unstubAllGlobals());
 describe("destinoAposAcesso", () => {
   it("público com a votação aberta vai para a lista; já votou também (vê a confirmação)", () => {
     iniciar(comPapel("PUBLICO"));
-    expect(destinoAposAcesso("evt-1")).toBe("/e/semana-tech#candidatos");
+    expect(destinoAposAcesso("evt-1")).toBe("/e/maratona-tech-tivit#candidatos");
     iniciar(comPapel("PUBLICO", { votou: true }));
-    expect(destinoAposAcesso("evt-1")).toBe("/e/semana-tech#candidatos");
+    expect(destinoAposAcesso("evt-1")).toBe("/e/maratona-tech-tivit#candidatos");
   });
 
   it("admin vai para o painel; o `?de=` interno vale; externo é ignorado", () => {
     iniciar(comPapel("ADMIN"));
-    expect(destinoAposAcesso("evt-1")).toBe("/e/semana-tech/admin");
-    expect(destinoAposAcesso("evt-1", "/e/semana-tech/admin/configuracao")).toBe("/e/semana-tech/admin/configuracao");
-    expect(destinoAposAcesso("evt-1", "https://site-malicioso.com")).toBe("/e/semana-tech/admin");
-    expect(destinoAposAcesso("evt-1", "//site-malicioso.com")).toBe("/e/semana-tech/admin");
+    expect(destinoAposAcesso("evt-1")).toBe("/e/maratona-tech-tivit/admin");
+    expect(destinoAposAcesso("evt-1", "/e/maratona-tech-tivit/admin/configuracao")).toBe("/e/maratona-tech-tivit/admin/configuracao");
+    expect(destinoAposAcesso("evt-1", "https://site-malicioso.com")).toBe("/e/maratona-tech-tivit/admin");
+    expect(destinoAposAcesso("evt-1", "//site-malicioso.com")).toBe("/e/maratona-tech-tivit/admin");
   });
 
   it("com a urna ainda não aberta, o público volta à página do evento", () => {
     const antes = comPapel("PUBLICO");
     antes.eventos[0].evento = evento({ estadoUrna: "NAO_INICIADA", urnaAbertaEm: null });
     iniciar(antes);
-    expect(destinoAposAcesso("evt-1")).toBe("/e/semana-tech");
+    expect(destinoAposAcesso("evt-1")).toBe("/e/maratona-tech-tivit");
   });
 
   it("e-mail não verificado vai para a confirmação do código", () => {
     iniciar(publico({ usuario: { id: "u1", nome: "Ana", email: "ana@exemplo.com", emailVerificado: false } }));
-    expect(destinoAposAcesso("evt-1")).toBe("/e/semana-tech/verificar-email");
+    expect(destinoAposAcesso("evt-1")).toBe("/e/maratona-tech-tivit/verificar-email");
   });
 });
 
@@ -81,9 +81,9 @@ describe("registrar → confirmar → entrar", () => {
       confirmacaoSenha: "minha-senha-1",
       papel: "PUBLICO",
       aceite: true,
-      de: "/e/semana-tech?candidato=k1",
+      de: "/e/maratona-tech-tivit?candidato=k1",
     });
-    expect(r).toEqual({ ok: true, dados: { destino: "/e/semana-tech/verificar-email?de=%2Fe%2Fsemana-tech%3Fcandidato%3Dk1" } });
+    expect(r).toEqual({ ok: true, dados: { destino: "/e/maratona-tech-tivit/verificar-email?de=%2Fe%2Fmaratona-tech-tivit%3Fcandidato%3Dk1" } });
     expect(chamadas.map((c) => c.nome)).toEqual(["registrar"]);
     expect(chamadas[0].args).not.toHaveProperty("codigo");
   });
@@ -104,7 +104,7 @@ describe("registrar → confirmar → entrar", () => {
     });
     await registrar("evt-1", { nome: "Ana Souza", email: "ana@exemplo.com", senha: "minha-senha-1", confirmacaoSenha: "minha-senha-1", papel: "PUBLICO", aceite: true });
     const r = await confirmarCodigo("evt-1", "123456");
-    expect(r).toEqual({ ok: true, dados: { destino: "/e/semana-tech#candidatos", contaConfirmada: true } });
+    expect(r).toEqual({ ok: true, dados: { destino: "/e/maratona-tech-tivit#candidatos", contaConfirmada: true } });
     expect(chamadas.map((c) => c.nome)).toEqual(["registrar", "confirmarCodigo", "obterEstado"]);
     expect(chamadas[1].args).toEqual({ eventoId: "evt-1", email: "ana@exemplo.com", codigo: "123456" });
   });
@@ -118,7 +118,7 @@ describe("registrar → confirmar → entrar", () => {
   it("entrar com e-mail ainda não confirmado leva à tela do código com o e-mail guardado", async () => {
     servidor({ entrar: { ok: false, erro: { codigo: "EMAIL_NAO_VERIFICADO", mensagem: "Confirme seu e-mail para continuar." } } });
     const r = await entrar("evt-1", "ana@exemplo.com", "minha-senha-1");
-    expect(r).toEqual({ ok: true, dados: { destino: "/e/semana-tech/verificar-email" } });
+    expect(r).toEqual({ ok: true, dados: { destino: "/e/maratona-tech-tivit/verificar-email" } });
   });
 
   it("o bloqueio de senha do servidor vira contagem regressiva na tela", async () => {
@@ -136,7 +136,7 @@ describe("registrar → confirmar → entrar", () => {
     const store = iniciar(publico({ usuario: null, eventos: [{ ...publico().eventos[0], participacao: null }] }));
     servidor({ solicitarRecuperacao: { ok: true, dados: { email: "ana@exemplo.com", ateMs: Date.parse(AGORA) + 30_000 } } });
     const r = await solicitarRecuperacao("evt-1", "Ana@exemplo.com");
-    expect(r).toEqual({ ok: true, dados: { destino: "/e/semana-tech/recuperar-senha" } });
+    expect(r).toEqual({ ok: true, dados: { destino: "/e/maratona-tech-tivit/recuperar-senha" } });
     expect(store.getState().ui.loginPendente).toMatchObject({ email: "ana@exemplo.com", tipo: "recuperacao", eventoId: "evt-1" });
     expect(store.getState().ui.reenvioVerificacaoAteMs).toBe(Date.parse(AGORA) + 30_000);
   });

@@ -14,7 +14,7 @@ Permitir que jurados convidados votem em um candidato por um fluxo quase idênti
 **Dentro:**
 - Códigos de convite individuais (geração em lote, resgate, revogação).
 - Registro e login de jurado (reaproveita o fluxo do `Login.md`).
-- Voto do júri (um candidato por jurado) na Semana Tech, com alteração até o fim da urna.
+- Voto do júri (um candidato por jurado) na Maratona Tech Tivit, com alteração até o fim da urna.
 - **Requisito do Festival:** voto do júri **por critério** (Direção, Roteiro, Fotografia e Som — documento de requisitos §3.3), com `Criterio` e `NotaJuri`. Detalhes na seção 12.
 - Apuração do júri e placar combinado (popular + júri).
 - Regras de desempate.
@@ -28,7 +28,7 @@ Permitir que jurados convidados votem em um candidato por um fluxo quase idênti
 | Tema | Decisão |
 |---|---|
 | Convite | **Código individual de uso único** por jurado, gerado em lote pelo admin |
-| Tipo de voto | **Voto simples** (um candidato) na Semana Tech; **voto por critério** (Direção, Roteiro, Fotografia e Som) no Festival |
+| Tipo de voto | **Voto simples** (um candidato) na Maratona Tech Tivit; **voto por critério** (Direção, Roteiro, Fotografia e Som) no Festival |
 | Urna | Mesma urna e mesma janela do voto popular |
 | Sigilo | Voto do jurado **identificado para o admin**; **nunca** exibido no telão (a categoria do júri mostra só o vencedor) |
 | Alteração | Jurado pode mudar o voto **enquanto a urna estiver aberta**; histórico guardado |
@@ -126,6 +126,6 @@ pontuação(candidato) =
 - **Resolvida (rev. 3, C4):** pesos e regra de desempate ficam **travados ao abrir a urna**, sem exceção, no MVP. Alteração auditada com a urna aberta é evolução futura.
 - Validade padrão dos códigos.
 - Lista de impedimentos por conflito de interesse (futuro).
-- **Resolvida (rev. 4, A8):** voto simples na Semana Tech; **voto por critério no Festival** (Direção, Roteiro, Fotografia e Som). Detalhes em aberto: escala da nota, peso por critério, como a nota vira placar do júri (proposta: placar do júri do candidato = soma das médias dos critérios dadas pelos jurados, normalizada como os outros grupos) e desempate por critério.
+- **Resolvida (rev. 4, A8):** voto simples na Maratona Tech Tivit; **voto por critério no Festival** (Direção, Roteiro, Fotografia e Som). Detalhes em aberto: escala da nota, peso por critério, como a nota vira placar do júri (proposta: placar do júri do candidato = soma das médias dos critérios dadas pelos jurados, normalizada como os outros grupos) e desempate por critério.
 - **Resolvida (08/10/2026, dono do produto):** o júri tem três formas de votar, escolhidas pelo admin em Configuração › Júri (travam com a urna aberta): **voto único**; **notas por critério** (nota inteira de 0 a 10 a cada candidato em cada critério, cada candidato salvo por si; placar do júri = média simples de todas as notas recebidas, normalizada como os outros grupos); **melhor por critério** (um candidato por critério; cada escolha vale 1 voto do júri). O público continua com voto único. Seguem em aberto: peso por critério, desempate por critério e a revelação por critério no telão.
 - **Resolvida (rev. 3, E9):** o jurado não vê o próprio voto após o fim do evento.

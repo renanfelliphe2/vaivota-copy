@@ -8,8 +8,8 @@ export const AGORA = "2026-10-19T09:00:00-03:00";
 export function evento(sobrescrever: Partial<Evento> = {}): Evento {
   return {
     id: "evt-1",
-    slug: "semana-tech",
-    nome: "Semana Tech",
+    slug: "maratona-tech-tivit",
+    nome: "Maratona Tech Tivit",
     descricao: null,
     local: null,
     linkSobre: null,
@@ -59,7 +59,7 @@ export function publico(sobrescrever: Partial<EstadoPublico> = {}): EstadoPublic
         evento: evento(),
         tema: {
           eventoId: "evt-1",
-          nomeExibicao: "Semana Tech",
+          nomeExibicao: "Maratona Tech Tivit",
           logoUrl: null,
           capaUrl: null,
           corPrimaria: "#38BDF8",

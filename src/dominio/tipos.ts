@@ -39,7 +39,7 @@ export type AcaoAuditoria =
   | "CONVITE_RESGATADO"
   | "TENTATIVA_CODIGO_INVALIDA"
   | "BLOQUEIO_RATE_LIMIT"
-  // MVP Semana Tech: admin que ainda não tinha conta entra com o e-mail convidado (script promover-admin)
+  // MVP Maratona Tech Tivit: admin que ainda não tinha conta entra com o e-mail convidado (script promover-admin)
   | "ADMIN_CONVITE_RESGATADO"
   // Etapa 5 (voto do júri; nunca a escolha do voto popular ou infantil)
   | "VOTO_JURI_REGISTRADO"
@@ -414,7 +414,7 @@ export type EstadoUiApresentacao = {
 
 export type BloqueioTentativas = { falhas: number; ateMs: number | null };
 
-/** MVP Semana Tech: `tipo` diz se o código aguardado é o de confirmação do e-mail (padrão) ou o de recuperação de senha. */
+/** MVP Maratona Tech Tivit: `tipo` diz se o código aguardado é o de confirmação do e-mail (padrão) ou o de recuperação de senha. */
 export type LoginPendente = { email: string; de?: string; eventoId: string; tipo?: "verificacao" | "recuperacao" };
 
 /** Etapa 5 (seção 5.1): avisos do fluxo de voto. */

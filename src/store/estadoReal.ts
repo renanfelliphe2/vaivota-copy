@@ -2,7 +2,7 @@ import type { EstadoPublico } from "@/dominio/estadoPublico";
 import type { Banco, EstadoApp, EstadoDev, Usuario } from "@/dominio/tipos";
 import { criarConfigSimuladorInicial, criarUiInicial } from "./estadoInicial";
 
-// MVP Semana Tech (seção 3): o navegador guarda o MESMO `EstadoApp` do protótipo (as telas e os seletores não mudam), mas
+// MVP Maratona Tech Tivit (seção 3): o navegador guarda o MESMO `EstadoApp` do protótipo (as telas e os seletores não mudam), mas
 // o `banco` agora só tem o estado público que o servidor entregou: eventos, temas, candidatos publicados, a própria
 // pessoa e a própria participação. Votos, auditoria, resultados e e-mails de terceiros nunca chegam aqui.
 

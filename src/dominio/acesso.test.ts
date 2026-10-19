@@ -41,7 +41,7 @@ describe("resolverAcesso", () => {
 
 describe("ehRotaInterna", () => {
   it("aceita só caminhos internos", () => {
-    expect(ehRotaInterna("/e/semana-tech/votar")).toBe(true);
+    expect(ehRotaInterna("/e/maratona-tech-tivit/votar")).toBe(true);
     expect(ehRotaInterna("//evil.com")).toBe(false);
     expect(ehRotaInterna("/\\evil.com")).toBe(false);
     expect(ehRotaInterna("https://evil.com")).toBe(false);
@@ -51,7 +51,7 @@ describe("ehRotaInterna", () => {
     expect(ehRotaInterna("/\n/evil.com")).toBe(false);
     expect(ehRotaInterna("/\r/evil.com")).toBe(false);
     expect(ehRotaInterna("/ /evil.com")).toBe(false);
-    expect(ehRotaInterna("/e/semana-tech?candidato=k1#candidatos")).toBe(true);
+    expect(ehRotaInterna("/e/maratona-tech-tivit?candidato=k1#candidatos")).toBe(true);
     expect(ehRotaInterna(null)).toBe(false);
   });
 });

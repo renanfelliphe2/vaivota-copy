@@ -547,7 +547,7 @@ ALTER TABLE "auditoria" ADD CONSTRAINT "auditoria_ator_dispositivo_id_fkey" FORE
 
 
 -- ─────────────────────────────────────────────
--- CHECKs que o Prisma não expressa (MVP Semana Tech, seção 4 do planner)
+-- CHECKs que o Prisma não expressa (MVP Maratona Tech Tivit, seção 4 do planner)
 -- ─────────────────────────────────────────────
 
 -- Invariante 2: pesos inteiros, cada um >= 0, somando 100.

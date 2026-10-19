@@ -11,7 +11,7 @@ Consolidação da Etapa 9 (CP9). Detalhes de cada item na seção 10 do planner 
 | E29 | Etapa 9 | Texto do aviso de privacidade da plataforma (controladora: VaiVota) |
 | A6 | Etapa 9 | Número esperado de votantes e pico (planner "Endurecimento") |
 | A8 / P21 | Etapa 7 | Voto do júri por critério no Festival: escala da nota, peso por critério, como vira placar, desempate |
-| E3 | Etapa 9 | Dia e horário exatos da Semana Tech (o seed usa placeholders) |
+| E3 | Etapa 9 | Dia e horário exatos da Maratona Tech Tivit (o seed usa placeholders) |
 | P1 | Etapa 7 | Gráficos em SVG próprio (adotado) ou Recharts |
 | P3 | Etapa 7 | Relatório em rota própria (adotado) ou impressão da aba Resultado |
 | P4 | Etapa 7 | Onde o admin liga o parcial por candidato de verdade (hoje só a toolbar) e se ele existe no MVP |
@@ -26,7 +26,7 @@ Consolidação da Etapa 9 (CP9). Detalhes de cada item na seção 10 do planner 
 ## Resolvidas (registro)
 
 - Rev. 3: E4 (build do público sem toolbar), E25 ("Apuração por VaiVota" só no final estático), E26 (concluir não redireciona), E28 (meta de acessibilidade), C3 (redistribuição de peso), C15 a C18 (sigilo no painel), D11/D12 (cenários `RESULTADO_*` registrados pela Etapa 7).
-- Rev. 4: A1 (Semana Tech é uso real; demonstração para o Festival antes), A2/A3 (sem BD fake; trilha de produção), A4 (Supabase PostgreSQL), A5 (Better Auth sem senha, Vercel, Resend, Sentry), A7 (totem por planner próprio), A9 (CPF nunca; admins por seed), E21 (sem votos do júri no telão), E27 (equipamentos do dia).
+- Rev. 4: A1 (Maratona Tech Tivit é uso real; demonstração para o Festival antes), A2/A3 (sem BD fake; trilha de produção), A4 (Supabase PostgreSQL), A5 (Better Auth sem senha, Vercel, Resend, Sentry), A7 (totem por planner próprio), A9 (CPF nunca; admins por seed), E21 (sem votos do júri no telão), E27 (equipamentos do dia).
 
 ## Mudanças em fontes fora dos planners (todas aprovadas e aplicadas na rev. 4)
 

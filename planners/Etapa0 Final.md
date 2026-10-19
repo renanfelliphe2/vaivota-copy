@@ -18,9 +18,9 @@ Esta etapa precisa garantir:
 - **As telas só falam com seletores e serviços.** A trilha de produção (Prisma + Supabase; rev. 4, A2/A3) entra trocando o que há por trás, sem reescrever telas.
 - **Um único contrato para as dez etapas:** tipos, nomes, donos de cada módulo compartilhado, dados seed e convenções (seção 3).
 
-> **Vocabulário (rev. 3, A2):** "Fase 1/2/3" destes planners ≠ fases do DD §13 (Fundação, Semana Tech, Endurecimento, Festival). Mapeamento: protótipo (Fase 1) ⊂ Fundação/Semana Tech do DD; Endurecimento do DD não tem planner.
+> **Vocabulário (rev. 3, A2):** "Fase 1/2/3" destes planners ≠ fases do DD §13 (Fundação, Maratona Tech Tivit, Endurecimento, Festival). Mapeamento: protótipo (Fase 1) ⊂ Fundação/Maratona Tech Tivit do DD; Endurecimento do DD não tem planner.
 >
-> **Vocabulário (rev. 4, A2/F-7):** a "Fase 2 = BD fake" **deixa de existir** (A3: não há BD fake). Onde estes planners diziam "Fase 2" (BD fake) ou "Fase 3" (Prisma + banco), leia-se **trilha de produção** (Prisma + Supabase). A reestruturação futura dos planners em **4 fases** (Demonstração, Semana Tech, Festival, Final; DD §13 após F-7) substituirá a numeração Fase 1/2/3; até lá, "Fase 1" continua designando o protótipo.
+> **Vocabulário (rev. 4, A2/F-7):** a "Fase 2 = BD fake" **deixa de existir** (A3: não há BD fake). Onde estes planners diziam "Fase 2" (BD fake) ou "Fase 3" (Prisma + banco), leia-se **trilha de produção** (Prisma + Supabase). A reestruturação futura dos planners em **4 fases** (Demonstração, Maratona Tech Tivit, Festival, Final; DD §13 após F-7) substituirá a numeração Fase 1/2/3; até lá, "Fase 1" continua designando o protótipo.
 
 ## 2. Escopo
 
@@ -375,9 +375,9 @@ congelarResultado(
 
 **Eventos**
 
-| | Semana Tech | 9º Festival Ver e Fazer Filmes |
+| | Maratona Tech Tivit | 9º Festival Ver e Fazer Filmes |
 |---|---|---|
-| `id` / `slug` | `evt-semana-tech` / `semana-tech` | `evt-ver-e-fazer-filmes` / `ver-e-fazer-filmes` |
+| `id` / `slug` | `evt-maratona-tech-tivit` / `maratona-tech-tivit` | `evt-ver-e-fazer-filmes` / `ver-e-fazer-filmes` |
 | Estado / urna | `ATIVO` / `ABERTA` | `ATIVO` / `NAO_INICIADA` |
 | Janela (`America/Sao_Paulo`) | 22/10/2026, 13h às 17h; `urnaAbertaEm` = 13h | 25/11/2026 10h a 28/11/2026 20h |
 | `encerramentoAutomatico` | `true` | `true` |
@@ -394,13 +394,13 @@ congelarResultado(
 | `linkSobre` (mock-only) | Ausente | `https://festivalverefazerfilmes.org.br/` |
 | `descricao` | Texto fictício curto | Reaproveitar o texto atual da landing |
 
-As datas da Semana Tech são **placeholders** dentro da semana real: **rev. 4 (E3)** — a Semana Tech acontece na semana de 18/10/2026; o seed (22/10/2026, 13h–17h) fica dentro dela; dia e horário exatos ainda a confirmar.
+As datas da Maratona Tech Tivit são **placeholders** dentro da semana real: **rev. 4 (E3)** — a Maratona Tech Tivit acontece na semana de 18/10/2026; o seed (22/10/2026, 13h–17h) fica dentro dela; dia e horário exatos ainda a confirmar.
 
-**Aviso de privacidade (rev. 4, E29):** a controladora dos dados é a **VaiVota**; o aviso de privacidade é **da plataforma** (texto único, link no registro e no rodapé, sempre). `avisoPrivacidadeUrl` do evento é **opcional e complementar** (aviso próprio do evento, se houver): a Semana Tech segue sem ele e o Festival com o placeholder.
+**Aviso de privacidade (rev. 4, E29):** a controladora dos dados é a **VaiVota**; o aviso de privacidade é **da plataforma** (texto único, link no registro e no rodapé, sempre). `avisoPrivacidadeUrl` do evento é **opcional e complementar** (aviso próprio do evento, se houver): a Maratona Tech Tivit segue sem ele e o Festival com o placeholder.
 
 **Candidatos** (títulos e descrições fictícios; imagens por D16)
 
-| | Semana Tech (`cand-st-01..10`) | Festival (`cand-fv-01..08`) |
+| | Maratona Tech Tivit (`cand-st-01..10`) | Festival (`cand-fv-01..08`) |
 |---|---|---|
 | Votáveis (publicados e não desqualificados) | **8** (01 a 08) | **6** (01 a 06) |
 | Rascunho (`publicado: false`) | 09 | 07 |
@@ -417,33 +417,33 @@ As datas da Semana Tech são **placeholders** dentro da semana real: **rev. 4 (E
 
 | Usuário | E-mail | Participações | Serve para testar |
 |---|---|---|---|
-| Ana Souza | `publico@demo.com` | Semana Tech: `PUBLICO`, verificado, não votou | Fluxo feliz de voto |
-| Bruno Lima | `jurado@demo.com` | Semana Tech: `JURADO` (convite `H4TR-9WNB`), não votou | Voto do júri |
+| Ana Souza | `publico@demo.com` | Maratona Tech Tivit: `PUBLICO`, verificado, não votou | Fluxo feliz de voto |
+| Bruno Lima | `jurado@demo.com` | Maratona Tech Tivit: `JURADO` (convite `H4TR-9WNB`), não votou | Voto do júri |
 | Carla Mendes | `admin@demo.com` | `ADMIN` nos dois eventos | Telas de admin |
 | Davi Rocha | `naoverificado@demo.com` | Nenhuma; e-mail **não verificado** (rev. 4: cadastro iniciado, código nunca confirmado) | Bloqueio por verificação; tela de código |
-| Eva Santos | `votou@demo.com` | Semana Tech: `PUBLICO`, **já votou** (1 `Voto`) | "Já votou"; bloqueio de resgate de convite |
-| Fábio Nunes | `jurado.votou@demo.com` | Semana Tech: `JURADO` (convite `F3WJ-8RNK`), com `VotoJuri` e 1 entrada de histórico | "Seu voto atual"; alterar voto |
-| Gabi Torres | `equipe@demo.com` | Semana Tech: `PUBLICO`; candidata vinculada nos dois eventos | Bloqueio de voto em si mesma |
+| Eva Santos | `votou@demo.com` | Maratona Tech Tivit: `PUBLICO`, **já votou** (1 `Voto`) | "Já votou"; bloqueio de resgate de convite |
+| Fábio Nunes | `jurado.votou@demo.com` | Maratona Tech Tivit: `JURADO` (convite `F3WJ-8RNK`), com `VotoJuri` e 1 entrada de histórico | "Seu voto atual"; alterar voto |
+| Gabi Torres | `equipe@demo.com` | Maratona Tech Tivit: `PUBLICO`; candidata vinculada nos dois eventos | Bloqueio de voto em si mesma |
 | Hugo Pires | `admin.festival@demo.com` | Festival: `ADMIN` | Acesso negado entre eventos |
 
 **Convites de jurado** (alfabeto `23456789ABCDEFGHJKMNPQRSTUVWXYZ`, sem 0/O, 1/I/L; formato `XXXX-XXXX`; comparação sem diferenciar maiúsculas e ignorando o hífen)
 
 | Evento | Código | Estado | Rótulo |
 |---|---|---|---|
-| Semana Tech | `K7M3-QX9P` | `DISPONIVEL` | Jurado 2 |
-| Semana Tech | `H4TR-9WNB` | `USADO` (Bruno) | Jurado 1 |
-| Semana Tech | `F3WJ-8RNK` | `USADO` (Fábio) | Jurado 3 |
-| Semana Tech | `P8CD-2VXF` | `REVOGADO` | — |
-| Semana Tech | `M6ZQ-4KTA` | `DISPONIVEL` com `validadeAte` anterior a `T0` (**expirado**) | — |
+| Maratona Tech Tivit | `K7M3-QX9P` | `DISPONIVEL` | Jurado 2 |
+| Maratona Tech Tivit | `H4TR-9WNB` | `USADO` (Bruno) | Jurado 1 |
+| Maratona Tech Tivit | `F3WJ-8RNK` | `USADO` (Fábio) | Jurado 3 |
+| Maratona Tech Tivit | `P8CD-2VXF` | `REVOGADO` | — |
+| Maratona Tech Tivit | `M6ZQ-4KTA` | `DISPONIVEL` com `validadeAte` anterior a `T0` (**expirado**) | — |
 | Festival | `R5HN-7DCW`, `T9VB-3JXG` | `DISPONIVEL` | Jurado A, Jurado B |
 
 **Dispositivos (Festival, somente leitura; dados seed até o planner "Totem", rev. 4, A7):** "Totem Hall" (`ATIVO`), "Totem Pátio" (`PAUSADO`), "Totem Oficinas" (`REVOGADO`), sem votos até um cenário de volume.
 
-**Votos do núcleo (Semana Tech):** 1 `Voto` (o de Eva, registrado em `dev.vinculosVoto`) e 1 `VotoJuri` (o de Fábio). O Festival não tem votos.
+**Votos do núcleo (Maratona Tech Tivit):** 1 `Voto` (o de Eva, registrado em `dev.vinculosVoto`) e 1 `VotoJuri` (o de Fábio). O Festival não tem votos.
 
 **Metas do seed de volume** (implementado na Etapa 7 **sobre** o núcleo, sem alterar ids nem fatos do núcleo; os invariantes continuam verdes)
 
-| Meta (Semana Tech em `T0`) | Valor |
+| Meta (Maratona Tech Tivit em `T0`) | Valor |
 |---|---|
 | Participações `PUBLICO` + `JURADO` | 520 (511 públicas, 9 jurados) |
 | Votos populares | 412 (= participações `PUBLICO` com `votou`), com `criadoEm` entre `urnaAbertaEm` e `T0` e pico por volta de 2/3 do período |
@@ -453,7 +453,7 @@ As datas da Semana Tech são **placeholders** dentro da semana real: **rev. 4 (E
 | Infantil (só Festival, em cenário de volume) | 138 votos em 3 totens |
 | Resultado | um empate resolvido pelo critério (2º e 3º) e um que persiste (ex.: 6º), via cenários da Etapa 8 |
 
-**Relógio:** `T0 = 22/10/2026 14:00 (-03:00)`, uma hora dentro da janela da Semana Tech (faltam 3 h) e cerca de 34 dias antes do Festival.
+**Relógio:** `T0 = 22/10/2026 14:00 (-03:00)`, uma hora dentro da janela da Maratona Tech Tivit (faltam 3 h) e cerca de 34 dias antes do Festival.
 
 ### 5.7 Invariantes
 
@@ -567,7 +567,7 @@ src/
 │   ├── seed/                               # eventos, temas, configs, candidatos, usuarios, participacoes,
 │   │                                       # convites, dispositivos, votos, index
 │   ├── criarEstadoNucleo.ts                # seeds do núcleo (Etapa 0)
-│   ├── criarEstadoInicial.ts               # compõe criarEstadoNucleo() (a Etapa 7 soma o volume da Semana Tech)
+│   ├── criarEstadoInicial.ts               # compõe criarEstadoNucleo() (a Etapa 7 soma o volume da Maratona Tech Tivit)
 │   └── cenarios.ts
 ├── store/
 │   ├── criarStore.ts                       # getState, atualizar, subscribe
@@ -637,7 +637,7 @@ src/
 **Objetivo:** dados prontos e verificáveis, sem UI.
 
 **Tarefas**
-- [ ] Seeds da seção 5.6 em `src/mocks/seed/`, validados com `satisfies`. Hashes por `hashMock`; `dev.vinculosVoto` preenchido para Eva com a chave `usr-eva:<id do evento Semana Tech>` (`usuarioId:eventoId`).
+- [ ] Seeds da seção 5.6 em `src/mocks/seed/`, validados com `satisfies`. Hashes por `hashMock`; `dev.vinculosVoto` preenchido para Eva com a chave `usr-eva:<id do evento Maratona Tech Tivit>` (`usuarioId:eventoId`).
 - [ ] `criarEstadoNucleo()` pura, devolvendo cópia nova a cada chamada, e `criarEstadoInicial()` que **compõe** `criarEstadoNucleo()` (nesta etapa devolve o núcleo sem acréscimos; a Etapa 7 soma o volume). `criarEstadoInicial()` é usada por "Resetar mock" e pelo cenário `PADRAO`.
 - [ ] `dev.slugPadrao` inicial = `ver-e-fazer-filmes` (a landing atual é a do Festival, que serve de baseline visual).
 - [ ] `dominio/invariantes.ts` conforme a seção 5.7.
@@ -663,7 +663,7 @@ src/
 - [ ] `lib/contraste.test.ts` (D19): `razaoContraste` com pares de referência (preto × branco = 21:1), `corTextoSobre` nas primárias dos dois temas e `corLegivelSobre` sempre ≥ 4,5:1.
 - [ ] `globals.css`: `--qr-claro` e `--qr-escuro` (neutros, fora do tema; a placa fixa do QR Code da Etapa 8). São a **única exceção** de cor fixa além dos tokens do tema, e o `grep` de "nenhum hex de marca" da Etapa 9 as aceita.
 
-**Pronto quando:** trocar o tema muda cores e fonte do bloco de teste sem tocar em código; a Semana Tech escolhe texto escuro sobre a primária azul-clara; o Festival escolhe texto escuro sobre o laranja (≥ 4,5:1) e usa verde e laranja ajustados quando aparecem como texto; nenhum par de texto fica abaixo de 4,5:1.
+**Pronto quando:** trocar o tema muda cores e fonte do bloco de teste sem tocar em código; a Maratona Tech Tivit escolhe texto escuro sobre a primária azul-clara; o Festival escolhe texto escuro sobre o laranja (≥ 4,5:1) e usa verde e laranja ajustados quando aparecem como texto; nenhum par de texto fica abaixo de 4,5:1.
 
 **Entrega:** `VaiVota-E0-CP4.zip`
 
@@ -735,7 +735,7 @@ src/
 - [ ] Rotas stub da seção 6 usando `EmConstrucao` (mostra rota, etapa responsável e resumo do estado: evento, urna, sessão, papel). Proteções: `convite` e `votar` exigem `EMAIL_VERIFICADO`; `(painel)` e `apresentar` exigem papel `ADMIN`. **Rev. 4 (A5):** não há rota `recuperar-senha`; `verificar-email` é a tela de código e **não exige `LOGADO`** (no login por código ainda não há sessão, só o e-mail pendente em `ui.loginPendente`); o comportamento sem sessão e sem e-mail pendente é definido pela Etapa 3.
 - [ ] Página `/` continua como está; a Etapa 1 a migra.
 
-**Pronto quando:** todas as rotas abrem sem 404; `/e/inexistente` mostra a tela de não encontrado; os links entre stubs mantêm o estado; deslogado em `/votar` vai para `/e/{slug}?de=...`; Davi em `/votar` vai para a verificação; Ana em `/admin` e Hugo em `/e/semana-tech/admin` veem `AcessoRestrito`; Carla entra nos dois eventos.
+**Pronto quando:** todas as rotas abrem sem 404; `/e/inexistente` mostra a tela de não encontrado; os links entre stubs mantêm o estado; deslogado em `/votar` vai para `/e/{slug}?de=...`; Davi em `/votar` vai para a verificação; Ana em `/admin` e Hugo em `/e/maratona-tech-tivit/admin` veem `AcessoRestrito`; Carla entra nos dois eventos.
 
 **Entrega:** `VaiVota-E0-CP8.zip`
 
@@ -787,8 +787,8 @@ src/
 
 - **Marca do Festival:** **Resolvida (rev. 4, E1):** texto escuro sobre o laranja `#F15A29` (≈5,3:1), verde ajustado quando for texto; aprovação visual com a organização.
 - **Fontes:** **Resolvida (rev. 4, E2):** a troca de fonte no Tema continua; `FONTES_APROVADAS` é uma configuração que o dono do produto personaliza depois (comentário em `lib/fontes.ts`, CP4).
-- **Datas reais** da Semana Tech: **Resolvida em parte (rev. 4, E3):** semana de 18/10/2026; o seed (22/10/2026, 13h–17h) fica dentro dela. Dia e horário exatos ainda a confirmar [Usuário].
-- **Calendário (rev. 4, A1):** a Semana Tech (semana de 18/10/2026) é **uso real** (sistema funcional, dados reais). Antes dela há uma **demonstração** para o Festival (09/10/2026): telas com dados mock, no tema do Festival. Registro apenas; o conteúdo das etapas não muda por causa de datas.
+- **Datas reais** da Maratona Tech Tivit: **Resolvida em parte (rev. 4, E3):** semana de 18/10/2026; o seed (22/10/2026, 13h–17h) fica dentro dela. Dia e horário exatos ainda a confirmar [Usuário].
+- **Calendário (rev. 4, A1):** a Maratona Tech Tivit (semana de 18/10/2026) é **uso real** (sistema funcional, dados reais). Antes dela há uma **demonstração** para o Festival (09/10/2026): telas com dados mock, no tema do Festival. Registro apenas; o conteúdo das etapas não muda por causa de datas.
 - **Aviso de privacidade (rev. 4, E29):** controladora dos dados é a VaiVota; aviso da plataforma (link no registro e no rodapé); `Evento.avisoPrivacidadeUrl` opcional e complementar. Texto do aviso pendente (rascunho a partir do DD §10.4).
 - **Toolbar no deploy de demonstração:** **Resolvida (rev. 3, E4):** o build para o público sai **sem** toolbar (`NEXT_PUBLIC_DEV_TOOLBAR=false`); build com toolbar só para ensaio/roteiro completo (detalhe na Etapa 9, D9).
 - **Resolvida (rev. 3, B1):** abertura manual da urna (D7) confirmada no DD §9.2 e admin não vota (D13) confirmado no DD §4.
@@ -800,13 +800,13 @@ src/
 - **`local` e `linkSobre` (rev. 3, E34):** passarão a ser campos de `Evento` no schema (F-5, a aprovar); até lá continuam `// mock-only`. **Rev. 4:** F-5 aprovada.
 
 **Fora da Fase 1 — exige planner próprio ou decisão do dono do produto** (registro da rev. 3, atualizado com as decisões da rev. 4; nenhuma etapa da Fase 1 implementa)
-- **A1:** **decidido (rev. 4):** a Semana Tech (semana de 18/10/2026) é uso real; antes dela, demonstração para o Festival (09/10/2026) com dados mock no tema do Festival.
+- **A1:** **decidido (rev. 4):** a Maratona Tech Tivit (semana de 18/10/2026) é uso real; antes dela, demonstração para o Festival (09/10/2026) com dados mock no tema do Festival.
 - **A3:** **planner a escrever: "Trilha de Produção"** — banco, migrações, seed real; autenticação; troca dos serviços de voto; troca dos serviços de configuração/dashboard/resultado; rate limiting, logs e deploy. Não há BD fake.
 - **A4:** **decidido (rev. 4):** Supabase (PostgreSQL).
 - **A5:** **decidido (rev. 4):** Better Auth (Google + código por e-mail, **sem senha**), Vercel, Resend (e-mail), rate limiting no PostgreSQL ou Upstash Redis, Sentry + logs da Vercel; Prisma como ORM.
 - **A6:** **planner a escrever: "Endurecimento"** — carga com k6, alertas Sentry, backup e teste de restauração, roteiro do dia, ensaio do telão. Pendente [Usuário]: número esperado de votantes e pico.
 - **A7:** **planner a escrever: "Totem"** (mock e depois real) — pareamento, quiosque com PIN, voto infantil, gestão de dispositivos. Passa a fazer parte do protótipo (precisa aparecer na demonstração) e do produto; até lá, `Dispositivo` e `VotoInfantil` são dados seed.
-- **A8:** **decidido (rev. 4):** júri com **voto simples na Semana Tech** (os planners atuais continuam válidos) e **voto por critério no Festival** (Direção, Roteiro, Fotografia e Som — PDF §3.3); modelo previsto `Criterio` e `NotaJuri`. Pendentes [Usuário]: escala da nota, peso por critério, como a nota vira placar do júri (proposta: soma das médias dos critérios dadas pelos jurados, normalizada como os outros grupos), desempate por critério.
+- **A8:** **decidido (rev. 4):** júri com **voto simples na Maratona Tech Tivit** (os planners atuais continuam válidos) e **voto por critério no Festival** (Direção, Roteiro, Fotografia e Som — PDF §3.3); modelo previsto `Criterio` e `NotaJuri`. Pendentes [Usuário]: escala da nota, peso por critério, como a nota vira placar do júri (proposta: soma das médias dos critérios dadas pelos jurados, normalizada como os outros grupos), desempate por critério.
 - **A9:** **decidido (rev. 4):** CPF nunca; SMS/OTP descartado (código por e-mail no lugar); admins adicionais por seed (tela de convite de admin fica para depois).
 
 ---
@@ -886,7 +886,7 @@ Lista de ajustes que os planners das Etapas 1 a 9 precisam absorver ao serem ree
 **Etapa 4 — Candidato**
 - A **seleção** (marcar, `BarraSelecao`, "Escolher") passa para a Etapa 5, conforme o escopo definido; a Etapa 4 entrega lista, cartão, detalhe, ordem por semente e a gate até a lista.
 - Usar `lib/aleatorio.ts` e `dominio/candidatos.ts` (remover `embaralhar.ts`); seletores em `store/seletores/candidatos.ts`; imagens `placeholder:<n>`.
-- Seeds vêm da Etapa 0 (8 votáveis na Semana Tech, 6 no Festival, casos de borda da seção 5.6); "Muitos (24)" vira cenário registrado ("Sem candidatos" vem da Etapa 2).
+- Seeds vêm da Etapa 0 (8 votáveis na Maratona Tech Tivit, 6 no Festival, casos de borda da seção 5.6); "Muitos (24)" vira cenário registrado ("Sem candidatos" vem da Etapa 2).
 - Dona de `resolverEstadoVotar`. Admin → "Administradores não votam". Rota em `(participante)`.
 
 **Etapa 5 — Votos**
@@ -973,7 +973,7 @@ Decisões do documento de pendências aplicadas ao contrato. Assim como as da re
 | 7 (D15, D12 dela) | `components/evento/GateEvento.tsx` | Monta o `SimuladorVotos` uma vez, ligado por `dev.simularVotosEntrando` |
 | 7 (C17) | `EstadoUi` em `dominio/tipos.ts` e valor inicial | Campo `ui.dashboard.resultadoVisivel: string \| null` (chave `eventoId:versao`) |
 
-Continuam pendentes [Usuário]: marca do Festival (E1), fontes (E2), datas da Semana Tech (E3). (Resolvidas na rev. 4; ver abaixo.)
+Continuam pendentes [Usuário]: marca do Festival (E1), fontes (E2), datas da Maratona Tech Tivit (E3). (Resolvidas na rev. 4; ver abaixo.)
 
 ### Revisão 4 (07/10/2026)
 
@@ -981,15 +981,15 @@ Decisões do documento "Pendências finais para decisão" aplicadas ao contrato.
 
 | Item | O que mudou na Etapa 0 | Onde |
 |---|---|---|
-| A2/F-7 | "Fase 2 = BD fake" deixa de existir; "Fase 2/3" passa a ser **trilha de produção** (Prisma + Supabase); nota da reestruturação futura em 4 fases (Demonstração, Semana Tech, Festival, Final) | 1, 2, 4 (D2, D3, D10), 5.1 |
+| A2/F-7 | "Fase 2 = BD fake" deixa de existir; "Fase 2/3" passa a ser **trilha de produção** (Prisma + Supabase); nota da reestruturação futura em 4 fases (Demonstração, Maratona Tech Tivit, Festival, Final) | 1, 2, 4 (D2, D3, D10), 5.1 |
 | A1, A3–A9 | Bloco "Fora da Fase 1" atualizado: A1, A4, A5, A8, A9 decididos; A3 ("Trilha de Produção"), A6 ("Endurecimento") e A7 ("Totem") viram planners a escrever | 10 |
 | A3, A4 | Pendências "Fase 2" (BD fake) e "Fase 3" (MySQL × PostgreSQL/Supabase) resolvidas: sem BD fake; Supabase (PostgreSQL) | 8, 10 |
 | A5 | Autenticação sem senha: rota `recuperar-senha` sai da árvore, dos stubs do CP8 e das proteções; `verificar-email` vira a tela de código e deixa de exigir `LOGADO`; seed "(login por código: `123456`)"; Davi = código nunca confirmado; `CREDENCIAIS_INVALIDAS` = código de login incorreto (total de `CodigoErro` continua 26); tabela "O que fica fake" sem senha | 2, 3.1, 5.2, 5.4, 5.6, 6, CP1, CP8, 8, Anexo B |
 | A7, A9 | Totem entra por planner próprio; `Dispositivo` e `VotoInfantil` seguem dados seed até lá; `CodigoPareamento` vem com o "Totem"; admins adicionais por seed (`ConviteAdmin` fica para depois) | 2, 5.6, 8, 10 |
-| A8 | Júri: voto simples na Semana Tech, por critério no Festival (`Criterio`, `NotaJuri` previstos) | 10 |
+| A8 | Júri: voto simples na Maratona Tech Tivit, por critério no Festival (`Criterio`, `NotaJuri` previstos) | 10 |
 | E1 | Texto escuro sobre o laranja decidido | 4 (D15), 10 |
 | E2 | `FONTES_APROVADAS` editável pelo dono; comentário em `lib/fontes.ts` | 5.5, CP4, 10 |
-| E3 | Semana Tech na semana de 18/10/2026; seed 22/10 dentro dela | 5.6, 10 |
+| E3 | Maratona Tech Tivit na semana de 18/10/2026; seed 22/10 dentro dela | 5.6, 10 |
 | E21 | `exibirVotosJuriNoTelao` não aparece no contrato da Etapa 0 (nada a remover aqui) | — |
 | E29 | Aviso de privacidade da plataforma VaiVota; `avisoPrivacidadeUrl` do evento opcional e complementar | 5.6, 10 |
 | F-4, F-5 | Pesos `Int` no schema (protótipo: `number` inteiro); `local`/`linkSobre` aprovados no schema (seguem `// mock-only` no protótipo) | 4 (D10), 5.1, 10 |

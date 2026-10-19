@@ -27,12 +27,12 @@ describe("Geral", () => {
   it("nome e slug", () => {
     expect(validarNomeEvento("")).not.toBeNull();
     expect(validarNomeEvento("ab")).not.toBeNull();
-    expect(validarNomeEvento("Semana Tech")).toBeNull();
+    expect(validarNomeEvento("Maratona Tech Tivit")).toBeNull();
     expect(validarSlug("Meu Evento", [])).not.toBeNull();
     expect(validarSlug("-abc", [])).not.toBeNull();
     expect(validarSlug("ab", [])).not.toBeNull();
-    expect(validarSlug("semana-tech", ["Semana-Tech"])).toBe("Este endereço já está em uso.");
-    expect(validarSlug("semana-tech-2026", ["semana-tech"])).toBeNull();
+    expect(validarSlug("maratona-tech-tivit", ["Maratona-Tech-Tivit"])).toBe("Este endereço já está em uso.");
+    expect(validarSlug("maratona-tech-tivit-2026", ["maratona-tech-tivit"])).toBeNull();
   });
 
   it("janela e extensão do fim", () => {

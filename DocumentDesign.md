@@ -19,7 +19,7 @@ O **VaiVota** é uma plataforma web **white-label** de votação para eventos. C
 | Evento | Quando | Papel |
 |---|---|---|
 | Demonstração para o Festival | 09/10/2026 | Telas com dados mock, no tema do Festival (inclui totem e voto infantil) |
-| Semana Tech (torneio de projetos de TI) | Semana de 18/10/2026 | Primeiro uso real (sistema funcional, dados reais); funciona como ensaio |
+| Maratona Tech Tivit (torneio de projetos de TI) | Semana de 18/10/2026 | Primeiro uso real (sistema funcional, dados reais); funciona como ensaio |
 | 9º Festival Ver e Fazer Filmes (Cataguases-MG, 25 a 28/nov/2026) | Novembro/2026 | Uso com público maior, voto infantil e foco cinematográfico |
 
 **Direção do produto [Decidido]:** núcleo único com **tema configurável por evento**. O layout e os fluxos são fixos; mudam nome, logo, cores, tipografia, imagens e rótulos. O VaiVota aparece de forma discreta ("powered by"), e o evento parece ser o dono da experiência.
@@ -55,7 +55,7 @@ O **VaiVota** é uma plataforma web **white-label** de votação para eventos. C
 
 ### 3.2 Módulos por evento [Decidido]
 
-| Módulo | Semana Tech | Festival |
+| Módulo | Maratona Tech Tivit | Festival |
 |---|---|---|
 | Interface personalizada por evento | Sim | Sim |
 | Votação popular | Sim | Sim |
@@ -66,7 +66,7 @@ O **VaiVota** é uma plataforma web **white-label** de votação para eventos. C
 
 **Voto infantil e totem [Decidido]:** pareamento, quiosque com PIN, voto infantil e gestão de dispositivos fazem parte do **protótipo** (aparecem na demonstração) e do produto, e entram em uso real no Festival. Têm planner próprio ("Totem", a escrever: mock e depois real).
 
-**Júri [Decidido]:** voto simples na Semana Tech; **voto por critério no Festival** (Direção, Roteiro, Fotografia e Som — documento de requisitos §3.3). Ver seção 7.2.
+**Júri [Decidido]:** voto simples na Maratona Tech Tivit; **voto por critério no Festival** (Direção, Roteiro, Fotografia e Som — documento de requisitos §3.3). Ver seção 7.2.
 
 **Admins adicionais [Decidido]:** por seed; a tela de convite de admin fica para depois.
 
@@ -225,7 +225,7 @@ erDiagram
 
 - **Convites [Decidido]:** códigos **individuais, de uso único**, gerados em lote pelo admin (n jurados), com rótulo opcional, validade, revogação e exportação em CSV. Só o hash fica no banco; o código aparece uma vez.
 - **Resgate:** no registro ou, para quem já tem conta, em "Tenho um código de convite". Quem já votou como público no evento **não pode** resgatar.
-- **Voto [Decidido]:** **simples** (um candidato) na Semana Tech; **por critério** no Festival (Direção, Roteiro, Fotografia e Som), com `Criterio` e `NotaJuri`. Detalhes pendentes: escala da nota, peso por critério, como a nota vira placar do júri (proposta: placar do júri do candidato = soma das médias dos critérios dadas pelos jurados, normalizada como os outros grupos) e desempate por critério.
+- **Voto [Decidido]:** **simples** (um candidato) na Maratona Tech Tivit; **por critério** no Festival (Direção, Roteiro, Fotografia e Som), com `Criterio` e `NotaJuri`. Detalhes pendentes: escala da nota, peso por critério, como a nota vira placar do júri (proposta: placar do júri do candidato = soma das médias dos critérios dadas pelos jurados, normalizada como os outros grupos) e desempate por critério.
 - **Sigilo [Decidido]:** voto **identificado para o admin**, com histórico de alterações; **nunca** exibido no telão (o telão mostra só o vencedor da categoria). Jurados devem ser **informados** de que o voto é identificado.
 - **Painel do jurado:** sem contagens (evita viés).
 - **Urna:** mesma urna e mesma janela do público.
@@ -425,7 +425,7 @@ Registrar: abertura e encerramento da urna; geração, resgate e revogação de 
 ## 12. Acessibilidade, responsividade e identidade visual
 
 - **Mobile-first** (votação por QR Code), com tablets nos totens e 16:9 para telão (1080p e 4K).
-- **Equipamentos-alvo [Decidido]:** Semana Tech — telão, celulares e computadores (o voto também acontece em computador); Festival — telão, celulares e totens.
+- **Equipamentos-alvo [Decidido]:** Maratona Tech Tivit — telão, celulares e computadores (o voto também acontece em computador); Festival — telão, celulares e totens.
 - Contraste adequado, tipografia legível, foco visível, áreas de toque amplas, navegação por teclado e leitores de tela.
 - Informação nunca só por cor ou animação; texto e ícones acompanham os estados.
 - Respeitar `prefers-reduced-motion`; animações mais expressivas apenas no modo apresentação.
@@ -439,7 +439,7 @@ Quatro fases **sequenciais**:
 | Fase | Quando | Escopo |
 |---|---|---|
 | **1. Demonstração** | 09/10/2026 | Telas com dados mock, no tema do Festival |
-| **2. Semana Tech** | Semana de 18/10/2026 | Uso real (sistema funcional, dados reais) |
+| **2. Maratona Tech Tivit** | Semana de 18/10/2026 | Uso real (sistema funcional, dados reais) |
 | **3. Festival** | 25 a 28/11/2026 | Uso real |
 | **4. Final** | Depois do Festival | Restante das funcionalidades |
 
@@ -524,7 +524,7 @@ Uma funcionalidade entregue numa fase não é reimplementada na seguinte. O cont
 2. Stack: **React/TS + Next.js**, **Supabase (PostgreSQL)**, **Prisma**, **Better Auth**, **Vercel**, **Resend**, rate limiting no PostgreSQL ou Upstash Redis, **Sentry** + logs da Vercel, k6 para carga (seção 5.3).
 3. Conta global + **participação por evento** com papel; login **sem senha**: Google ou código por e-mail.
 4. Voto popular único (restrição no banco), irrevogável, sem vínculo com o usuário; ordem embaralhada.
-5. Júri: convites individuais de uso único em lote; **voto simples na Semana Tech; por critério no Festival**; **identificado** ao admin, nunca exibido no telão; alterável até o fim da urna.
+5. Júri: convites individuais de uso único em lote; **voto simples na Maratona Tech Tivit; por critério no Festival**; **identificado** ao admin, nunca exibido no telão; alterável até o fim da urna.
 6. Placar por **percentual ponderado** com três pesos (popular, júri, infantil), configuráveis; desempate configurável (júri ou público).
 7. Infantil: totem como **dispositivo pareado**; placar próprio "Escolha das Crianças" **e** peso; mediador adulto; fila offline depois.
 8. Apresentação **só do admin**, local; trailer único do evento; revelação por categorias, pódio e empates ao vivo; classificação completa opcional.
@@ -539,7 +539,7 @@ Uma funcionalidade entregue numa fase não é reimplementada na seguinte. O cont
 17. Voto infantil e totem entram no protótipo (demonstração) e no Festival, com planner próprio.
 18. Admins adicionais por seed; voto por CPF e validação por SMS/OTP descartados.
 19. Controladora dos dados: **VaiVota**; aviso de privacidade da plataforma, com aviso do evento opcional e complementar.
-20. Entrega em quatro fases sequenciais: Demonstração, Semana Tech, Festival e Final (seção 13).
+20. Entrega em quatro fases sequenciais: Demonstração, Maratona Tech Tivit, Festival e Final (seção 13).
 
 ## 17. Pendências consolidadas
 

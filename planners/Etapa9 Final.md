@@ -72,7 +72,7 @@ Esta etapa precisa garantir:
 | `docs/FRONTEIRA-DADOS.md` (contrato dos serviços, leituras por seletor, exposição de dados no cliente e pontos de entrada da trilha de produção) | Trilha de produção |
 | `docs/DIVERGENCIAS-SCHEMA.md` (mock × schema, invariantes × constraints; banco decidido: Supabase PostgreSQL, rev. 4, A4 — a conversão do schema MySQL é da trilha de produção) | Trilha de produção |
 | `docs/CATALOGO.md` (21 cenários listados por nome, D10; 21 ações de auditoria, 26 códigos de erro, 8 invariantes, autotestes, toolbar) | Trilha de produção |
-| `docs/ROTEIRO-DEMO.md` e README final da Fase 1 | Demonstração, Semana Tech e trilha de produção |
+| `docs/ROTEIRO-DEMO.md` e README final da Fase 1 | Demonstração, Maratona Tech Tivit e trilha de produção |
 | `docs/CHECKLIST-FASE1.md`, `docs/ACHADOS.md` e `docs/DECISOES-PENDENTES.md` | aprovação e backlog |
 | Tag `fase1-prototipo` e `VaiVota-E9-CP9.zip` (final da Etapa 9 e da Fase 1) | Trilha de produção |
 
@@ -96,7 +96,7 @@ Só as decisões **novas** desta etapa. As do conjunto vivem na Etapa 0.
 | D6 | **Concluir o evento não redireciona** (P17 da Etapa 6). A Configuração fica em leitura com o `Alerta` e o `Link` para o painel, como a Etapa 6 entregou e validou (`6/C35`). O planner antigo mandava ir ao dashboard. | A confirmação por digitação já é o ponto sem volta; um redirecionamento tira a pessoa da tela em que o efeito (travas em leitura) aparece, e a navegação já foi validada. Confirmado pelo dono do produto (rev. 3, E26). |
 | D7 | **Meta de acessibilidade:** Lighthouse Accessibility **≥ 90** e axe com **zero violações `critical` e `serious`**, nas rotas de produto (lista em 5.8), medidas com a toolbar **oculta**. Violação `moderate` e `minor` é registrada. Sem auditoria formal WCAG. | `serious` é onde o axe classifica contraste, e a D15 da Etapa 0 já proíbe texto abaixo de 4,5:1. `/dev/ui`, a toolbar e o palco (que não é página navegável) ficam fora da medição; o palco é conferido à mão. |
 | D8 | **"Celular" na demonstração é a mesma instância** (E9-7, D18 da Etapa 0). Duas formas: (a) modo dispositivo do navegador (390 px) **na mesma aba**; (b) a demonstração inteira rodando **no aparelho** (outra instância, com o próprio estado). Nunca votar no celular e esperar ver o voto no painel do notebook. | Sem backend não há estado compartilhado. O ato 2 do roteiro confirma, no ensaio, que alternar o modo dispositivo não recarrega a página. |
-| D9 | **Toolbar na demonstração (rev. 3, E4):** a variável `NEXT_PUBLIC_DEV_TOOLBAR` é embutida **na hora do build**, então "com e sem toolbar" são **dois builds**. O **build para o público é SEM toolbar** (build 2): roteiro mínimo (login pelos formulários, votar, painel, encerrar, resultado, apresentar) sobre o seed da Semana Tech. O build **com** toolbar (build 1) serve **só para ensaio** e para o roteiro completo (cenários e "Entrar como"), nunca diante do público. | E9-4. A Etapa 0 manteve a toolbar no build de produção (padrão `true`); o dono do produto decidiu que o público não a vê (E4). Sem toolbar não há como forçar estado nem reabrir urna (CP8, C21). |
+| D9 | **Toolbar na demonstração (rev. 3, E4):** a variável `NEXT_PUBLIC_DEV_TOOLBAR` é embutida **na hora do build**, então "com e sem toolbar" são **dois builds**. O **build para o público é SEM toolbar** (build 2): roteiro mínimo (login pelos formulários, votar, painel, encerrar, resultado, apresentar) sobre o seed da Maratona Tech Tivit. O build **com** toolbar (build 1) serve **só para ensaio** e para o roteiro completo (cenários e "Entrar como"), nunca diante do público. | E9-4. A Etapa 0 manteve a toolbar no build de produção (padrão `true`); o dono do produto decidiu que o público não a vê (E4). Sem toolbar não há como forçar estado nem reabrir urna (CP8, C21). |
 | D10 | **Cenários finais: 21, e consolidar é verificar** (rev. 3, D12: contagem refeita por `grep` nas tabelas das Etapas 0 a 8). Lista: `PADRAO` (E0); `SEM_ENCERRAMENTO_AUTOMATICO` (E1); `SEM_CANDIDATOS` (E2); `SOMENTE_GOOGLE`, `SOMENTE_EMAIL` (E3); `MUITOS_CANDIDATOS`, `VOTO_PROPRIO_PERMITIDO` (E4); `RASCUNHO_INCOMPLETO`, `RASCUNHO_PRONTO`, `URNA_ENCERRADA`, `EVENTO_CONCLUIDO` (E6); `FESTIVAL_ENCERRADO`, `RESULTADO_PADRAO`, `RESULTADO_EMPATE_RESOLVIDO`, `RESULTADO_EMPATE_PERSISTENTE`, `RESULTADO_CO_VENCEDORES`, `RESULTADO_SEM_INFANTIL`, `RESULTADO_DOIS_CANDIDATOS` (E7); `FESTIVAL_EMPATE_RESOLVIDO`, `FESTIVAL_EMPATE_PERSISTENTE`, `FESTIVAL_CO_VENCEDORES` (E8). Os 20 da tabela 5.8 da Etapa 0 e da lista da rev. 3, mais `VOTO_PROPRIO_PERMITIDO`, que a Etapa 4 registra (grupo `DADOS`) e as Etapas 5 e 6 usam. Cada cenário aplica, reaplica sem erro e deixa as invariantes e os autotestes vazios (CP1). A demonstração usa só `PADRAO` e `FESTIVAL_EMPATE_RESOLVIDO`; reservas: `RESULTADO_PADRAO`, `FESTIVAL_ENCERRADO` e `SEM_ENCERRAMENTO_AUTOMATICO`. Nenhum cenário é criado aqui. | O planner antigo mandava criar `cenarios.ts` com os cenários nomeados; o registro já existe e cada etapa registrou os seus (E9-8). |
 | D11 | **Nenhuma dependência nova, nem de desenvolvimento.** `vitest` é permitido porque já foi aprovado na Etapa 0 como dependência de desenvolvimento (D19 dela, rev. 3); esta etapa só roda `pnpm test`. Lighthouse e o painel de acessibilidade do navegador vêm do Chrome; axe DevTools é extensão do navegador; as buscas são `grep` e *scripts* descartáveis (não commitados) para achar arquivos sem uso. | Seção 3.3 da Etapa 0: dependências aprovadas são só `lucide-react`, `qrcode.react` e `vitest` (dev). |
 | D12 | **A documentação vive no repositório** (`docs/`) e é versionada com a tag. O **Contexto** (arquivo de planejamento) fica fora do repositório e é atualizado no CP9 com o que esta etapa acrescenta. | A trilha de produção começa de uma tag; os planners não acompanham o código. |
@@ -133,11 +133,11 @@ O resto (acabamento visual, texto que poderia ser melhor, ajuste de gosto, ideia
 
 Executada no CP2, nos dois eventos e nos dois temas. O resultado real de cada célula é registrado em `MATRIZ-ROTAS.md`; qualquer diferença do esperado é achado (bug ou decisão a registrar).
 
-Papéis (usuários seed): **Deslogado**; **Davi** (logado, e-mail não verificado — cadastro iniciado, código nunca confirmado, forçado pela toolbar —, sem participação); **Ana** (público, não votou); **Bruno** (jurado); **Carla** (admin do evento); **Hugo** na Semana Tech (admin **de outro** evento: usuário comum aqui, D13 da Etapa 0 e D5 da Etapa 2).
+Papéis (usuários seed): **Deslogado**; **Davi** (logado, e-mail não verificado — cadastro iniciado, código nunca confirmado, forçado pela toolbar —, sem participação); **Ana** (público, não votou); **Bruno** (jurado); **Carla** (admin do evento); **Hugo** na Maratona Tech Tivit (admin **de outro** evento: usuário comum aqui, D13 da Etapa 0 e D5 da Etapa 2).
 
 Legenda: **VER** tela normal · **LOGIN** vai para `/e/{slug}?de={rota}` · **VERIF** vai para `/e/{slug}/verificar-email` (tela de código, rev. 4, A5) · **RESTRITO** `AcessoRestrito` sem nenhum dado da tela · **REDIR** redireciona (destino indicado) · **AVISO** tela informativa, sem formulário nem ação.
 
-| Rota | Deslogado | Davi | Ana | Bruno | Carla | Hugo (Semana Tech) |
+| Rota | Deslogado | Davi | Ana | Bruno | Carla | Hugo (Maratona Tech Tivit) |
 |---|---|---|---|---|---|---|
 | `/` | VER | VER | VER | VER | VER | VER |
 | `/e/[slug]` | VER (painel de acesso) | VER (ação `VERIFICAR_EMAIL`) | VER (`VOTAR`) | VER (`VOTAR_JURADO`) | VER (`PAINEL_ADMIN`) | VER (`VOTAR`, usuário comum) |
@@ -149,12 +149,12 @@ Legenda: **VER** tela normal · **LOGIN** vai para `/e/{slug}?de={rota}` · **VE
 | `/e/[slug]/admin/relatorio` | LOGIN | RESTRITO | RESTRITO | RESTRITO | VER (só com resultado oficial; senão, explicação) | RESTRITO |
 | `/e/[slug]/admin/apresentar` | LOGIN | RESTRITO | RESTRITO | RESTRITO | VER | RESTRITO |
 | `/dev/ui` | VER com a flag da toolbar ligada; **404** com ela desligada (todos os papéis) | | | | | |
-| Rota inexistente (`/xyz`, `/e/semana-tech/xyz`) | `not-found` global (todos os papéis) | | | | | |
+| Rota inexistente (`/xyz`, `/e/maratona-tech-tivit/xyz`) | `not-found` global (todos os papéis) | | | | | |
 | `/e/inexistente` e qualquer subrota | `EventoNaoEncontrado` do gate (todos os papéis) | | | | | |
 
 Notas da matriz:
 - **Hugo no Festival** é admin: VER em todas as rotas de admin. **Carla** é admin nos dois eventos.
-- **Sem senha (rev. 4, A5):** a rota `/e/[slug]/recuperar-senha` não existe mais (cai no `not-found` global, como `/e/semana-tech/xyz`). Login e registro levam à tela de código (`verificar-email`); no protótipo o código é `123456`.
+- **Sem senha (rev. 4, A5):** a rota `/e/[slug]/recuperar-senha` não existe mais (cai no `not-found` global, como `/e/maratona-tech-tivit/xyz`). Login e registro levam à tela de código (`verificar-email`); no protótipo o código é `123456`.
 - **`/totem` e `/totem/parear`:** fora desta matriz; entram com o planner Totem (rev. 4, A7).
 - **Eva** (público que já votou): `/convite` mostra o bloqueio explicativo, sem formulário (`JA_VOTOU_COMO_PUBLICO`), e `/votar` mostra \"já votou\", sem dizer em quem.
 - Em `/convite`, módulo júri desligado, urna encerrada ou evento concluído mostram tela informativa **sem formulário** para qualquer papel (5.4 da Etapa 3).
@@ -178,18 +178,18 @@ O **ensaio** da Etapa 8 ignora a fase e roda em qualquer uma. Com `TEMPO_ESGOTAD
 
 ### 5.4 Matriz X: integração
 
-Todos os testes são feitos **na mesma aba** (D18 da Etapa 0), navegando por `Link` e trocando de sessão pela toolbar (\"Entrar como\"). `verificarInvariantes` e os autotestes ficam vazios **depois de cada linha**; o `InspetorEstado` confere `banco`, `resultados` e `auditoria`. Salvo indicação, o evento é a Semana Tech no `PADRAO`.
+Todos os testes são feitos **na mesma aba** (D18 da Etapa 0), navegando por `Link` e trocando de sessão pela toolbar (\"Entrar como\"). `verificarInvariantes` e os autotestes ficam vazios **depois de cada linha**; o `InspetorEstado` confere `banco`, `resultados` e `auditoria`. Salvo indicação, o evento é a Maratona Tech Tivit no `PADRAO`.
 
 **Navegação e acesso (CP2)**
 
 | # | Integração | Como provocar | Esperado |
 |---|---|---|---|
 | X1 | Entrada e saída de cada rota | Percorrer o mapa de `MATRIZ-ROTAS.md` (rota → como se chega → como se sai) | Nenhuma rota exige digitar URL para entrar ou sair, **inclusive voltar à landing** a partir do evento e do painel; a falta de um caminho é achado |
-| X2 | `?de=` seguro | Deslogado em `/e/semana-tech/votar`, entrar como Ana; repetir com `?de=//exemplo.com` e `?de=https://exemplo.com` | Ana volta a `/votar`; os dois valores externos são ignorados e o destino vem de `resolverDestinoAcesso`; nunca sai do site |
+| X2 | `?de=` seguro | Deslogado em `/e/maratona-tech-tivit/votar`, entrar como Ana; repetir com `?de=//exemplo.com` e `?de=https://exemplo.com` | Ana volta a `/votar`; os dois valores externos são ignorados e o destino vem de `resolverDestinoAcesso`; nunca sai do site |
 | X3 | Sair em rota protegida | Ana em `/votar` → \"Sair\"; Carla em `/admin` → \"Sair\" pela toolbar | Vai ao login com `?de=`, sem a lista piscar (`4/V25`) e sem dado do painel na tela |
 | X4 | Botão voltar | `/votar`: lista → detalhe → fechar; lista → revisão → sucesso → voltar. Configuração: trocar `?secao=`. Painel: trocar `?aba=` | Nunca reabre a confirmação nem duplica voto; o detalhe fecha; seção e aba voltam; sem entrada duplicada na pilha |
 | X5 | Slug renomeado | `RASCUNHO_PRONTO`, mudar o slug na Geral (`6/C7`) | Cabeçalho do painel, \"Voltar ao evento\", CTA da landing e `?de=` usam o slug novo; o antigo mostra `EventoNaoEncontrado`; `dev.slugPadrao` acompanha; a sessão se mantém |
-| X6 | Rota inexistente e erro | `/xyz`, `/e/semana-tech/xyz`, `/e/inexistente/admin`; erro de renderização temporário (não commitado) em uma rota | `not-found` global com tema e ação clara de retorno; gate com `EventoNaoEncontrado`; `error.tsx` com \"Tentar de novo\" que funciona e sem detalhe técnico na tela |
+| X6 | Rota inexistente e erro | `/xyz`, `/e/maratona-tech-tivit/xyz`, `/e/inexistente/admin`; erro de renderização temporário (não commitado) em uma rota | `not-found` global com tema e ação clara de retorno; gate com `EventoNaoEncontrado`; `error.tsx` com \"Tentar de novo\" que funciona e sem detalhe técnico na tela |
 | X7 | Títulos e landmarks | Percorrer as rotas da 5.6 | `<title>` distinto por rota, um `h1`, `<main id="conteudo">`, \"Pular para o conteúdo\" leva ao `main` |
 
 **Estado e fluxo (CP3)**
@@ -205,9 +205,9 @@ Todos os testes são feitos **na mesma aba** (D18 da Etapa 0), navegando por `Li
 | X14 | Urna encerra durante o voto | `URNA_ENCERRA` na confirmação de Ana | Tela `ENCERRADA` com o alerta; 0 voto novo; resultado v1 congelado; Resultado do painel habilitado (`5/W8`, `7/V18`) |
 | X15 | Desqualificar depois de encerrar | `RESULTADO_PADRAO`: abrir a revelação real no palco; na Configuração desqualificar o 1º colocado | Versão 2 (`DESQUALIFICACAO`); Resultado mostra o item \"Fora da disputa\" e o histórico de versões; o palco volta a \"Votação encerrada\" e a sala avisa que o resultado mudou; CSV e relatório na v2; `/votar` segue `ENCERRADA` (`6/C20`, `7/V26`, `8/AP33`) |
 | X16 | Convite de ponta a ponta | Carla gera 1 convite e copia; \"Sair\"; registrar usuário novo como jurado com o código; votar; alterar o voto; Carla volta à Operação | Convite `USADO` com o nome (nunca e-mail); +1 jurado e +1 jurado que votou; histórico com 2 entradas; auditoria `CONVITES_GERADOS`, `CONVITE_RESGATADO`, `VOTO_JURI_REGISTRADO` e `VOTO_JURI_ALTERADO`, sem código nem escolha; os números batem na Configuração e na Operação (`6/C25`, `5/W15`, `5/W16`) |
-| X17 | Módulos em cadeia | Toolbar: desligar o júri na Semana Tech; religar. Desligar e religar o infantil no Festival | Júri desligado: \"Sou jurado\" some, `/convite` informativo, Bruno em `JURI_DESLIGADO`, Placar zera e trava o peso, painel sem jurados nem convites, palco sem categoria do júri, CSV sem `jurados`. Religar mantém o peso em 0 (D5 da Etapa 0). Infantil: o mesmo para totens e categoria infantil (`6/C28`, `7/V6`) |
+| X17 | Módulos em cadeia | Toolbar: desligar o júri na Maratona Tech Tivit; religar. Desligar e religar o infantil no Festival | Júri desligado: \"Sou jurado\" some, `/convite` informativo, Bruno em `JURI_DESLIGADO`, Placar zera e trava o peso, painel sem jurados nem convites, palco sem categoria do júri, CSV sem `jurados`. Religar mantém o peso em 0 (D5 da Etapa 0). Infantil: o mesmo para totens e categoria infantil (`6/C28`, `7/V6`) |
 | X18 | Tema editado na Configuração | Mudar primária, fonte e rótulos (salvar); abrir landing, evento, login, `/votar`, painel e relatório | Cores, fonte e rótulos mudam em todas as telas sem recarregar; contraste ≥ 4,5:1 nos textos; nenhum texto fixo com artigo errado para o novo rótulo (`6/C32`) |
-| X19 | Duas identidades sem recarregar | Com cada tela aberta (landing, evento, votar, Configuração, painel, sala), trocar o evento na toolbar | Tema, rótulos e logo trocam na hora; Semana Tech sem logo mostra o nome em texto; Festival mostra o logo (`4/V24`) |
+| X19 | Duas identidades sem recarregar | Com cada tela aberta (landing, evento, votar, Configuração, painel, sala), trocar o evento na toolbar | Tema, rótulos e logo trocam na hora; Maratona Tech Tivit sem logo mostra o nome em texto; Festival mostra o logo (`4/V24`) |
 | X20 | Troca de sessão não herda estado | Ana escolhe um item e vira Bruno (\"Entrar como\"); Carla abre a revelação e vira Ana | Bruno vê a lista sem seleção (`5/W22`); Ana vê `AcessoRestrito` e nenhum dado do palco; Carla de volta não vê estado de outra pessoa |
 | X21 | Bloqueio de código | 5 códigos errados em `/convite`; relógio +15 min | Campo bloqueado por 60 s e liberado depois; 5 `TENTATIVA_CODIGO_INVALIDA` e 1 `BLOQUEIO_RATE_LIMIT`; o resumo da auditoria do painel soma 1 bloqueio (`7/V15`) |
 | X22 | Auditoria completa | Depois de F1 a F3 (5.12): listar `banco.auditoria` e a lista do painel | Toda `acao` tem rótulo no catálogo (nenhuma cai em `OUTRAS`); cada transição aparece **uma vez**; nenhum `detalhes` com escolha de voto popular ou infantil, código de convite ou e-mail |
@@ -269,7 +269,7 @@ Se um achado do CP1 a CP8 foi corrigido **dentro** do código de uma etapa, a ma
 | Notebook | 1280 px | Configuração, Dashboard, Relatório |
 | Telão | 1920×1080 e 3840×2160 (16:9) | Palco da Apresentação |
 
-**Equipamentos do dia (rev. 4, E27):** **Semana Tech** — telão, celulares e computadores (o voto também acontece em computador, então a votação é conferida também em 1280 px); **Festival** — telão, celulares e totens (o totem entra com o planner Totem, A7).
+**Equipamentos do dia (rev. 4, E27):** **Maratona Tech Tivit** — telão, celulares e computadores (o voto também acontece em computador, então a votação é conferida também em 1280 px); **Festival** — telão, celulares e totens (o totem entra com o planner Totem, A7).
 
 Verificações em cada rota e largura, nos **dois eventos**: sem rolagem horizontal da **página** (tabelas largas rolam no próprio contêiner, regra da Etapa 0); sem texto cortado; alvos de toque de pelo menos 44 px; votação em 360 px sem zoom e com o botão de confirmar sempre alcançável; paisagem no celular sem esconder ação essencial; logos e nomes longos de evento sem quebrar o layout; palco sem rolagem e sem depender de hover (a Etapa 8 já exige 1080p, 4K e 800×450, `8/AP44`; aqui se confere na demonstração real).
 
@@ -342,7 +342,7 @@ O protótipo guarda o `banco` inteiro no navegador. Isto é o que a trilha de pr
 
 ### 5.12 Fluxos de ponta a ponta (F1 a F3)
 
-Executados no CP3, **na mesma aba**, na Semana Tech, com `verificarInvariantes` vazia ao fim de cada passo. Não há passo manual além da toolbar.
+Executados no CP3, **na mesma aba**, na Maratona Tech Tivit, com `verificarInvariantes` vazia ao fim de cada passo. Não há passo manual além da toolbar.
 
 | Fluxo | Passos |
 |---|---|
@@ -356,7 +356,7 @@ Roda em **build de produção** (`next start`), numa instância só (D8), com a 
 
 | Ato | O que mostra | Tempo |
 |---|---|---|
-| 1 | Landing e evento no tema da Semana Tech | 1 min |
+| 1 | Landing e evento no tema da Maratona Tech Tivit | 1 min |
 | 2 | Votar em 390 px (modo dispositivo, **mesma aba**, sem recarregar) e a tela de sucesso | 2 min |
 | 3 | Jurado: convite gerado na Configuração, resgate, voto e alteração | 2 min |
 | 4 | Configuração: mudar tema e pesos do placar; ver o efeito nas outras telas | 1 min |
@@ -485,7 +485,7 @@ Regras de entrega, convenções de código e dependências aprovadas são as da 
 
 **Tarefas**
 - [ ] Rodar todas as buscas da 5.9 e corrigir (ou registrar) cada resultado.
-- [ ] Alternar Semana Tech e Festival em todas as rotas: logo faltando, cor residual, rótulo fixo.
+- [ ] Alternar Maratona Tech Tivit e Festival em todas as rotas: logo faltando, cor residual, rótulo fixo.
 - [ ] Conferir componentes repetidos (botões, cartões, selos, diálogos de confirmação, toasts, estados vazios, esqueletos): todos vêm da Etapa 0.
 - [ ] Conferir formatos pt-BR (data, vírgula decimal, fuso do evento) e `metadata` por rota.
 
@@ -520,7 +520,7 @@ Regras de entrega, convenções de código e dependências aprovadas são as da 
 - [ ] `pnpm build` e `pnpm start`; repetir o roteiro (5.13) nesse modo, **com** a toolbar (build 1, só ensaio) e o roteiro mínimo **sem** ela (build 2, o do público, D9 e E4).
 - [ ] **Build sem toolbar (rev. 3, C21):** conferir que o build 2 não expõe `forcarEstadoUrna` (nem outro caminho para reabrir a urna ou forçar estado): nenhum controle na tela, nenhuma rota `/dev/ui` (404) e nenhuma chamada a `forcarEstadoUrna` alcançável fora de `components/dev/`.
 - [ ] Escrever `docs/ROTEIRO-DEMO.md` e o `README.md` final (como rodar com `pnpm`, o que o protótipo é e não é, F5 reinicia tudo).
-- [ ] Ensaiar o roteiro em Chrome desktop, Safari iOS, Chrome Android e, se possível, no telão real ou em monitor 16:9; no celular, seguindo a D8. Conferir também os equipamentos do dia (rev. 4, E27): Semana Tech — telão, celulares e **computadores** (votar num computador, em Chrome, Edge e Firefox desktop); Festival — telão, celulares e totens (o totem é conferido no planner Totem, A7).
+- [ ] Ensaiar o roteiro em Chrome desktop, Safari iOS, Chrome Android e, se possível, no telão real ou em monitor 16:9; no celular, seguindo a D8. Conferir também os equipamentos do dia (rev. 4, E27): Maratona Tech Tivit — telão, celulares e **computadores** (votar num computador, em Chrome, Edge e Firefox desktop); Festival — telão, celulares e totens (o totem é conferido no planner Totem, A7).
 - [ ] Conferir que alternar o modo dispositivo do navegador não recarrega a página (ato 2).
 
 **Fica fake:** nada novo.
@@ -536,7 +536,7 @@ Regras de entrega, convenções de código e dependências aprovadas são as da 
 **Tarefas**
 - [ ] Rodar a **regressão obrigatória** da 5.5 (e a matriz inteira das etapas em que houve correção, D3) e repetir as buscas da 5.9.
 - [ ] Fechar `ACHADOS.md`: nenhum `BLOQUEIA_FASE2` aberto; os `PODE_ESPERAR` viram backlog; os `DECISAO` vão para `DECISOES-PENDENTES.md`.
-- [ ] Consolidar em `docs/DECISOES-PENDENTES.md` a seção 10 de todas as etapas (pendências **[Usuário]**, as resolvidas na rev. 3 e na rev. 4 e as marcadas "fase com banco", hoje "trilha de produção"), o bloco "Fora da Fase 1" (A1, A3–A9, com as decisões da rev. 4) e as **mudanças em fontes fora dos planners, F-1 a F-12, todas aprovadas e aplicadas na rev. 4** (registro, não mais "aguardando aprovação"): F-1 schema `Participacao.criadoEm`; F-2 Base `Jurado.md` §12 e `VotoInfantil.md` §12 (trava total); F-3 DD §7.6 e §8.1 (desqualificado, imagem obrigatória, redistribuição de peso); F-4 schema pesos `Int` com CHECK; F-5 schema `Evento.local`/`linkSobre`; F-6 Base `Dashboard.md`; F-7 DD §13 (4 fases: Demonstração, Semana Tech, Festival, Final); F-8 `Login.md` (sem senha, Better Auth) e schema sem `senhaHash`; F-9 DD §3.3 (CPF e SMS/OTP descartados; voto por critério vira requisito do Festival); F-10 remoção de `exibirVotosJuriNoTelao`; F-11 DD §5.3 (stack decidida) e comentário no schema; F-12 DD §3.2/§3.3/§10.4 (voto infantil na demonstração, admins por seed, controladora VaiVota). Pendências que continuam: E22, E30, texto do aviso de privacidade (E29), número de votantes e pico (A6), detalhes do voto por critério (A8) e data exata da Semana Tech (E3).
+- [ ] Consolidar em `docs/DECISOES-PENDENTES.md` a seção 10 de todas as etapas (pendências **[Usuário]**, as resolvidas na rev. 3 e na rev. 4 e as marcadas "fase com banco", hoje "trilha de produção"), o bloco "Fora da Fase 1" (A1, A3–A9, com as decisões da rev. 4) e as **mudanças em fontes fora dos planners, F-1 a F-12, todas aprovadas e aplicadas na rev. 4** (registro, não mais "aguardando aprovação"): F-1 schema `Participacao.criadoEm`; F-2 Base `Jurado.md` §12 e `VotoInfantil.md` §12 (trava total); F-3 DD §7.6 e §8.1 (desqualificado, imagem obrigatória, redistribuição de peso); F-4 schema pesos `Int` com CHECK; F-5 schema `Evento.local`/`linkSobre`; F-6 Base `Dashboard.md`; F-7 DD §13 (4 fases: Demonstração, Maratona Tech Tivit, Festival, Final); F-8 `Login.md` (sem senha, Better Auth) e schema sem `senhaHash`; F-9 DD §3.3 (CPF e SMS/OTP descartados; voto por critério vira requisito do Festival); F-10 remoção de `exibirVotosJuriNoTelao`; F-11 DD §5.3 (stack decidida) e comentário no schema; F-12 DD §3.2/§3.3/§10.4 (voto infantil na demonstração, admins por seed, controladora VaiVota). Pendências que continuam: E22, E30, texto do aviso de privacidade (E29), número de votantes e pico (A6), detalhes do voto por critério (A8) e data exata da Maratona Tech Tivit (E3).
 - [ ] Preencher `docs/CHECKLIST-FASE1.md` (seção 9) com ✔ ou ✘ e responsável.
 - [ ] Atualizar o Contexto (seções 2, 4 e 10) com o que esta etapa registrou e marcar a Fase 1 como concluída.
 - [ ] Marcar a tag `fase1-prototipo` e gerar o zip final.
@@ -589,21 +589,21 @@ Nada novo. O fake desta etapa é só ficar **explícito e rastreável**:
 - **Toolbar na demonstração (D9):** **Resolvida (rev. 3, E4):** build para o público **sem** toolbar (build 2); build com toolbar só para ensaio e roteiro completo.
 - **Concluir o evento não redireciona (D6):** **Resolvida (rev. 3, E26): confirmado.**
 - **"Powered by VaiVota" no telão (A16):** **Resolvida (rev. 3, E25): confirmado** — discreto e só no final estático (já previsto na Etapa 8, D21).
-- **Navegadores e dispositivos-alvo:** **Resolvida (rev. 4, E27):** equipamentos do dia — **Semana Tech:** telão, celulares e computadores (o voto também acontece em computador); **Festival:** telão, celulares e totens. Navegadores de teste: Chrome desktop, Safari iOS e Chrome Android, mais Edge e Firefox desktop (computadores da Semana Tech); o telão real é alvo (conferir no ensaio). O totem é conferido no planner Totem (A7).
+- **Navegadores e dispositivos-alvo:** **Resolvida (rev. 4, E27):** equipamentos do dia — **Maratona Tech Tivit:** telão, celulares e computadores (o voto também acontece em computador); **Festival:** telão, celulares e totens. Navegadores de teste: Chrome desktop, Safari iOS e Chrome Android, mais Edge e Firefox desktop (computadores da Maratona Tech Tivit); o telão real é alvo (conferir no ensaio). O totem é conferido no planner Totem (A7).
 - **Meta de acessibilidade (D7):** **Resolvida (rev. 3, E28; reconfirmada na rev. 4): confirmado** — Lighthouse ≥ 90 e axe sem `critical` e `serious`.
 - **Totem, `CodigoPareamento` e `ConviteAdmin`:** **Resolvida (rev. 4, A7 e A9):** o totem (pareamento, quiosque com PIN, voto infantil, gestão de dispositivos) entra com o planner Totem (a escrever), também na demonstração; até lá, `Dispositivo` e `VotoInfantil` são dados seed. Admins adicionais por seed; a tela de convite de admin fica para depois.
 - **Aviso de privacidade (rev. 4, E29):** a controladora dos dados é a **VaiVota**; o aviso é da plataforma (texto único, link no registro e no rodapé); `Evento.avisoPrivacidadeUrl` é opcional e complementar. Texto pendente (rascunho a partir do DD §10.4). **[Usuário]**
-- **Pendências herdadas das Etapas 0 a 8** (as **[Usuário]** que continuam após a rev. 4: direção visual do palco (E22), catálogo único de textos (E30), texto do aviso de privacidade (E29), número de votantes e pico (A6), detalhes do voto por critério do júri (A8) e dia e horário exatos da Semana Tech (E3)): o CP9 as reúne em `DECISOES-PENDENTES.md`, junto com as resolvidas na rev. 3 e na rev. 4 (E1, E2, E21, E27, E28 e outras) e as antigas "fase com banco" (hoje trilha de produção).
+- **Pendências herdadas das Etapas 0 a 8** (as **[Usuário]** que continuam após a rev. 4: direção visual do palco (E22), catálogo único de textos (E30), texto do aviso de privacidade (E29), número de votantes e pico (A6), detalhes do voto por critério do júri (A8) e dia e horário exatos da Maratona Tech Tivit (E3)): o CP9 as reúne em `DECISOES-PENDENTES.md`, junto com as resolvidas na rev. 3 e na rev. 4 (E1, E2, E21, E27, E28 e outras) e as antigas "fase com banco" (hoje trilha de produção).
 - **`DocumentDesign.md` e `ConfiguracaoEvento.md`:** **Resolvida (rev. 3, B1 e B2):** o `DocumentDesign.md` v1.1 existe na raiz e as premissas "(a confirmar no DD)" foram fechadas nas etapas donas (ou viraram **[Usuário]**, no caso de textos); `ConfiguracaoEvento.md` não existe e toda referência passa a ser DD §7.6.
 - **Mudanças em fontes fora dos planners:** **Resolvida (rev. 4, F-1 a F-12):** aprovadas e **aplicadas** no schema, no `DocumentDesign.md` e em `planners/Base/*`. O CP9 as registra em `DECISOES-PENDENTES.md` como aplicadas, e `DIVERGENCIAS-SCHEMA.md` registra as de schema (F-1, F-4, F-5, F-8, F-10) como já coincidentes com o protótipo.
 - **Fase 2 (BD fake):** **Resolvida (rev. 4, A2/A3): não existe BD fake.** Depois do protótipo vem a **trilha de produção** (Prisma + Supabase; planner "Trilha de Produção", a escrever). **Banco:** **Resolvida (rev. 4, A4):** Supabase (PostgreSQL); a conversão do schema MySQL é tarefa da trilha de produção (registrado em `DIVERGENCIAS-SCHEMA.md`).
 
 **Fora da Fase 1 — exige planner próprio ou decisão do dono do produto** (registro da rev. 3, com as decisões da rev. 4; nenhuma etapa da Fase 1 implementa)
-- **A1:** **Decidido (rev. 4):** a Semana Tech (semana de 18/10/2026) é **uso real** (sistema funcional, dados reais). Antes dela há uma **demonstração** para o Festival (09/10/2026), com telas e dados mock no tema do Festival. A reestruturação futura em 4 fases (Demonstração, Semana Tech, Festival, Final) substituirá a numeração Fase 1/2/3.
+- **A1:** **Decidido (rev. 4):** a Maratona Tech Tivit (semana de 18/10/2026) é **uso real** (sistema funcional, dados reais). Antes dela há uma **demonstração** para o Festival (09/10/2026), com telas e dados mock no tema do Festival. A reestruturação futura em 4 fases (Demonstração, Maratona Tech Tivit, Festival, Final) substituirá a numeração Fase 1/2/3.
 - **A3:** **Decidido (rev. 4):** sem BD fake. Planner "Trilha de Produção" (a escrever): banco, migrações, seed real; autenticação; troca dos serviços de voto; troca dos serviços de configuração/dashboard/resultado; rate limiting, logs e deploy.
 - **A4:** **Decidido (rev. 4):** Supabase (PostgreSQL).
 - **A5:** **Decidido (rev. 4):** Better Auth (Google + código por e-mail, **sem senha**), Vercel, Resend, rate limiting no PostgreSQL ou Upstash Redis, Sentry + logs da Vercel; Prisma como ORM.
 - **A6:** **Decidido (rev. 4):** planner "Endurecimento" (a escrever): carga com k6, alertas Sentry, backup e teste de restauração, roteiro do dia, ensaio do telão. Pendente: número esperado de votantes e pico. **[Usuário]**
 - **A7:** **Decidido (rev. 4):** totem e voto infantil (pareamento, quiosque com PIN, voto infantil, gestão de dispositivos) fazem parte do protótipo (aparecem na demonstração) e do produto; planner próprio "Totem" (a escrever, mock e depois real).
-- **A8:** **Decidido (rev. 4):** júri com **voto simples na Semana Tech** e **voto por critério no Festival** (Direção, Roteiro, Fotografia e Som — PDF §3.3; modelo previsto `Criterio` e `NotaJuri`). Pendente: escala da nota, peso por critério, como a nota vira placar do júri e desempate por critério. **[Usuário]**
+- **A8:** **Decidido (rev. 4):** júri com **voto simples na Maratona Tech Tivit** e **voto por critério no Festival** (Direção, Roteiro, Fotografia e Som — PDF §3.3; modelo previsto `Criterio` e `NotaJuri`). Pendente: escala da nota, peso por critério, como a nota vira placar do júri e desempate por critério. **[Usuário]**
 - **A9:** **Decidido (rev. 4):** CPF nunca; SMS/OTP descartado (código por e-mail no lugar); admins adicionais por seed (tela de convite de admin fica para depois).

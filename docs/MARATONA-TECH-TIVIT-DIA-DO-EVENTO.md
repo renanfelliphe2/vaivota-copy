@@ -1,6 +1,6 @@
-# Semana Tech: roteiro do dia e plano de contingência
+# Maratona Tech Tivit: roteiro do dia e plano de contingência
 
-Para a organização (admins). O único objetivo do evento: **apurar os votos do público de 8 projetos**. O júri é feito por outro sistema. Antes de tudo, a implantação e o ensaio devem estar feitos: [`SEMANA-TECH-IMPLANTACAO.md`](SEMANA-TECH-IMPLANTACAO.md).
+Para a organização (admins). O único objetivo do evento: **apurar os votos do público de 8 projetos**. O júri é feito por outro sistema. Antes de tudo, a implantação e o ensaio devem estar feitos: [`MARATONA-TECH-TIVIT-IMPLANTACAO.md`](MARATONA-TECH-TIVIT-IMPLANTACAO.md).
 
 ## Regras do evento (o que o sistema garante)
 
@@ -25,7 +25,7 @@ Para a organização (admins). O único objetivo do evento: **apurar os votos do
 
 ## Durante a votação
 
-- Acompanhe pelo **Painel** (`/e/semana-tech/admin`, aba **Operação**; atualiza a cada 5 s): total de votos, inscritos × votaram, votos por minuto, estado da urna.
+- Acompanhe pelo **Painel** (`/e/maratona-tech-tivit/admin`, aba **Operação**; atualiza a cada 5 s): total de votos, inscritos × votaram, votos por minuto, estado da urna.
 - O QR Code e o link do evento são o endereço do site (`APP_URL`). Quem não tem conta cria em um minuto (e-mail e senha com código no e-mail) ou entra pelo Google.
 - **Corrigir texto ou imagem de um projeto** com a urna aberta é permitido, mas pede confirmação e **fica registrado** na auditoria. Não é possível acrescentar, remover nem tirar projetos da votação com a urna aberta.
 - Se um projeto precisar sair da disputa (regra do evento), use **Tirar da disputa** (pede o motivo; é **irreversível**). Os votos dele permanecem nos totais, mas ele sai do ranking.
@@ -48,7 +48,7 @@ Para a organização (admins). O único objetivo do evento: **apurar os votos do
 | **Google não funciona** | Quem tem e-mail e senha entra normalmente; os demais criam conta por e-mail. Confira em Google Cloud se o app está **em produção** e se a URI de redirecionamento é a do `APP_URL` |
 | **Site lento ou fora do ar** | Veja o painel do **Vercel** (erros, tempo) e o do **Supabase** (conexões, projeto ativo). O banco aguenta o pico esperado (o teste de carga confirma); falha costuma ser de configuração. Os votos já gravados **não se perdem** (um voto só é confirmado depois de gravado) |
 | **Urna aberta por engano** | Não há "desabrir". Se ainda não há votos, continue normalmente. Se for grave, fale com a equipe técnica |
-| **Urna encerrada por engano** | O sistema não reabre. Procedimento de **emergência, só pela equipe técnica**, com backup feito antes: no banco, `UPDATE evento SET estado_urna = 'ABERTA', urna_encerrada_em = NULL WHERE slug = 'semana-tech';` e `DELETE FROM resultado_oficial WHERE evento_id = (SELECT id FROM evento WHERE slug = 'semana-tech');` (**todas** as versões: se houve desqualificação depois do encerramento, a versão 2 também sairia do caminho) e registrar o motivo. A apuração é refeita ao encerrar de novo. Os votos gravados permanecem |
+| **Urna encerrada por engano** | O sistema não reabre. Procedimento de **emergência, só pela equipe técnica**, com backup feito antes: no banco, `UPDATE evento SET estado_urna = 'ABERTA', urna_encerrada_em = NULL WHERE slug = 'maratona-tech-tivit';` e `DELETE FROM resultado_oficial WHERE evento_id = (SELECT id FROM evento WHERE slug = 'maratona-tech-tivit');` (**todas** as versões: se houve desqualificação depois do encerramento, a versão 2 também sairia do caminho) e registrar o motivo. A apuração é refeita ao encerrar de novo. Os votos gravados permanecem |
 | **Alguém diz que votou e a tela diz que não** | Não votou, ou votou com outra conta. O estado "você já votou" vem do banco. Nunca se pode olhar "em quem" |
 | **Alguém não consegue votar** | Mensagens da tela: "A votação ainda não está aberta", "foi encerrada", "Confirme seu e-mail", "Contas administrativas não votam". O admin que quiser votar usa outra conta |
 | **Esqueceu a senha** | **Esqueci minha senha** na tela de entrada: o código chega por e-mail e a pessoa já entra com a senha nova |

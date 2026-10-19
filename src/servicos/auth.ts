@@ -247,7 +247,7 @@ export async function redefinirSenha(
 export async function resgatarConvite(eventoId: string, codigo: string): Promise<Resultado<{ papel: PapelParticipacao; destino: string }>> {
   void eventoId;
   void codigo;
-  return falha("CODIGO_INVALIDO", { detalhe: "convite de jurado não existe no MVP da Semana Tech" });
+  return falha("CODIGO_INVALIDO", { detalhe: "convite de jurado não existe no MVP da Maratona Tech Tivit" });
 }
 
 /**

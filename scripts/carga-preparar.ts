@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { argumento } from "./_ambiente";
 import { auth } from "@/server/auth";
 import { db, desconectarBanco } from "@/server/db";
-import { semearSemanaTech } from "@/server/semente";
+import { semearMaratonaTechTivit } from "@/server/semente";
 
 // ST6: prepara o teste de carga. Cria um evento de teste (`carga-teste`), com 8 projetos e a urna ABERTA, N contas já
 // verificadas e uma sessão para cada uma, gravadas em tests/carga/sessoes.json (para o k6).
@@ -19,7 +19,7 @@ async function main() {
   if (process.env.NODE_ENV === "production" && !process.argv.includes("--permitir-producao"))
     throw new Error("Recusado em NODE_ENV=production (use um banco de teste).");
 
-  const { eventoId } = await semearSemanaTech({ slug: SLUG, nome: "Teste de carga" });
+  const { eventoId } = await semearMaratonaTechTivit({ slug: SLUG, nome: "Teste de carga" });
   await db().evento.update({ where: { id: eventoId }, data: { estado: "ATIVO", estadoUrna: "ABERTA", urnaAbertaEm: new Date() } });
   if ((await db().candidato.count({ where: { eventoId } })) === 0) {
     for (let i = 1; i <= 8; i++) {
