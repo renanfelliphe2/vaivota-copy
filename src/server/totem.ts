@@ -197,8 +197,17 @@ function estadoDaUrna(estado: string, estadoUrna: string, moduloInfantil: boolea
  * Um toque confirmado = um voto (sem edição). Só com o aparelho ATIVO do próprio evento, o módulo ligado e a urna aberta. A
  * transação trava o evento em modo compartilhado (o encerramento espera os votos em andamento e nenhum voto entra depois dele)
  * e o aparelho para escrita (uma pausa ou revogação do admin espera o voto em andamento; o voto seguinte já a enxerga).
+ *
+ * `idEnvio` (opcional) é a chave aleatória da tentativa: com a rede caindo, o totem não sabe se o voto chegou, e o "tentar de novo"
+ * reenvia a MESMA chave. Se o aparelho já registrou um voto com essa chave, o servidor devolve REGISTRADO sem contar outro (e sem
+ * olhar o estado atual do aparelho e da urna: o voto foi aceito quando valia, e a tela precisa saber disso). A chave só vale dentro
+ * do aparelho e não identifica a criança. As tentativas de um mesmo aparelho se enfileiram pela trava do aparelho, então o reenvio
+ * não corre contra o envio original.
  */
-export async function votarInfantil(ctx: ContextoTotem, entrada: { eventoId: string; candidatoId: string }): Promise<Resultado<{ resultado: "REGISTRADO" }>> {
+export async function votarInfantil(
+  ctx: ContextoTotem,
+  entrada: { eventoId: string; candidatoId: string; idEnvio?: string },
+): Promise<Resultado<{ resultado: "REGISTRADO" }>> {
   const token = tokenDoCookie(ctx.headers);
   if (!token) return falha("DISPOSITIVO_INATIVO", { detalhe: "voto infantil sem token de totem" });
   const hash = hashDoToken(token);
@@ -217,7 +226,20 @@ export async function votarInfantil(ctx: ContextoTotem, entrada: { eventoId: str
       const aparelhos = await tx.$queryRaw<LinhaDispositivo[]>`
         SELECT id, evento_id, estado::text AS estado FROM dispositivo WHERE hash_token = ${hash} FOR NO KEY UPDATE`;
       const aparelho = aparelhos[0];
-      if (!aparelho || aparelho.evento_id !== evento.id || aparelho.estado !== "ATIVO") throw new VotoRecusado("DISPOSITIVO_INATIVO");
+      if (!aparelho || aparelho.evento_id !== evento.id) throw new VotoRecusado("DISPOSITIVO_INATIVO");
+
+      if (entrada.idEnvio) {
+        const anterior = await tx.votoInfantil.findUnique({
+          where: { dispositivoId_idEnvio: { dispositivoId: aparelho.id, idEnvio: entrada.idEnvio } },
+          select: { candidatoId: true },
+        });
+        if (anterior) {
+          // A mesma chave com outro item é erro de quem chama: nunca diz "registrado" para um voto que não é este.
+          if (anterior.candidatoId !== entrada.candidatoId) throw new VotoRecusado("VALIDACAO");
+          return;
+        }
+      }
+      if (aparelho.estado !== "ATIVO") throw new VotoRecusado("DISPOSITIVO_INATIVO");
 
       const recusaEstado = estadoDaUrna(evento.estado, evento.estado_urna, evento.modulo_infantil);
       if (recusaEstado) throw new VotoRecusado(recusaEstado);
@@ -228,7 +250,9 @@ export async function votarInfantil(ctx: ContextoTotem, entrada: { eventoId: str
       });
       if (!candidato) throw new VotoRecusado("CANDIDATO_INDISPONIVEL");
 
-      await tx.votoInfantil.create({ data: { eventoId: evento.id, candidatoId: candidato.id, dispositivoId: aparelho.id } });
+      await tx.votoInfantil.create({
+        data: { eventoId: evento.id, candidatoId: candidato.id, dispositivoId: aparelho.id, idEnvio: entrada.idEnvio ?? null },
+      });
       await tx.dispositivo.update({ where: { id: aparelho.id }, data: { ultimoUsoEm: new Date() } });
     });
     return sucesso({ resultado: "REGISTRADO" });

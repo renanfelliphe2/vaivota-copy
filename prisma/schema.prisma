@@ -584,11 +584,16 @@ model VotoInfantil {
   eventoId      String   @map("evento_id")
   candidatoId   String   @map("candidato_id")
   dispositivoId String   @map("dispositivo_id")
+  // Chave aleatória da tentativa de voto no totem (nada a ver com a criança): o "tentar de novo" depois de uma falha de rede reenvia a
+  // MESMA chave, e o servidor não conta o voto duas vezes. Opcional: tablets com a tela antiga votam sem ela.
+  idEnvio       String?  @map("id_envio") @db.VarChar(64)
   criadoEm      DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
 
   candidato   Candidato   @relation(fields: [candidatoId, eventoId], references: [id, eventoId], onDelete: Restrict)
   dispositivo Dispositivo @relation(fields: [dispositivoId, eventoId], references: [id, eventoId], onDelete: Restrict)
 
+  // NULL não conflita com NULL no PostgreSQL: só vale para quem manda a chave.
+  @@unique([dispositivoId, idEnvio])
   @@index([eventoId, candidatoId])
   @@index([eventoId, criadoEm])
   @@index([dispositivoId, criadoEm])

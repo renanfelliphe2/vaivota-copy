@@ -108,7 +108,9 @@ const servicos = {
   // Totem (voto infantil), lado do aparelho. Sem login: a identidade é o token do cookie HttpOnly, nunca um campo enviado.
   parearTotem: definir(z.object({ eventoId: id, codigo: texto(40) }), (ctx, _u, a) => totem.parearTotem(ctx, a)),
   obterEstadoTotem: definir(semArgs, (ctx) => totem.obterEstadoTotem(ctx), { sessaoEmCache: true }),
-  votarInfantil: definir(z.object({ eventoId: id, candidatoId: id }), (ctx, _u, a) => totem.votarInfantil(ctx, a), { sessaoEmCache: true }),
+  votarInfantil: definir(z.object({ eventoId: id, candidatoId: id, idEnvio: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/).optional() }), (ctx, _u, a) => totem.votarInfantil(ctx, a), {
+    sessaoEmCache: true,
+  }),
   conferirPinTotem: definir(z.object({ pin: texto(20) }), (ctx, _u, a) => totem.conferirPinTotem(ctx, a), { sessaoEmCache: true }),
 
   // Totem: gestão pelo admin

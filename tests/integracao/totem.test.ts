@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
+import { novoIdEnvio } from "@/dominio/totem";
 import { ALFABETO_CODIGO } from "@/lib/codigos";
 import { COOKIE_TOTEM, cookieDoTotem, hashDoPin, hashDoToken, pinConfere, tokenDoCookie } from "@/server/credenciaisTotem";
 import { obterOperacao, obterResultado } from "@/server/dashboard";
@@ -395,7 +396,8 @@ describe("voto infantil", () => {
       expect(v.dispositivoId).toBe(t.id);
       expect(v.criadoEm.getTime()).toBeGreaterThanOrEqual(antes - 1000);
       // Sem referência a usuário ou a qualquer dado da criança.
-      expect(Object.keys(v).sort()).toEqual(["candidatoId", "criadoEm", "dispositivoId", "eventoId", "id"]);
+      expect(Object.keys(v).sort()).toEqual(["candidatoId", "criadoEm", "dispositivoId", "eventoId", "id", "idEnvio"]);
+      expect(v.idEnvio).toBeNull(); // sem chave de tentativa (tela antiga), o voto vale do mesmo jeito
     }
     const aparelho = await db().dispositivo.findUniqueOrThrow({ where: { id: t.id } });
     expect(aparelho.ultimoUsoEm).not.toBeNull();
@@ -404,6 +406,83 @@ describe("voto infantil", () => {
     const auditoria = await db().auditoria.findMany({ where: { eventoId } });
     expect(auditoria.map((x) => x.acao).sort()).toEqual(["CODIGO_PAREAMENTO_GERADO", "DISPOSITIVO_PAREADO"]);
     expect(JSON.stringify(auditoria)).not.toContain(a);
+  });
+
+  it("a mesma chave de tentativa não conta o voto duas vezes; chaves diferentes contam", async () => {
+    const { eventoId, admin } = await eventoComTotens("teste-totem-voto-chave", { urna: "ABERTA" });
+    const [a, b] = await criarCandidatos(eventoId, 2);
+    const t = await criarTotem(admin, eventoId);
+    const chave = novoIdEnvio();
+
+    expect(await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: chave })).toEqual({ ok: true, dados: { resultado: "REGISTRADO" } });
+    // A rede caiu na volta: o totem não sabe se o voto chegou e manda a mesma tentativa de novo (uma ou várias vezes).
+    expect(await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: chave })).toEqual({ ok: true, dados: { resultado: "REGISTRADO" } });
+    expect((await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: chave })).ok).toBe(true);
+    expect(await db().votoInfantil.count({ where: { dispositivoId: t.id } })).toBe(1);
+
+    // Outra criança (outra tentativa) vota no mesmo item e conta; a chave guardada é a da tentativa.
+    expect((await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: novoIdEnvio() })).ok).toBe(true);
+    expect((await votarInfantil(t.ctx, { eventoId, candidatoId: b })).ok).toBe(true); // sem chave: um toque, um voto
+    const votos = await db().votoInfantil.findMany({ where: { dispositivoId: t.id }, orderBy: { id: "asc" } });
+    expect(votos.map((v) => v.candidatoId)).toEqual([a, a, b]);
+    expect(votos[0].idEnvio).toBe(chave);
+    expect(votos[2].idEnvio).toBeNull();
+    // Nem a chave nem o reenvio deixam rastro na auditoria: só o pareamento está lá.
+    const auditoria = await db().auditoria.findMany({ where: { eventoId } });
+    expect(auditoria.map((x) => x.acao).sort()).toEqual(["CODIGO_PAREAMENTO_GERADO", "DISPOSITIVO_PAREADO"]);
+    expect(JSON.stringify(auditoria)).not.toContain(chave);
+  });
+
+  it("o reenvio de um voto já aceito responde REGISTRADO mesmo com o aparelho pausado ou revogado, ou a urna encerrada", async () => {
+    const { eventoId, admin } = await eventoComTotens("teste-totem-voto-chave-estado", { urna: "ABERTA" });
+    const [a] = await criarCandidatos(eventoId, 2);
+    const t = await criarTotem(admin, eventoId);
+    const chave = novoIdEnvio();
+    expect((await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: chave })).ok).toBe(true);
+
+    expect((await pausarDispositivo(admin, eventoId, t.id, { ip: t.ip })).ok).toBe(true);
+    expect(await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: chave })).toMatchObject({ ok: true }); // o voto existe
+    expect(await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: novoIdEnvio() })).toMatchObject({ ok: false, erro: { codigo: "DISPOSITIVO_INATIVO" } });
+
+    expect((await revogarDispositivo(admin, eventoId, t.id, {}, { ip: t.ip })).ok).toBe(true);
+    expect(await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: chave })).toMatchObject({ ok: true });
+    expect(await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: novoIdEnvio() })).toMatchObject({ ok: false, erro: { codigo: "DISPOSITIVO_INATIVO" } });
+
+    // Urna encerrada: o voto que chegou antes do encerramento continua sendo "registrado"; um novo é recusado.
+    const outro = await criarTotem(admin, eventoId);
+    const chaveOutro = novoIdEnvio();
+    expect((await votarInfantil(outro.ctx, { eventoId, candidatoId: a, idEnvio: chaveOutro })).ok).toBe(true);
+    expect((await encerrarUrna(admin, eventoId)).ok).toBe(true);
+    expect(await votarInfantil(outro.ctx, { eventoId, candidatoId: a, idEnvio: chaveOutro })).toMatchObject({ ok: true });
+    expect(await votarInfantil(outro.ctx, { eventoId, candidatoId: a, idEnvio: novoIdEnvio() })).toMatchObject({ ok: false, erro: { codigo: "URNA_ENCERRADA" } });
+    expect(await db().votoInfantil.count({ where: { eventoId } })).toBe(2);
+  });
+
+  it("a chave vale por aparelho e não serve a outro item nem a outro totem", async () => {
+    const { eventoId, admin } = await eventoComTotens("teste-totem-voto-chave-aparelho", { urna: "ABERTA" });
+    const [a, b] = await criarCandidatos(eventoId, 2);
+    const um = await criarTotem(admin, eventoId);
+    const dois = await criarTotem(admin, eventoId);
+    const chave = novoIdEnvio();
+    expect((await votarInfantil(um.ctx, { eventoId, candidatoId: a, idEnvio: chave })).ok).toBe(true);
+
+    // A mesma chave com outro item é erro de quem chama: não diz "registrado" para um voto que não é este.
+    expect(await votarInfantil(um.ctx, { eventoId, candidatoId: b, idEnvio: chave })).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
+    expect(await db().votoInfantil.count({ where: { dispositivoId: um.id } })).toBe(1);
+
+    // Outro totem com a mesma chave (colisão improvável, mas possível) vota normalmente: a chave é do aparelho.
+    expect((await votarInfantil(dois.ctx, { eventoId, candidatoId: b, idEnvio: chave })).ok).toBe(true);
+    expect(await db().votoInfantil.count({ where: { dispositivoId: dois.id } })).toBe(1);
+  });
+
+  it("o envio original e vários reenvios ao mesmo tempo viram um voto só", async () => {
+    const { eventoId, admin } = await eventoComTotens("teste-totem-voto-chave-corrida", { urna: "ABERTA" });
+    const [a] = await criarCandidatos(eventoId, 2);
+    const t = await criarTotem(admin, eventoId);
+    const chave = novoIdEnvio();
+    const rs = await Promise.all(Array.from({ length: 10 }, () => votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: chave })));
+    expect(rs.every((r) => r.ok)).toBe(true);
+    expect(await db().votoInfantil.count({ where: { dispositivoId: t.id } })).toBe(1);
   });
 
   it("sem cookie, com token falso ou de totem de outro evento: DISPOSITIVO_INATIVO", async () => {
@@ -851,6 +930,13 @@ describe("fronteira RPC do totem", () => {
     expect(await db().votoInfantil.count({ where: { dispositivoId: pareado.id } })).toBe(1);
     expect(await db().votoInfantil.count({ where: { dispositivoId: outro.id } })).toBe(0);
     expect(await executarServico("votarInfantil", { eventoId }, ctx())).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
+
+    // A chave de tentativa: forma fixa (8 a 64 letras, números, _ e -), e o reenvio pelo RPC não conta de novo.
+    for (const idEnvio of ["curta", "com espaço no meio", "x".repeat(65), 12345678, "ação-com-acento"])
+      expect(await executarServico("votarInfantil", { eventoId, candidatoId, idEnvio }, ctx())).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
+    const idEnvio = novoIdEnvio();
+    for (let i = 0; i < 3; i++) expect(await executarServico("votarInfantil", { eventoId, candidatoId, idEnvio }, ctx())).toMatchObject({ ok: true, dados: { resultado: "REGISTRADO" } });
+    expect(await db().votoInfantil.count({ where: { dispositivoId: pareado.id } })).toBe(2);
 
     expect(await executarServico("conferirPinTotem", { pin: "00000000" }, ctx())).toMatchObject({ ok: false, erro: { codigo: "CREDENCIAIS_INVALIDAS" } });
     expect(await executarServico("conferirPinTotem", { pin: PIN }, ctx())).toMatchObject({ ok: true });

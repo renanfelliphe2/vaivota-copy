@@ -3,7 +3,7 @@
 import { ArrowLeft, Check, Hand, LoaderCircle, RotateCcw, Star, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
-import { TEMPOS_TOTEM } from "@/dominio/totem";
+import { novoIdEnvio, TEMPOS_TOTEM } from "@/dominio/totem";
 import type { Candidato } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 import { TEXTOS_TOTEM } from "@/lib/textosTotem";
@@ -11,14 +11,18 @@ import { votarInfantil } from "@/servicos/totem";
 
 // Totem (§6): toque para votar → cartazes → "Você escolheu X? Sim / Não" → sucesso → volta ao início.
 // Inatividade na escolha ou na confirmação também volta ao início. Um toque confirmado = um voto (trava síncrona).
+// Cada tentativa de voto leva uma chave aleatória (`idEnvio`). Se a rede falha, o totem não sabe se o voto chegou: o "tentar de novo"
+// reenvia a MESMA chave e o servidor não conta duas vezes. A chave só passa da tela de erro para a confirmação seguinte; qualquer outro
+// caminho (voltar, trocar de item, voltar ao início) descarta a chave, e o próximo voto, de outra criança, nasce com uma nova.
 
 type Passo =
   | { tipo: "INICIO" }
   | { tipo: "ESCOLHA" }
-  | { tipo: "CONFIRMAR"; candidatoId: string }
-  | { tipo: "ENVIANDO"; candidatoId: string }
+  /** `idEnvio` só existe na confirmação que veio de "tentar de novo". */
+  | { tipo: "CONFIRMAR"; candidatoId: string; idEnvio?: string }
+  | { tipo: "ENVIANDO"; candidatoId: string; idEnvio: string }
   | { tipo: "SUCESSO" }
-  | { tipo: "ERRO"; candidatoId: string };
+  | { tipo: "ERRO"; candidatoId: string; idEnvio: string };
 
 const INICIO: Passo = { tipo: "INICIO" };
 
@@ -65,14 +69,15 @@ export function FluxoTotem({ eventoId, candidatos, rotuloCategoria, logo, logoPe
     };
   }, [passo.tipo]);
 
-  async function confirmar(candidatoId: string) {
+  async function confirmar(candidatoId: string, idEnvioAnterior?: string) {
     if (enviando.current) return;
     enviando.current = true;
-    setPasso({ tipo: "ENVIANDO", candidatoId });
-    const r = await votarInfantil({ eventoId, candidatoId });
+    const idEnvio = idEnvioAnterior ?? novoIdEnvio();
+    setPasso({ tipo: "ENVIANDO", candidatoId, idEnvio });
+    const r = await votarInfantil({ eventoId, candidatoId, idEnvio });
     enviando.current = false;
     if (!r.ok) aoFalhar();
-    setPasso(r.ok ? { tipo: "SUCESSO" } : { tipo: "ERRO", candidatoId });
+    setPasso(r.ok ? { tipo: "SUCESSO" } : { tipo: "ERRO", candidatoId, idEnvio });
   }
 
   const escolhido = "candidatoId" in passo ? candidatos.find((c) => c.id === passo.candidatoId) : undefined;
@@ -97,14 +102,14 @@ export function FluxoTotem({ eventoId, candidatos, rotuloCategoria, logo, logoPe
         <TelaConfirmar
           candidato={escolhido}
           enviando={passo.tipo === "ENVIANDO"}
-          aoConfirmar={() => void confirmar(escolhido.id)}
+          aoConfirmar={() => void confirmar(escolhido.id, passo.tipo === "CONFIRMAR" ? passo.idEnvio : undefined)}
           aoVoltar={() => setPasso({ tipo: "ESCOLHA" })}
         />
       )}
       {passo.tipo === "SUCESSO" && <TelaSucesso aoTocar={() => setPasso(INICIO)} />}
       {passo.tipo === "ERRO" && (
         <TelaErro
-          aoTentar={escolhido ? () => setPasso({ tipo: "CONFIRMAR", candidatoId: escolhido.id }) : undefined}
+          aoTentar={escolhido ? () => setPasso({ tipo: "CONFIRMAR", candidatoId: escolhido.id, idEnvio: passo.idEnvio }) : undefined}
           aoRecomecar={() => setPasso(INICIO)}
         />
       )}

@@ -20,9 +20,10 @@ export function obterEstadoTotem(): Promise<Resultado<{ dispositivo: Dispositivo
 
 /**
  * Um toque confirmado = um voto. `REDE` significa "pode ter gravado": o totem não tem como conferir (não há identificação da
- * criança), então a tela oferece tentar de novo e o mediador adulto cuida da integridade (§8).
+ * criança). Por isso cada tentativa leva uma `idEnvio` aleatória e o "tentar de novo" reenvia a MESMA: se o voto tinha chegado, o
+ * servidor responde REGISTRADO sem contar outro. O mediador adulto segue cuidando do resto da integridade (§8).
  */
-export function votarInfantil(entrada: { eventoId: string; candidatoId: string }): Promise<Resultado<{ resultado: "REGISTRADO" }>> {
+export function votarInfantil(entrada: { eventoId: string; candidatoId: string; idEnvio?: string }): Promise<Resultado<{ resultado: "REGISTRADO" }>> {
   return chamar<{ resultado: "REGISTRADO" }>("votarInfantil", entrada, { tempoMs: 15_000 });
 }
 

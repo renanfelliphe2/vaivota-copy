@@ -4,7 +4,7 @@ import { PIN_TOTEM_SEED } from "@/mocks/seed/dispositivos";
 import { aplicarVotoInfantil } from "./aplicarVoto";
 import { contarVotos } from "./contagens";
 import { verificarInvariantes } from "./invariantes";
-import { hashPinTotem, pinConfere, situacaoTotem, type SituacaoTotem } from "./totem";
+import { hashPinTotem, novoIdEnvio, pinConfere, situacaoTotem, type SituacaoTotem } from "./totem";
 import type { Dispositivo, Evento } from "./tipos";
 
 // Totem (rev. 4, A7; Base/VotoInfantil.md §6 e §9).
@@ -34,6 +34,15 @@ describe("situacaoTotem", () => {
   ];
   it.each(casos)("%s", (_, args, esperado) => {
     expect(situacaoTotem(...args)).toBe(esperado);
+  });
+});
+
+describe("chave de tentativa do voto", () => {
+  it("são 32 caracteres hexadecimais, na forma que o servidor aceita, e não se repetem", () => {
+    const chaves = Array.from({ length: 2000 }, () => novoIdEnvio());
+    expect(chaves.every((c) => /^[0-9a-f]{32}$/.test(c))).toBe(true);
+    expect(chaves.every((c) => /^[A-Za-z0-9_-]{8,64}$/.test(c))).toBe(true); // a regra do RPC
+    expect(new Set(chaves).size).toBe(chaves.length);
   });
 });
 

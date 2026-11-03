@@ -66,6 +66,16 @@ export type DispositivoListado = Pick<Dispositivo, "id" | "nome" | "estado" | "u
 /** Resposta da geração do código: o código legível sai UMA vez (só o hash vai ao banco). */
 export type CodigoPareamentoGerado = { codigo: string; nome: string; validadeAte: Instante };
 
+/**
+ * Chave aleatória de uma tentativa de voto (128 bits em hexadecimal). `getRandomValues` funciona também fora de HTTPS (um tablet na
+ * rede do local), onde `randomUUID` não existe. Não tem relação com a criança nem com o aparelho.
+ */
+export function novoIdEnvio(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 /** §6 (pendência §12: tempos provisórios). */
 export const TEMPOS_TOTEM = {
   /** Sucesso → tela inicial. */
