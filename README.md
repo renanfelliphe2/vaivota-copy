@@ -55,7 +55,7 @@ pnpm dev                               # http://localhost:3000/e/maratona-tech-t
 | `pnpm test` | Testes unitários (domínio, lib, estado real, cliente do servidor) |
 | `pnpm test:integracao` | Testes do servidor contra um PostgreSQL **real** embutido (voto único com concorrência, encerramento durante rajada, login, operação, painel, segurança) |
 | `pnpm lint` · `pnpm typecheck` · `pnpm build` | Verificações |
-| `pnpm db:migrar` · `pnpm db:seed` · `pnpm db:seed:festival` · `pnpm db:promover-admin <e-mail>` | Banco real (ver implantação) |
+| `pnpm db:migrar` · `pnpm db:seed` · `pnpm db:seed:festival` · `pnpm db:promover-admin <e-mail>` · `pnpm db:anonimizar` | Banco real (ver implantação) |
 | `pnpm db:backup --rotulo antes-da-urna` | Backup com `pg_dump` |
 | `pnpm db:limpar-ensaio --confirmar` | Limpa os dados do ensaio antes do evento |
 | `pnpm db:carga-preparar` · `k6 run tests/carga/votar.js` · `pnpm db:carga-conferir` | Teste de carga e conferência de integridade |

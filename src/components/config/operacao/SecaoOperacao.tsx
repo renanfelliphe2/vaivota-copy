@@ -98,7 +98,15 @@ export function SecaoOperacao({ travas, checklist }: { travas: Travas; checklist
         <p>O resultado oficial é congelado neste momento. Não é possível reabrir a urna.</p>
       </div>
     ),
-    URNA_ENCERRADA: <p>A configuração inteira fica somente em leitura. Esta ação não pode ser desfeita.</p>,
+    URNA_ENCERRADA: (
+      <div className="flex flex-col gap-2">
+        <p>A configuração inteira fica somente em leitura. Esta ação não pode ser desfeita.</p>
+        <p>
+          Exporte o que a organização precisar antes: {evento.prazoAnonimizacaoDias} dias depois de concluir, o nome e o e-mail dos
+          participantes são anonimizados. Os votos continuam contando.
+        </p>
+      </div>
+    ),
   };
 
   async function confirmar() {

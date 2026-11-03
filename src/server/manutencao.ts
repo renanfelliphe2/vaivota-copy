@@ -1,4 +1,5 @@
 import "server-only";
+import { anonimizarVencidos } from "./anonimizacao";
 import { db } from "./db";
 import { limparContadoresAntigos } from "./limites";
 
@@ -6,11 +7,14 @@ import { limparContadoresAntigos } from "./limites";
 //  - contadores de limite de taxa com mais de 1 dia;
 //  - códigos de e-mail vencidos;
 //  - contas que nunca confirmaram o e-mail (mais de 2 horas) e não têm nenhuma participação: sem isso, um cadastro
-//    abandonado, ou feito por outra pessoa com o e-mail alheio, deixaria o e-mail "ocupado" e travaria o Google dele.
+//    abandonado, ou feito por outra pessoa com o e-mail alheio, deixaria o e-mail "ocupado" e travaria o Google dele;
+//  - anonimização de nome e e-mail dos participantes de eventos concluídos com o prazo vencido (src/server/anonimizacao.ts), em lotes.
 // Não precisa de agendador (cron) nem de nenhuma conta a mais.
 
 const INTERVALO_MS = 10 * 60_000;
 const IDADE_CONTA_NAO_CONFIRMADA_MS = 2 * 60 * 60_000;
+/** Pessoas anonimizadas por passada: o resto fica para a próxima, e o script (`pnpm db:anonimizar`) faz tudo de uma vez. */
+const LOTE_ANONIMIZACAO = 100;
 
 const global = globalThis as unknown as { __vaivotaManutencao?: number };
 
@@ -29,6 +33,13 @@ export async function manutencaoSeNecessario(agoraMs = Date.now()): Promise<void
     });
   } catch (erro) {
     console.error("[servidor] manutenção falhou (segue sem ela):", erro);
+  }
+  // À parte: uma falha aqui não pode impedir a faxina de cima nem o cadastro que a disparou.
+  try {
+    const r = await anonimizarVencidos({ executar: true, limite: LOTE_ANONIMIZACAO, agoraMs });
+    if (r.anonimizados > 0) console.info(`[servidor] anonimização: ${r.anonimizados} pessoa(s) de ${r.eventosVencidos.length} evento(s) com o prazo vencido`);
+  } catch (erro) {
+    console.error("[servidor] anonimização falhou (tenta de novo na próxima passada):", erro);
   }
 }
 

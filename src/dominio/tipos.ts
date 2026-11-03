@@ -69,7 +69,9 @@ export type AcaoAuditoria =
   | "REVELACAO_INICIADA"
   | "REVELACAO_CONCLUIDA"
   | "REVELACAO_REFEITA"
-  | "EMERGENCIA_ACIONADA";
+  | "EMERGENCIA_ACIONADA"
+  // Retenção (03/11/2026): nome e e-mail dos participantes anonimizados depois do prazo do evento
+  | "DADOS_ANONIMIZADOS";
 
 /**
  * Quem encerrou a urna; vai em `detalhes` da auditoria URNA_ENCERRADA.

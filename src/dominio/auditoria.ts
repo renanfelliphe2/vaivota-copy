@@ -132,6 +132,14 @@ export const CATALOGO_AUDITORIA: Record<AcaoAuditoria, ItemCatalogo> = {
   DISPOSITIVO_RENOMEADO: { rotulo: "Totem renomeado", grupo: "TOTEM", descrever: () => "Totem renomeado" },
   PIN_DISPOSITIVO_ALTERADO: { rotulo: "PIN de totem alterado", grupo: "TOTEM", descrever: () => "PIN de saída de um totem alterado" },
   TENTATIVA_CODIGO_INVALIDA: { rotulo: "Código recusado", grupo: "SEGURANCA", descrever: () => "Código recusado" },
+  DADOS_ANONIMIZADOS: {
+    rotulo: "Dados pessoais anonimizados",
+    grupo: "SEGURANCA",
+    descrever: (d) => {
+      const n = numero(d?.quantidade);
+      return n === null ? "Dados pessoais anonimizados" : `Nome e e-mail anonimizados: ${n} ${n === 1 ? "pessoa" : "pessoas"}`;
+    },
+  },
   ADMIN_CONVITE_RESGATADO: {
     rotulo: "Admin adicionado",
     grupo: "SEGURANCA",
