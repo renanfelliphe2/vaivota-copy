@@ -8,6 +8,7 @@ import { criarStore } from "./criarStore";
 import { criarEstadoDoServidor } from "./estadoReal";
 import { criarRelogio } from "./relogio";
 import { intervaloDePollingMs, recarregarEstado } from "./servidor";
+import { sincronizarApresentacao } from "./sincronizarApresentacao";
 
 const AmbienteContext = createContext<Ambiente | null>(null);
 const SementeOrdemContext = createContext(0);
@@ -43,6 +44,9 @@ export function AppProvider({
     const intervalo = setInterval(() => relogio.tique(), 1000);
     return () => clearInterval(intervalo);
   }, [ambiente]);
+
+  // A sala de controle e o telão são abas diferentes: só a apresentação (revelação e preferências) mora no navegador e é espelhada.
+  useEffect(() => sincronizarApresentacao(ambiente), [ambiente]);
 
   useEffect(() => {
     let parado = false;

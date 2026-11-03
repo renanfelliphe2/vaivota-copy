@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import * as acesso from "./acesso";
+import * as apresentacao from "./apresentacao";
 import * as candidatos from "./candidatos";
 import * as configuracao from "./configuracao";
 import * as convites from "./convites";
@@ -10,6 +11,7 @@ import { montarEstadoPublico } from "./estadoPublico";
 import * as exportacao from "./exportacao";
 import * as juri from "./juri";
 import * as operacao from "./operacao";
+import * as parceiros from "./parceiros";
 import { garantirParticipacao } from "./participacao";
 import { falha, falhaInterna, sucesso, type Resultado } from "./resultado";
 import { usuarioDaSessao, type UsuarioSessao } from "./sessao";
@@ -215,7 +217,17 @@ const servicos = {
     (_c, u, a) => configuracao.salvarTema(u, a.eventoId, a.dados),
   ),
 
+  // Parceiros (admin): a lista inteira, na ordem recebida
+  salvarParceiros: definir(
+    z.object({
+      eventoId: id,
+      lista: z.array(z.object({ id: id.nullable(), nome: texto(100), logoUrl: z.string().max(500).nullable() })).max(50),
+    }),
+    (ctx, u, a) => parceiros.salvarParceiros(u, a.eventoId, a.lista, { ip: ctx.ip }),
+  ),
+
   // Júri: configuração (admin)
+  alternarModuloJuri: definir(z.object({ eventoId: id, ligado: z.boolean() }), (ctx, u, a) => juri.alternarModuloJuri(u, a.eventoId, a.ligado, { ip: ctx.ip })),
   salvarAvaliacaoJuri: definir(
     z.object({
       eventoId: id,
@@ -245,6 +257,23 @@ const servicos = {
   ),
   registrarExportacaoConvites: definir(z.object({ eventoId: id, quantidade: z.number().int().min(0).max(100_000) }), (ctx, u, a) =>
     convites.registrarExportacaoConvites(u, a.eventoId, a.quantidade, { ip: ctx.ip }),
+  ),
+
+  // Telão: sala de controle, palco, ensaio e revelação (admin)
+  obterStatusResultado: definir(z.object({ eventoId: id }), (_c, u, a) => apresentacao.obterStatusResultado(u, a.eventoId)),
+  obterEstadoAoVivo: definir(z.object({ eventoId: id }), (_c, u, a) => apresentacao.obterEstadoAoVivo(u, a.eventoId)),
+  carregarRevelacao: definir(z.object({ eventoId: id }), (_c, u, a) => apresentacao.carregarRevelacao(u, a.eventoId)),
+  obterDadosEnsaio: definir(z.object({ eventoId: id, cenarioId: z.string().min(1).max(64) }), (_c, u, a) =>
+    apresentacao.obterDadosEnsaio(u, a.eventoId, a.cenarioId),
+  ),
+  registrarAcaoApresentacao: definir(
+    z.object({
+      eventoId: id,
+      acao: z.enum(["REVELACAO_INICIADA", "REVELACAO_CONCLUIDA", "REVELACAO_REFEITA", "EMERGENCIA_ACIONADA"]),
+      versao: z.number().int().min(1),
+      cena: z.number().int().min(0).max(200).optional(),
+    }),
+    (ctx, u, a) => apresentacao.registrarAcaoApresentacao(u, a.eventoId, a.acao, { versao: a.versao, cena: a.cena }, { ip: ctx.ip }),
   ),
 
   // Painel

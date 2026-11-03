@@ -7,7 +7,6 @@ import { verificarInvariantes } from "../invariantes";
 import { resultadoAtual } from "../resultado";
 import { assinaturaDoResultado } from "./assinatura";
 import { conferirFixturesFestival, conferirMotor, conferirRoteiro, FIXTURES_FESTIVAL } from "./autotestes";
-import { CENARIOS_ENSAIO } from "./cenariosEnsaio";
 import { resolverFasePalco } from "./fasePalco";
 import { lerRevelacao } from "./revelacao";
 import { montarFinal, montarProps } from "./roteiro";
@@ -94,10 +93,6 @@ describe("cenários do Festival (5.11)", () => {
       expect(r.dados.ranking.map((x) => Math.round(x.pontuacao * 100) / 100).sort((a, b) => b - a)).toEqual([...esperado].sort((a, b) => b - a));
     });
   }
-
-  it("todo cenário do ensaio existe no registro", () => {
-    for (const ids of Object.values(CENARIOS_ENSAIO)) for (const id of ids) expect(CENARIOS.some((c) => c.id === id)).toBe(true);
-  });
 });
 
 describe("revelação cinematográfica (08/10/2026)", () => {

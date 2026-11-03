@@ -38,7 +38,7 @@ export function TelaPalco() {
   const prefs = usePreferenciasSala(ativo?.evento.id ?? "");
   const eventoId = ativo?.evento.id ?? "";
   const ensaio = params.get("modo") === "ensaio";
-  const cenarios = ensaio ? cenariosDoEnsaio(eventoId) : [];
+  const cenarios = ensaio && ativo ? cenariosDoEnsaio({ juri: ativo.evento.moduloJuri, infantil: ativo.evento.moduloInfantil }) : [];
   const pedido = params.get("cenario");
   const cenarioId = pedido && cenarios.includes(pedido) ? pedido : (cenarios[0] ?? "");
   const dadosEnsaio = useConsulta<DadosEnsaio>(() => obterDadosEnsaio(eventoId, cenarioId), {

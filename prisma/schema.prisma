@@ -231,6 +231,7 @@ model Evento {
   camposCandidato    CampoCandidato[]
   candidatos         Candidato[]
   criteriosJuri      CriterioJuri[]
+  parceiros          Parceiro[]
   participacoes      Participacao[]
   convitesJurado     ConviteJurado[]
   convitesAdmin      ConviteAdmin[]
@@ -448,6 +449,24 @@ model HistoricoVotoJuri {
 
   @@index([votoJuriId, criadoEm])
   @@map("historico_voto_juri")
+}
+
+// Parceiro do evento (patrocínio, apoio): faixa do telão antes da revelação e página do evento. Sem logo, o nome em texto.
+// Identidade visual, não dado de voto: a lista inteira é regravada pelo admin (salvarParceiros), na ordem recebida.
+// CHECKs na migração: nome com 2 caracteres ou mais e ordem >= 0.
+model Parceiro {
+  id           String   @id @default(uuid())
+  eventoId     String   @map("evento_id")
+  nome         String   @db.VarChar(60)
+  logoUrl      String?  @map("logo_url") @db.VarChar(500)
+  ordem        Int      @default(0)
+  criadoEm     DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm DateTime @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+
+  evento Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+
+  @@index([eventoId, ordem])
+  @@map("parceiro")
 }
 
 // Critério de avaliação do júri (ex.: Direção, Roteiro). Vale para os dois modos por critério. Critério que já recebeu

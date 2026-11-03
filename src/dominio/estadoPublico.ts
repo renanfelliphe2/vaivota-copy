@@ -7,6 +7,7 @@ import type {
   CriterioJuri,
   Dispositivo,
   Evento,
+  Parceiro,
   Participacao,
   Tema,
 } from "./tipos";
@@ -38,6 +39,8 @@ export type EventoPublico = {
   candidatos: Candidato[];
   /** Critérios de avaliação do júri (Festival). Vazio com o módulo júri desligado. Só nomes: nenhuma nota chega aqui. */
   criteriosJuri: CriterioJuri[];
+  /** Parceiros do evento, na ordem da faixa do telão e da página do evento. Evento em rascunho: só o admin os recebe. */
+  parceiros: Parceiro[];
   /** Só o admin do evento recebe (checklist de ativação e trava do módulo júri); para os demais, vazio. */
   convitesJurado: ConvitePublico[];
   /** Só o admin do evento recebe (checklist de ativação do totem); para os demais, vazio. */

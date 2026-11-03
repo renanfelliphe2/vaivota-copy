@@ -1,11 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { resumirConvites } from "@/dominio/convites";
 import type { Travas } from "@/dominio/travas";
 import { Alerta } from "@/components/ui/Alerta";
+import { Botao } from "@/components/ui/Botao";
 import { Carregando } from "@/components/ui/Carregando";
+import { DialogoConfirmacao } from "@/components/ui/DialogoConfirmacao";
+import { Selo } from "@/components/ui/Selo";
 import { useConsulta } from "@/lib/useConsulta";
+import { alternarModuloJuri } from "@/servicos/configJuri";
 import { listarConvites, renomearConvite, revogarConvite, type CodigoGerado, type ConviteListado } from "@/servicos/convites";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { useAgora } from "@/store/seletores/relogio";
@@ -29,12 +34,15 @@ export function SecaoJuri({ travas }: { travas: Travas }) {
   const consulta = useConsulta(() => listarConvites(eventoId), { chave: eventoId, ativo: Boolean(eventoId) });
   const [codigos, setCodigos] = useState<CodigoGerado[] | null>(null);
   const [revogando, setRevogando] = useState<ConviteListado | null>(null);
+  const [desligando, setDesligando] = useState(false);
   const servico = useServico();
   if (!ativo) return null;
-  const { evento } = ativo;
+  const { evento, configPlacar } = ativo;
 
   const juriLigado = evento.moduloJuri;
-  const motivoDesligado = "Módulo júri desligado: convites só em leitura.";
+  const podeModulo = travas.permite("PLACAR");
+  // Desligar também depende do dado: com convite resgatado o módulo fica ligado (MODULO_JURI_DESLIGAR).
+  const podeDesligar = podeModulo && travas.permite("MODULO_JURI_DESLIGAR");
   const podeGerar = juriLigado && travas.permite("CONVITES_GERAR");
   const podeRevogar = juriLigado && travas.permite("CONVITES_REVOGAR");
   const podeRenomear = travas.permite("CONVITES_RENOMEAR");
@@ -51,8 +59,43 @@ export function SecaoJuri({ travas }: { travas: Travas }) {
       <h2 id="titulo-secao" tabIndex={-1} className="text-2xl font-bold">
         Júri
       </h2>
-      <BannerTrava travas={travas} acoes={["JURI_AVALIACAO", "CONVITES_GERAR", "CONVITES_REVOGAR", "CONVITES_RENOMEAR"]} />
-      {!juriLigado && <Alerta variante="informacao">{motivoDesligado}</Alerta>}
+      <BannerTrava travas={travas} acoes={["PLACAR", "JURI_AVALIACAO", "CONVITES_GERAR", "CONVITES_REVOGAR", "CONVITES_RENOMEAR"]} />
+
+      <div className="flex flex-col gap-3 rounded-xl border border-tema-borda bg-tema-superficie p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <h3 className="text-lg font-bold">Votação do júri</h3>
+            <p className="text-sm text-tema-texto-suave">
+              Jurados entram com um código de convite e votam identificados. O placar &quot;Escolha dos Jurados&quot; entra na fórmula final com o peso do júri.
+            </p>
+          </div>
+          <Selo variante={juriLigado ? "sucesso" : "neutro"}>{juriLigado ? "Ligada" : "Desligada"}</Selo>
+        </div>
+        {travas.fase !== "CONCLUIDO" && (
+          <div className="flex flex-col items-start gap-2">
+            <DicaTrava motivo={juriLigado ? (podeDesligar ? null : travas.motivo(podeModulo ? "MODULO_JURI_DESLIGAR" : "PLACAR")) : podeModulo ? null : travas.motivo("PLACAR")} />
+            {juriLigado ? (
+              <Botao variante="contorno" disabled={!podeDesligar} onClick={() => setDesligando(true)}>
+                Desligar votação do júri
+              </Botao>
+            ) : (
+              <Botao disabled={!podeModulo} carregando={servico.carregando} onClick={() => void servico.executar(() => alternarModuloJuri(evento.id, true), "Votação do júri ligada")}>
+                Ligar votação do júri
+              </Botao>
+            )}
+          </div>
+        )}
+        {juriLigado && configPlacar.pesoJuri === 0 && (
+          <Alerta variante="aviso">
+            O peso do júri está em 0%: os votos dos jurados não contam na fórmula final. Defina o peso na seção{" "}
+            <Link href="?secao=placar" scroll={false} className="font-semibold underline underline-offset-4">
+              Placar
+            </Link>
+            .
+          </Alerta>
+        )}
+        {!juriLigado && <Alerta variante="informacao">Votação do júri desligada: convites só em leitura.</Alerta>}
+      </div>
 
       {juriLigado && (
         <FormAvaliacaoJuri
@@ -135,6 +178,18 @@ export function SecaoJuri({ travas }: { travas: Travas }) {
           setRevogando(null);
           consulta.recarregar();
           if (r.dados.substituto) setCodigos([r.dados.substituto]);
+        }}
+      />
+      <DialogoConfirmacao
+        aberto={desligando}
+        aoFechar={() => setDesligando(false)}
+        titulo="Desligar a votação do júri?"
+        consequencia="O peso do júri volta a 0% e o resto se redistribui. Só é possível desligar se nenhum convite foi resgatado e o júri ainda não votou."
+        rotuloConfirmar="Desligar"
+        carregando={servico.carregando}
+        aoConfirmar={async () => {
+          const r = await servico.executar(() => alternarModuloJuri(evento.id, false), "Votação do júri desligada");
+          if (r.ok) setDesligando(false);
         }}
       />
       <CodigosGeradosDialog codigos={codigos} eventoId={eventoId} slug={ativo.slug} fuso={evento.fusoHorario} aoFechar={() => setCodigos(null)} />

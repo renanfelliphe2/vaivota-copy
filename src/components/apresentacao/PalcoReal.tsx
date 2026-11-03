@@ -31,6 +31,9 @@ import { CenaFinal } from "./cenas/CenasRevelacao";
 import { usePalcoTeclado, useTemporizadorDoPasso } from "./hooks";
 import { Palco } from "./Palco";
 
+/** Com a urna encerrada o telão pergunta de novo se há resultado (e qual a assinatura): ele pode surgir ou mudar de versão. */
+const INTERVALO_STATUS_MS = 10_000;
+
 // Etapa 8 (D2 a D7, 5.1): palco real. A fase vem de resolverFasePalco; o resultado só é carregado depois de
 // iniciar a revelação (ou no final estático). Depois de carregado, a cerimônia nunca espera por serviço.
 
@@ -66,7 +69,13 @@ export function PalcoReal({
   const [trailer, setTrailer] = useState<{ cena: number; estado: EstadoTrailer }>({ cena: -1, estado: "CARREGANDO" });
 
   // 08/10/2026: emSegundoPlano em todas: com uma tela só, o telão fica numa aba de fundo enquanto o controle comanda.
-  const status = useConsulta(() => obterStatusResultado(eventoId), { chave: `${eventoId}:${versao}`, emSegundoPlano: true });
+  // O resultado nasce no encerramento e pode ganhar versão nova (desqualificação) com o telão aberto, e o estado do navegador não
+  // traz o resultado: a fase entra na chave e, com a urna encerrada, o status é perguntado de novo de tempos em tempos.
+  const status = useConsulta(() => obterStatusResultado(eventoId), {
+    chave: `${eventoId}:${versao}:${fase}`,
+    intervaloMs: fase === "URNA_ENCERRADA" ? INTERVALO_STATUS_MS : undefined,
+    emSegundoPlano: true,
+  });
   const assinatura = status.dados?.assinatura ?? null;
   const existe = status.dados?.existe ?? versao !== null;
   const { revelacao } = useRevelacao(eventoId, assinatura);
@@ -110,11 +119,15 @@ export function PalcoReal({
       }
     : estadoInicialMotor(modoAvanco);
 
+  /** Sem esperar: a cerimônia não depende da resposta. Falha só avisa no HUD. */
+  async function registrar(acao: AcaoApresentacao, versao: number, cena?: number) {
+    const r = await registrarAcaoApresentacao(eventoId, acao, { versao, cena });
+    if (!r.ok) setMensagemHud(`Auditoria não registrada: ${r.erro.mensagem}`);
+  }
+
   function auditar(acao: AcaoApresentacao, cena?: number) {
     const v = dados?.versao ?? status.dados?.versao;
-    if (!v) return;
-    const r = registrarAcaoApresentacao(eventoId, acao, { versao: v, cena });
-    if (!r.ok) setMensagemHud(`Auditoria não registrada: ${r.erro.mensagem}`);
+    if (v) void registrar(acao, v, cena);
   }
 
   /** Aplica o redutor sobre o progresso mais recente do store (handlers e timers podem se cruzar). */
@@ -137,13 +150,18 @@ export function PalcoReal({
     setMensagemHud(null);
     setCarregado(r.dados);
     iniciarRevelacao(eventoId, r.dados.assinatura);
-    registrarAcaoApresentacao(eventoId, "REVELACAO_INICIADA", { versao: r.dados.versao });
+    const versaoIniciada = r.dados.versao;
+    let final: number | null = null;
     if (irParaFinal) {
-      const final = montarRoteiro(r.dados.dados, { classificacaoCompleta: r.dados.config.classificacaoCompleta, modo: "REAL", candidatosNaDisputa: r.dados.candidatosNaDisputa }).length - 1;
+      final = montarRoteiro(r.dados.dados, { classificacaoCompleta: r.dados.config.classificacaoCompleta, modo: "REAL", candidatosNaDisputa: r.dados.candidatosNaDisputa }).length - 1;
       gravarProgresso(eventoId, { cena: final, passo: 0 });
       concluirRevelacao(eventoId, true);
-      registrarAcaoApresentacao(eventoId, "EMERGENCIA_ACIONADA", { versao: r.dados.versao, cena: final });
     }
+    // Em ordem (a trilha lê o início antes da emergência), mas sem segurar a cerimônia.
+    void (async () => {
+      await registrar("REVELACAO_INICIADA", versaoIniciada);
+      if (final !== null) await registrar("EMERGENCIA_ACIONADA", versaoIniciada, final);
+    })();
   }
 
   /**
@@ -158,8 +176,7 @@ export function PalcoReal({
   /** Reiniciar (controle remoto): a cerimônia volta à tela de votação encerrada. Auditado, como o "Refazer" da sala. */
   function reiniciar() {
     refazerRevelacao(eventoId);
-    const v = dados?.versao ?? status.dados?.versao;
-    if (v) registrarAcaoApresentacao(eventoId, "REVELACAO_REFEITA", { versao: v });
+    auditar("REVELACAO_REFEITA");
   }
 
   function desligar() {

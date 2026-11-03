@@ -10,6 +10,7 @@ import {
   criterioParaDominio,
   dispositivoPublicoParaDominio,
   eventoParaDominio,
+  parceiroParaDominio,
   participacaoParaDominio,
   placarParaDominio,
   temaParaDominio,
@@ -34,7 +35,7 @@ const global = globalThis as unknown as { __vaivotaSnapshot?: Snapshot };
 function carregarEventos(ids?: string[]) {
   return db().evento.findMany({
     ...(ids ? { where: { id: { in: ids } } } : {}),
-    include: { tema: true, configPlacar: true, configApresentacao: true, camposCandidato: true, criteriosJuri: true },
+    include: { tema: true, configPlacar: true, configApresentacao: true, camposCandidato: true, criteriosJuri: true, parceiros: true },
     orderBy: { criadoEm: "asc" },
   });
 }
@@ -103,6 +104,7 @@ export async function montarEstadoPublico(usuario: UsuarioSessao | null, agoraMs
       camposCandidato: [...e.camposCandidato].sort((a, b) => a.ordem - b.ordem).map(campoParaDominio),
       candidatos: linhas.map((c) => candidatoParaDominio(c, fuso, usuario?.id ?? null)),
       criteriosJuri: e.moduloJuri ? [...e.criteriosJuri].sort((a, b) => a.ordem - b.ordem || a.id.localeCompare(b.id)).map(criterioParaDominio) : [],
+      parceiros: ehAdmin || !rascunho ? [...e.parceiros].sort((a, b) => a.ordem - b.ordem || a.id.localeCompare(b.id)).map(parceiroParaDominio) : [],
       convitesJurado: ehAdmin ? convitesDoAdmin.filter((c) => c.eventoId === e.id).map((c) => convitePublicoParaDominio(c, fuso)) : [],
       dispositivos: ehAdmin ? dispositivosDoAdmin.filter((d) => d.eventoId === e.id).map((d) => dispositivoPublicoParaDominio(d, fuso)) : [],
       participacao: minha ? participacaoParaDominio(minha) : null,

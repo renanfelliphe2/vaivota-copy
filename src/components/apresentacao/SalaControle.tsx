@@ -8,7 +8,7 @@ import { Botao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
 import { DialogoConfirmacao } from "@/components/ui/DialogoConfirmacao";
 import { Selo } from "@/components/ui/Selo";
-import { cenariosDoEnsaio } from "@/dominio/apresentacao/cenariosEnsaio";
+import { CENARIOS_ENSAIO, cenariosDoEnsaio } from "@/dominio/apresentacao/cenariosEnsaio";
 import { resolverFasePalco, ROTULO_FASE_PALCO } from "@/dominio/apresentacao/fasePalco";
 import { descreverRoteiroPublico } from "@/dominio/apresentacao/roteiroPublico";
 import { votaveis } from "@/dominio/candidatos";
@@ -16,7 +16,6 @@ import { resolverFaseConfig } from "@/dominio/travas";
 import type { ModoAvanco } from "@/dominio/tipos";
 import { ROTULO_ESTADO_EVENTO, ROTULO_ESTADO_URNA } from "@/lib/rotulos";
 import { useConsulta } from "@/lib/useConsulta";
-import { listarCenarios } from "@/store/acoes";
 import { obterStatusResultado, registrarAcaoApresentacao } from "@/servicos/apresentacao";
 import { definirCenarioEnsaio, definirModoAvancoLocal, definirModoSala, refazerRevelacao } from "@/store/acoesApresentacao";
 import { usePreferenciasSala, useRevelacao } from "@/store/seletores/apresentacao";
@@ -27,9 +26,11 @@ import { ListaAtalhos } from "./Palco";
 // Etapa 8 (D2, 5.6): a sala nunca mostra resultado. Só pergunta obterStatusResultado (existe? assinatura?).
 
 const LIMITE_IMAGEM_MS = 8000;
+/** Com a urna encerrada a sala pergunta de novo se há resultado: ele nasce no encerramento e pode ganhar versão nova. */
+const INTERVALO_STATUS_MS = 10_000;
 const semInscricao = () => () => {};
 
-/** Pré-carrega imagens de public/ ou blob: (placeholder: e null não usam rede, D16). */
+/** Pré-carrega imagens (do Storage, de public/ ou blob:); placeholder: e null não usam rede (D16). */
 function usePreCarregamento(urls: string[]) {
   const chave = urls.join("|");
   const [estado, setEstado] = useState<{ chave: string; feitas: number; falhas: number }>({ chave, feitas: 0, falhas: 0 });
@@ -65,18 +66,21 @@ export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
   const eventoId = evento.id;
   const idCenario = useId();
   const versao = useVersaoResultado(eventoId);
-  const status = useConsulta(() => obterStatusResultado(eventoId), { chave: `${eventoId}:${versao}` });
+  const { fase, incoerente } = resolverFaseConfig(evento);
+  const status = useConsulta(() => obterStatusResultado(eventoId), {
+    chave: `${eventoId}:${versao}:${fase}`,
+    intervaloMs: fase === "URNA_ENCERRADA" ? INTERVALO_STATUS_MS : undefined,
+  });
   const assinatura = status.dados?.assinatura ?? null;
   const existe = status.dados?.existe ?? false;
   const { revelacao, motivoDescartada } = useRevelacao(eventoId, assinatura);
   const prefs = usePreferenciasSala(eventoId);
-  const { fase, incoerente } = resolverFaseConfig(evento);
   const fasePalco = resolverFasePalco({ fase, resultadoExiste: existe, revelacao });
   const [confirmar, setConfirmar] = useState(false);
   const origem = useSyncExternalStore(semInscricao, () => window.location.origin, () => "");
 
-  const cenarios = cenariosDoEnsaio(eventoId);
-  const nomesCenarios = new Map(listarCenarios().map((c) => [c.id, c]));
+  const cenarios = cenariosDoEnsaio({ juri: evento.moduloJuri, infantil: evento.moduloInfantil });
+  const nomesCenarios = new Map(CENARIOS_ENSAIO.map((c) => [c.id, c]));
   const cenarioId = prefs.cenarioEnsaioId && cenarios.includes(prefs.cenarioEnsaioId) ? prefs.cenarioEnsaioId : cenarios[0];
   const modoAvanco: ModoAvanco = prefs.modoAvancoLocal ?? configApresentacao.modoAvanco;
   const urlQr = `${origem}/e/${slug}`;
@@ -85,14 +89,14 @@ export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
   const imagens = votaveis(ativo.candidatos)
     .map((c) => c.imagemUrl)
     .concat(tema.logoUrl)
-    .filter((u): u is string => Boolean(u) && (u!.startsWith("/") || u!.startsWith("blob:")));
+    .filter((u): u is string => Boolean(u) && !u!.startsWith("placeholder:"));
   const pre = usePreCarregamento(imagens);
   const concluidoEvento = fase === "CONCLUIDO";
 
   async function refazer() {
     setConfirmar(false);
     refazerRevelacao(eventoId);
-    if (status.dados?.versao) registrarAcaoApresentacao(eventoId, "REVELACAO_REFEITA", { versao: status.dados.versao });
+    if (status.dados?.versao) void registrarAcaoApresentacao(eventoId, "REVELACAO_REFEITA", { versao: status.dados.versao });
   }
 
   return (
@@ -124,7 +128,7 @@ export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
           <li>
             Apresentar abre o palco numa aba própria: arraste essa janela para o monitor do telão e clique nela uma vez para
             entrar em tela cheia. Depois, comande tudo pelo controle remoto (canto da tela, em qualquer página do admin), sem
-            tocar no telão. As abas ficam sincronizadas (votos, urna, resultado e a revelação); fechar todas volta os dados ao início.
+            tocar no telão. As abas do mesmo navegador ficam sincronizadas: a revelação continua de onde parou, mesmo se o telão for recarregado.
           </li>
           <li>
             O QR Code vai apontar para <strong className="break-all">{urlQr}</strong>.{local && " Celulares podem não alcançar este endereço."}

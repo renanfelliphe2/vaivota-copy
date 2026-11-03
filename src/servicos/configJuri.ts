@@ -9,6 +9,13 @@ import type { Resultado } from "./resultado";
 
 export type { CriterioEditado, DadosAvaliacaoJuri } from "@/dominio/avaliacaoJuri";
 
+/** Liga ou desliga o módulo júri do evento (ao desligar, o peso do júri volta a 0). Recusa com convite resgatado ou voto do júri. */
+export async function alternarModuloJuri(eventoId: string, ligado: boolean): Promise<Resultado<null>> {
+  const r = await chamar<null>("alternarModuloJuri", { eventoId, ligado });
+  if (r.ok) await recarregarEstado();
+  return r;
+}
+
 export async function salvarAvaliacaoJuri(eventoId: string, dados: DadosAvaliacaoJuri): Promise<Resultado<null>> {
   const r = await chamar<null>("salvarAvaliacaoJuri", { eventoId, dados });
   if (r.ok) await recarregarEstado();

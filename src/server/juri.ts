@@ -9,6 +9,7 @@ import {
   type AvaliacaoJurado,
   type DadosAvaliacaoJuri,
 } from "@/dominio/avaliacaoJuri";
+import { redistribuirPesos } from "@/dominio/placar";
 import type { ModoVotoJuri, ResultadoEnvioVoto } from "@/dominio/tipos";
 import { exigirAcao } from "@/dominio/travas";
 import { validarCriteriosJuri } from "@/dominio/validacoesConfig";
@@ -343,6 +344,55 @@ export async function salvarAvaliacaoJuri(
         de: { modoVotoJuri: placar.modoVotoJuri, criterios: atuais.map((c) => c.nome) },
         para: { modoVotoJuri: dados.modoVotoJuri, criterios: dados.criterios.map((c) => c.nome.trim()) },
       },
+      ipHash: hashDoIp(ctx.ip),
+    });
+    return sucesso(null);
+  });
+  if (r.ok) invalidarEstadoPublico();
+  return r;
+}
+
+/**
+ * Liga ou desliga o módulo júri. Muda o placar, então trava com a urna aberta, como os pesos. Ao ligar, o peso do júri fica em 0 e o
+ * admin ajusta no Placar (o checklist cobra). Ao desligar, o peso do júri volta a 0 e o resto se redistribui (soma 100). Desligar só
+ * vale sem convite resgatado (MODULO_JURI_DESLIGAR) e sem nenhum voto, nota ou escolha do júri: votos nunca se apagam, e deixá-los
+ * fora do placar mudaria o resultado.
+ */
+export async function alternarModuloJuri(usuario: UsuarioSessao | null, eventoId: string, ligado: boolean, ctx: { ip: string }): Promise<Resultado<null>> {
+  const admin = await exigirAdmin(usuario, eventoId);
+  if (!admin.ok) return admin;
+  const trava = exigirAcao(admin.dados.evento, "PLACAR");
+  if (!trava.ok) return trava;
+  const { usuarioId } = admin.dados;
+
+  const r = await comEventoTravado(eventoId, "PLACAR", async (tx, atual) => {
+    if (atual.moduloJuri === ligado) return sucesso(null);
+    const placar = await tx.configPlacar.findUnique({ where: { eventoId } });
+    if (!placar) return falha("NAO_ENCONTRADO", { detalhe: `evento ${eventoId} sem ConfigPlacar` });
+    if (!ligado) {
+      const conviteUsado = (await tx.conviteJurado.count({ where: { eventoId, estado: "USADO" } })) > 0;
+      const permitido = exigirAcao(atual, "MODULO_JURI_DESLIGAR", { conviteUsado });
+      if (!permitido.ok) return permitido;
+      const [votos, notas, escolhas] = await Promise.all([
+        tx.votoJuri.count({ where: { eventoId } }),
+        tx.notaJuri.count({ where: { eventoId } }),
+        tx.escolhaCriterioJuri.count({ where: { eventoId } }),
+      ]);
+      if (votos + notas + escolhas > 0)
+        return falha("CONFLITO", { mensagem: "O júri já registrou votos. Desligue o módulo só se não houver nenhum." });
+    }
+
+    const de = { POPULAR: placar.pesoPopular, JURI: placar.pesoJuri, INFANTIL: placar.pesoInfantil };
+    const para = redistribuirPesos(de, { POPULAR: true, JURI: ligado, INFANTIL: atual.moduloInfantil });
+    await tx.evento.update({ where: { id: eventoId }, data: { moduloJuri: ligado } });
+    await tx.configPlacar.update({ where: { eventoId }, data: { pesoPopular: para.POPULAR, pesoJuri: para.JURI, pesoInfantil: para.INFANTIL } });
+    await registrarAuditoria(tx, {
+      eventoId,
+      usuarioId,
+      acao: "CONFIG_ALTERADA",
+      entidade: "evento",
+      entidadeId: eventoId,
+      detalhes: { campos: ["moduloJuri"], de: { moduloJuri: !ligado, pesos: de }, para: { moduloJuri: ligado, pesos: para } },
       ipHash: hashDoIp(ctx.ip),
     });
     return sucesso(null);

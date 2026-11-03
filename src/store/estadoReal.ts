@@ -56,6 +56,7 @@ export function bancoDoServidor(publico: EstadoPublico): Pick<EstadoApp, "banco"
     banco.camposCandidato.push(...e.camposCandidato);
     banco.candidatos.push(...e.candidatos);
     banco.criteriosJuri.push(...e.criteriosJuri);
+    banco.parceiros.push(...e.parceiros);
     // O hash do código nunca sai do servidor: o `Banco` do domínio o exige, então aqui ele é vazio (ninguém o lê no navegador).
     banco.convitesJurado.push(...e.convitesJurado.map((c) => ({ ...c, hashCodigo: "", participacaoId: null })));
     // O token e o PIN do totem também nunca saem do servidor: o `Banco` os exige, então aqui ficam vazios.

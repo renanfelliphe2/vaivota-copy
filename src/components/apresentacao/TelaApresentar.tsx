@@ -17,7 +17,7 @@ export function TelaApresentar() {
   if (!ativo) return null;
 
   function apresentar() {
-    const cenarios = cenariosDoEnsaio(ativo!.evento.id);
+    const cenarios = cenariosDoEnsaio({ juri: ativo!.evento.moduloJuri, infantil: ativo!.evento.moduloInfantil });
     const cenarioId = prefs.cenarioEnsaioId && cenarios.includes(prefs.cenarioEnsaioId) ? prefs.cenarioEnsaioId : cenarios[0];
     const href = rotaPalco(ativo!.slug, prefs.modoSala === "ENSAIO" ? { tipo: "ENSAIO", cenarioId } : { tipo: "REAL" });
     const r = abrirPalco(href);

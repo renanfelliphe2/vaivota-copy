@@ -1,4 +1,4 @@
-import type { ConfigApresentacao, DadosResultado, Grupo, Instante, ModoAvanco, MotivoResultado } from "../tipos";
+import type { AcaoAuditoria, ConfigApresentacao, DadosResultado, Grupo, Instante, ModoAvanco, MotivoResultado } from "../tipos";
 
 // Etapa 8 (seções 5.1 a 5.5): tipos do roteiro, do motor e do DTO da revelação.
 
@@ -63,3 +63,12 @@ export type DadosEnsaio = DadosRevelacao & {
   /** Curva do ao vivo simulado (totais por intervalo). */
   votosPorMinutoSimulados: number[];
 };
+
+/** O que a sala de controle sabe do resultado sem vê-lo: existe uma versão? qual a assinatura dela? */
+export type StatusResultado = { existe: boolean; versao: number | null; assinatura: string | null };
+
+/** Telão com a urna aberta: o total de votos e, só se o admin liberou (`parcialAoVivo`), a contagem do público por candidato. */
+export type EstadoAoVivo = { totalGeral: number; parcial: { candidatoId: string; votos: number }[] | null };
+
+/** Ações da cerimônia que vão à auditoria (só versão e índice da cena, nunca vencedores, pontuações ou votos). */
+export type AcaoApresentacao = Extract<AcaoAuditoria, "REVELACAO_INICIADA" | "REVELACAO_CONCLUIDA" | "REVELACAO_REFEITA" | "EMERGENCIA_ACIONADA">;

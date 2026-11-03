@@ -9,6 +9,7 @@ import type {
   CriterioJuri,
   Evento,
   Instante,
+  Parceiro,
   Participacao,
   TextosEstado,
   Tema,
@@ -91,6 +92,10 @@ export function criterioParaDominio(c: P.CriterioJuri): CriterioJuri {
 }
 
 /** Convite para o admin no estado público: nunca o hash do código nem a participação de quem resgatou. */
+export function parceiroParaDominio(p: P.Parceiro): Parceiro {
+  return { id: p.id, eventoId: p.eventoId, nome: p.nome, logoUrl: p.logoUrl, ordem: p.ordem };
+}
+
 export function convitePublicoParaDominio(c: P.ConviteJurado, fuso: string): ConvitePublico {
   return {
     id: c.id,

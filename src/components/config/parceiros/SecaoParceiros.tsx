@@ -9,6 +9,7 @@ import { LogoParceiro } from "@/components/evento/LogoParceiro";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Campo, Input } from "@/components/ui/Campo";
+import { enviarImagemCandidato } from "@/servicos/candidatosAdmin";
 import { salvarParceiros, type ParceiroEditado } from "@/servicos/parceiros";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { BannerTrava } from "../BannerTrava";
@@ -51,6 +52,8 @@ function FormParceiros({ eventoId, salvos, travas }: { eventoId: string; salvos:
   const [proximaChave, setProximaChave] = useState(1);
   const [tentou, setTentou] = useState(false);
   const [errosLogo, setErrosLogo] = useState<Record<string, string>>({});
+  /** Linhas com um logo subindo (o envio é assíncrono). */
+  const [enviando, setEnviando] = useState<Record<string, boolean>>({});
   const { marcarSujo } = useFormularioSujo();
   const servico = useServico();
 
@@ -65,8 +68,10 @@ function FormParceiros({ eventoId, salvos, travas }: { eventoId: string; salvos:
     marcarSujo(true);
   }
 
+  // Funcional: o envio do logo termina depois de um await, e a lista pode ter mudado nesse meio-tempo.
   function mudar(chave: string, mudanca: Partial<Linha>) {
-    mudarLinhas(linhas.map((x) => (x.chave === chave ? { ...x, ...mudanca } : x)));
+    setLinhas((atuais) => atuais.map((x) => (x.chave === chave ? { ...x, ...mudanca } : x)));
+    marcarSujo(true);
   }
 
   function mover(i: number, delta: -1 | 1) {
@@ -80,21 +85,25 @@ function FormParceiros({ eventoId, salvos, travas }: { eventoId: string; salvos:
     setProximaChave((n) => n + 1);
   }
 
-  // data: e não blob:, para o logo sobreviver ao fechar as abas (persistirDemo) e chegar às outras abas.
-  function enviarLogo(chave: string, arquivo: File) {
+  // O arquivo sobe ao servidor assim que é escolhido (ele confere tipo e tamanho pelo conteúdo e grava no Storage); a linha guarda a
+  // URL pública que voltou.
+  async function enviarLogo(chave: string, arquivo: File) {
     const problema = validarArquivoImagem(arquivo);
     setErrosLogo((e) => ({ ...e, [chave]: problema ?? "" }));
     if (problema) return;
-    const leitor = new FileReader();
-    leitor.onload = () => {
-      if (typeof leitor.result === "string") mudar(chave, { logoUrl: leitor.result });
-    };
-    leitor.readAsDataURL(arquivo);
+    setEnviando((e) => ({ ...e, [chave]: true }));
+    const r = await enviarImagemCandidato(eventoId, arquivo);
+    setEnviando((e) => ({ ...e, [chave]: false }));
+    if (!r.ok) {
+      setErrosLogo((e) => ({ ...e, [chave]: r.erro.campos?.imagemUrl ?? r.erro.mensagem }));
+      return;
+    }
+    mudar(chave, { logoUrl: r.dados.url });
   }
 
   async function salvar() {
     setTentou(true);
-    if (temErro) return;
+    if (temErro || Object.values(enviando).some(Boolean)) return;
     const r = await servico.executar(() => salvarParceiros(eventoId, linhas.map(({ id, nome, logoUrl }) => ({ id, nome, logoUrl }))));
     if (r.ok) marcarSujo(false);
   }
@@ -116,7 +125,7 @@ function FormParceiros({ eventoId, salvos, travas }: { eventoId: string; salvos:
                   <LogoParceiro parceiro={l} className="max-h-14 max-w-full" classeNome="text-sm font-semibold text-center whitespace-normal" />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
-                  <Campo id={`parceiro-${l.chave}`} rotulo={`Parceiro ${i + 1}`} erro={tentou || l.nome ? (erros[`parceiro-${i}`] ?? null) : null}>
+                  <Campo id={`parceiro-${l.chave}`} rotulo={`Parceiro ${i + 1}`} erro={(tentou || l.nome ? (erros[`parceiro-${i}`] ?? null) : null) ?? servico.erro?.campos?.[`parceiro-${i}`] ?? null}>
                     <Input
                       value={l.nome}
                       maxLength={LIMITES.nomeParceiro[1]}
@@ -127,21 +136,22 @@ function FormParceiros({ eventoId, salvos, travas }: { eventoId: string; salvos:
                   <div className="flex flex-wrap gap-2">
                     <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-tema-texto-suave px-4 text-sm font-semibold hover:bg-tema-fundo has-focus-visible:outline-3 has-focus-visible:outline-tema-foco has-disabled:pointer-events-none has-disabled:opacity-60">
                       <Upload aria-hidden className="size-4" />
-                      {l.logoUrl ? "Trocar logo" : "Enviar logo"}
+                      {enviando[l.chave] ? "Enviando…" : l.logoUrl ? "Trocar logo" : "Enviar logo"}
                       <input
                         type="file"
-                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        accept="image/png,image/jpeg,image/webp"
                         className="sr-only"
                         aria-label={`Logo de ${rotulo}`}
+                        disabled={enviando[l.chave]}
                         onChange={(e) => {
                           const arquivo = e.target.files?.[0];
                           e.target.value = "";
-                          if (arquivo) enviarLogo(l.chave, arquivo);
+                          if (arquivo) void enviarLogo(l.chave, arquivo);
                         }}
                       />
                     </label>
                     {l.logoUrl && (
-                      <Botao variante="fantasma" tamanho="pequeno" onClick={() => mudar(l.chave, { logoUrl: null })} icone={<ImageOff aria-hidden className="size-4" />}>
+                      <Botao variante="fantasma" tamanho="pequeno" disabled={enviando[l.chave]} onClick={() => mudar(l.chave, { logoUrl: null })} icone={<ImageOff aria-hidden className="size-4" />}>
                         Remover logo
                       </Botao>
                     )}
@@ -173,7 +183,7 @@ function FormParceiros({ eventoId, salvos, travas }: { eventoId: string; salvos:
           </Botao>
         )}
         <p className="text-sm text-tema-texto-suave">
-          Logo em PNG, JPG, WebP ou SVG, até 2 MB; prefira fundo transparente. Sem logo, o nome aparece em texto. Até {LIMITES.maxParceiros} parceiros.
+          Logo em PNG, JPG ou WebP, até 2 MB; prefira fundo transparente. Sem logo, o nome aparece em texto. Até {LIMITES.maxParceiros} parceiros.
         </p>
       </fieldset>
 
