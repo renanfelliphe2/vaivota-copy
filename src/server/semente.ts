@@ -4,7 +4,7 @@ import { PRESETS_TEMA } from "@/dominio/presetsTema";
 import { db } from "./db";
 import { normalizarEmailAdmin } from "./participacao";
 
-// ST0: seed idempotente do evento da Maratona Tech Tivit e o `promover-admin`. Rodar de novo NUNCA desfaz o que já existe: se o
+// ST0: seed idempotente dos eventos (Maratona Tech Tivit e Festival Ver e Fazer Filmes) e o `promover-admin`. Rodar de novo NUNCA desfaz o que já existe: se o
 // evento já foi ativado, a urna já abriu ou o admin já mudou o tema, nada disso volta ao padrão (só cria o que falta).
 
 export type OpcoesSemente = {
@@ -15,9 +15,40 @@ export type OpcoesSemente = {
   /** ISO 8601 com offset. */
   janelaInicio?: string;
   janelaFim?: string;
+  /** Só no Festival: link do trailer da cerimônia (YouTube ou Vimeo). Sem ele, o telão usa o trailer gerado. */
+  trailerUrl?: string;
 };
 
-const PADRAO = {
+/** Tudo o que o seed grava de um evento novo. Rodar de novo só cria o que falta e nunca muda o que já existe. */
+type DefinicaoEvento = {
+  slug: string;
+  nome: string;
+  descricao: string;
+  local: string | null;
+  linkSobre: string | null;
+  janelaInicio: string;
+  janelaFim: string;
+  modulos: { juri: boolean; infantil: boolean };
+  bloquearVotoProprio: boolean;
+  tema: {
+    /** Id em `PRESETS_TEMA`. */
+    preset: string;
+    nomeExibicao: string | null;
+    logoUrl: string | null;
+    rotuloCandidato: string;
+    rotuloCandidatos: string;
+    textosEstado: Prisma.InputJsonObject;
+  };
+  placar: { pesoPopular: number; pesoJuri: number; pesoInfantil: number; regraDesempate: "JURI" | "PUBLICO" };
+  /** null: os padrões do banco. */
+  apresentacao: { modoAvanco: "AUTOMATICO" | "MANUAL"; trailerUrl: string | null; usarTrailerGerado: boolean } | null;
+  campos: { chave: string; rotulo: string }[];
+  /** Só na criação do evento: o admin edita estas listas depois, e rodar o seed de novo não pode trazê-las de volta. */
+  criterios: string[];
+  parceiros: { nome: string; logoUrl: string }[];
+};
+
+const MARATONA = {
   slug: "maratona-tech-tivit",
   nome: "Maratona Tech Tivit",
   descricao: "Vote no seu projeto favorito da Maratona Tech Tivit. Um voto por pessoa, e o voto é secreto.",
@@ -26,7 +57,7 @@ const PADRAO = {
   janelaFim: "2026-10-19T22:00:00-03:00",
 };
 
-const TEXTOS_ESTADO = {
+const TEXTOS_ESTADO_MARATONA = {
   NAO_INICIADA: {
     titulo: "A votação abre durante a Maratona Tech Tivit",
     corpo: "Crie sua conta agora. Quando a urna abrir, é só voltar aqui e escolher seu {rotulo} favorito.",
@@ -42,32 +73,69 @@ const TEXTOS_ESTADO = {
   },
 } satisfies Prisma.InputJsonObject;
 
-export async function semearMaratonaTechTivit(opcoes: OpcoesSemente = {}): Promise<{ eventoId: string; criado: boolean }> {
-  const slug = opcoes.slug ?? PADRAO.slug;
-  const temaTivit = PRESETS_TEMA.find((p) => p.id === "maratona-tivit");
-  if (!temaTivit) throw new Error("Preset de tema da Maratona Tivit não encontrado.");
-  const existia = await db().evento.findUnique({ where: { slug }, select: { id: true } });
+const FESTIVAL = {
+  slug: "ver-e-fazer-filmes",
+  nome: "9º Festival Ver e Fazer Filmes",
+  descricao:
+    "Uma plataforma feita para o público viver o concurso de curtas-metragens de pertinho: assista, vote e acompanhe seus favoritos em tempo real.",
+  janelaInicio: "2026-11-25T10:00:00-03:00",
+  janelaFim: "2026-11-28T20:00:00-03:00",
+};
+
+const TEXTOS_ESTADO_FESTIVAL = {
+  NAO_INICIADA: {
+    titulo: "A votação abre durante o festival",
+    corpo: "Crie sua conta agora. Quando as sessões começarem, é só voltar aqui para escolher seu curta favorito.",
+  },
+  ENCERRADA: {
+    titulo: "Votação encerrada",
+    corpo: "Obrigado por participar! O resultado será revelado na cerimônia de encerramento do festival.",
+  },
+  JA_VOTOU: { titulo: "Seu voto está registrado", corpo: "Obrigado por fazer parte do festival!" },
+  SUCESSO: {
+    titulo: "Voto confirmado!",
+    corpo: "Obrigado por fazer parte do festival. Acompanhe a revelação na cerimônia de encerramento.",
+  },
+} satisfies Prisma.InputJsonObject;
+
+/** Critérios do júri do Festival (documento de requisitos, §3.3). */
+const CRITERIOS_FESTIVAL = ["Direção", "Roteiro", "Fotografia", "Som"];
+
+/** Logos em `public/parceiros`: o seed grava o caminho; o admin troca pelo upload quando quiser. */
+const PARCEIROS_FESTIVAL = [
+  { nome: "Instituto Cidade de Cataguases", logoUrl: "/parceiros/instituto-cidade-de-cataguases.png" },
+  { nome: "Instituto Fábrica do Futuro", logoUrl: "/parceiros/instituto-fabrica-do-futuro.png" },
+  { nome: "Animaparque", logoUrl: "/parceiros/animaparque.png" },
+  { nome: "Instituto Energisa", logoUrl: "/parceiros/instituto-energisa.png" },
+  { nome: "Energisa", logoUrl: "/parceiros/energisa.png" },
+  { nome: "Cultura e Turismo de Minas Gerais", logoUrl: "/parceiros/cultura-e-turismo-mg.png" },
+];
+
+async function semearEvento(def: DefinicaoEvento): Promise<{ eventoId: string; criado: boolean }> {
+  const preset = PRESETS_TEMA.find((p) => p.id === def.tema.preset);
+  if (!preset) throw new Error(`Preset de tema "${def.tema.preset}" não encontrado.`);
+  const existia = await db().evento.findUnique({ where: { slug: def.slug }, select: { id: true } });
 
   const evento = await db().evento.upsert({
-    where: { slug },
+    where: { slug: def.slug },
     update: {},
     create: {
-      slug,
-      nome: opcoes.nome ?? PADRAO.nome,
-      descricao: opcoes.descricao ?? PADRAO.descricao,
-      local: opcoes.local ?? null,
+      slug: def.slug,
+      nome: def.nome,
+      descricao: def.descricao,
+      local: def.local,
+      linkSobre: def.linkSobre,
       fusoHorario: "America/Sao_Paulo",
       estado: "RASCUNHO",
       estadoUrna: "NAO_INICIADA",
-      janelaInicio: new Date(opcoes.janelaInicio ?? PADRAO.janelaInicio),
-      janelaFim: new Date(opcoes.janelaFim ?? PADRAO.janelaFim),
+      janelaInicio: new Date(def.janelaInicio),
+      janelaFim: new Date(def.janelaFim),
       // A urna só fecha pelo admin (decisão 5): nada fecha sozinho.
       encerramentoAutomatico: false,
       metodoIdentificacao: "GOOGLE_OU_EMAIL",
-      moduloJuri: false,
-      moduloInfantil: false,
-      // Pode votar em si mesmo: não é preciso vincular usuários a projetos (decisão 3).
-      bloquearVotoProprio: false,
+      moduloJuri: def.modulos.juri,
+      moduloInfantil: def.modulos.infantil,
+      bloquearVotoProprio: def.bloquearVotoProprio,
       prazoAnonimizacaoDias: 90,
     },
   });
@@ -77,37 +145,115 @@ export async function semearMaratonaTechTivit(opcoes: OpcoesSemente = {}): Promi
     update: {},
     create: {
       eventoId: evento.id,
-      nomeExibicao: opcoes.nome ?? PADRAO.nome,
-      corPrimaria: temaTivit.paleta.corPrimaria,
-      corSecundaria: temaTivit.paleta.corSecundaria,
-      corFundo: temaTivit.paleta.corFundo,
-      corTexto: temaTivit.paleta.corTexto,
-      fonte: temaTivit.fonte,
-      rotuloCandidato: "Projeto",
-      rotuloCandidatos: "Projetos",
-      textosEstado: TEXTOS_ESTADO,
+      nomeExibicao: def.tema.nomeExibicao,
+      logoUrl: def.tema.logoUrl,
+      corPrimaria: preset.paleta.corPrimaria,
+      corSecundaria: preset.paleta.corSecundaria,
+      corFundo: preset.paleta.corFundo,
+      corTexto: preset.paleta.corTexto,
+      fonte: preset.fonte,
+      rotuloCandidato: def.tema.rotuloCandidato,
+      rotuloCandidatos: def.tema.rotuloCandidatos,
+      textosEstado: def.tema.textosEstado,
     },
   });
   await db().configPlacar.upsert({
     where: { eventoId: evento.id },
     update: {},
-    // Só o público conta: 100/0/0. Sem júri, o desempate efetivo já é pelo público; sem regra extra, empate = posição compartilhada.
-    create: { eventoId: evento.id, pesoPopular: 100, pesoJuri: 0, pesoInfantil: 0, regraDesempate: "PUBLICO" },
+    create: { eventoId: evento.id, ...def.placar },
   });
-  await db().configApresentacao.upsert({ where: { eventoId: evento.id }, update: {}, create: { eventoId: evento.id } });
+  await db().configApresentacao.upsert({
+    where: { eventoId: evento.id },
+    update: {},
+    create: { eventoId: evento.id, ...(def.apresentacao ?? {}) },
+  });
 
-  for (const [ordem, campo] of [
-    { chave: "descricao", rotulo: "Descrição" },
-    { chave: "equipe", rotulo: "Equipe" },
-    { chave: "tecnologias", rotulo: "Tecnologias" },
-  ].entries()) {
+  for (const [ordem, campo] of def.campos.entries()) {
     await db().campoCandidato.upsert({
       where: { eventoId_chave: { eventoId: evento.id, chave: campo.chave } },
       update: {},
       create: { eventoId: evento.id, chave: campo.chave, rotulo: campo.rotulo, ordem: ordem + 1 },
     });
   }
+
+  if (!existia) {
+    if (def.criterios.length)
+      await db().criterioJuri.createMany({ data: def.criterios.map((nome, i) => ({ eventoId: evento.id, nome, ordem: i + 1 })) });
+    if (def.parceiros.length)
+      await db().parceiro.createMany({ data: def.parceiros.map((p, i) => ({ eventoId: evento.id, nome: p.nome, logoUrl: p.logoUrl, ordem: i + 1 })) });
+  }
   return { eventoId: evento.id, criado: !existia };
+}
+
+export async function semearMaratonaTechTivit(opcoes: OpcoesSemente = {}): Promise<{ eventoId: string; criado: boolean }> {
+  const nome = opcoes.nome ?? MARATONA.nome;
+  return semearEvento({
+    slug: opcoes.slug ?? MARATONA.slug,
+    nome,
+    descricao: opcoes.descricao ?? MARATONA.descricao,
+    local: opcoes.local ?? null,
+    linkSobre: null,
+    janelaInicio: opcoes.janelaInicio ?? MARATONA.janelaInicio,
+    janelaFim: opcoes.janelaFim ?? MARATONA.janelaFim,
+    modulos: { juri: false, infantil: false },
+    // Pode votar em si mesmo: não é preciso vincular usuários a projetos (decisão 3).
+    bloquearVotoProprio: false,
+    tema: {
+      preset: "maratona-tivit",
+      nomeExibicao: nome,
+      logoUrl: null,
+      rotuloCandidato: "Projeto",
+      rotuloCandidatos: "Projetos",
+      textosEstado: TEXTOS_ESTADO_MARATONA,
+    },
+    // Só o público conta: 100/0/0. Sem júri, o desempate efetivo já é pelo público; sem regra extra, empate = posição compartilhada.
+    placar: { pesoPopular: 100, pesoJuri: 0, pesoInfantil: 0, regraDesempate: "PUBLICO" },
+    apresentacao: null,
+    campos: [
+      { chave: "descricao", rotulo: "Descrição" },
+      { chave: "equipe", rotulo: "Equipe" },
+      { chave: "tecnologias", rotulo: "Tecnologias" },
+    ],
+    criterios: [],
+    parceiros: [],
+  });
+}
+
+/**
+ * 9º Festival Ver e Fazer Filmes (25 a 28/11/2026): júri e voto infantil ligados, tema do festival, os quatro critérios do júri e os
+ * parceiros. Nasce em RASCUNHO. Os pesos (50 público, 30 júri, 20 infantil) são provisórios: a decisão está em aberto
+ * (docs/DECISOES-PENDENTES.md), e o admin ajusta em Configuração > Placar. A forma de votação do júri nasce em voto único; o admin
+ * escolhe em Configuração > Júri. Sem `trailerUrl` o telão usa o trailer gerado (não há tela para configurar o link).
+ */
+export async function semearFestivalVerEFazerFilmes(opcoes: OpcoesSemente = {}): Promise<{ eventoId: string; criado: boolean }> {
+  return semearEvento({
+    slug: opcoes.slug ?? FESTIVAL.slug,
+    nome: opcoes.nome ?? FESTIVAL.nome,
+    descricao: opcoes.descricao ?? FESTIVAL.descricao,
+    local: opcoes.local ?? "Cataguases · MG",
+    linkSobre: "https://festivalverefazerfilmes.org.br/",
+    janelaInicio: opcoes.janelaInicio ?? FESTIVAL.janelaInicio,
+    janelaFim: opcoes.janelaFim ?? FESTIVAL.janelaFim,
+    modulos: { juri: true, infantil: true },
+    bloquearVotoProprio: true,
+    tema: {
+      preset: "festival",
+      nomeExibicao: null,
+      logoUrl: "/festival-ver-e-fazer-filmes-logo.webp",
+      rotuloCandidato: "Curta",
+      rotuloCandidatos: "Curtas",
+      textosEstado: TEXTOS_ESTADO_FESTIVAL,
+    },
+    placar: { pesoPopular: 50, pesoJuri: 30, pesoInfantil: 20, regraDesempate: "JURI" },
+    apresentacao: { modoAvanco: "MANUAL", trailerUrl: opcoes.trailerUrl?.trim() || null, usarTrailerGerado: !opcoes.trailerUrl?.trim() },
+    campos: [
+      { chave: "descricao", rotulo: "Descrição" },
+      { chave: "direcao", rotulo: "Direção" },
+      { chave: "duracao", rotulo: "Duração" },
+    ],
+    criterios: CRITERIOS_FESTIVAL,
+    parceiros: PARCEIROS_FESTIVAL,
+  });
 }
 
 export type ResultadoPromocao = { acao: "promovido" | "ja_era_admin" | "convite_criado" | "convite_ja_existia"; email: string };
