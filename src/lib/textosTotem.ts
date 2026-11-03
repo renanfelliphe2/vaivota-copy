@@ -24,6 +24,19 @@ export const TEXTOS_TOTEM = {
   pinCampo: "PIN",
   pinConfirmar: "Sair",
   pinCancelar: "Cancelar",
+  carregando: "Preparando o totem…",
+  semConexaoTitulo: "Sem conexão",
+  semConexaoCorpo: "Não foi possível falar com o servidor. Chame um adulto da organização.",
+  parearAparelho: "Parear este aparelho",
+  // Pareamento (§4): feito uma vez por um adulto, com o código que o admin gerou.
+  parearTitulo: "Parear este aparelho como totem",
+  parearDescricao: "Digite o código que a organização gerou na tela Totens da configuração. Ele vale por poucos minutos e só funciona uma vez.",
+  parearCampo: "Código de pareamento",
+  parearConfirmar: "Parear",
+  parearVoltar: "Voltar",
+  parearSucessoTitulo: "Aparelho pareado!",
+  parearSucessoCorpo: "Este aparelho agora é o totem",
+  parearAbrir: "Abrir o totem",
 } as const;
 
 /** Telas de bloqueio (§6): neutras, sem ação para a criança. */

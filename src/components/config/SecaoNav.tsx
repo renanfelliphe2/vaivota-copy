@@ -1,6 +1,6 @@
 "use client";
 
-import { Gavel, Handshake, ListChecks, Palette, Power, Scale, Settings2 } from "lucide-react";
+import { Gavel, Handshake, ListChecks, Palette, Power, Scale, Settings2, Tablet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SecaoConfig } from "@/dominio/checklistAtivacao";
@@ -12,14 +12,15 @@ const TODAS_AS_SECOES: { id: SecaoConfig; rotulo: string; icone: typeof Gavel }[
   { id: "geral", rotulo: "Geral", icone: Settings2 },
   { id: "candidatos", rotulo: "Itens", icone: ListChecks }, // exibido com o rótulo do tema
   { id: "juri", rotulo: "Júri", icone: Gavel },
+  { id: "totens", rotulo: "Totens", icone: Tablet },
   { id: "placar", rotulo: "Placar", icone: Scale },
   { id: "tema", rotulo: "Tema", icone: Palette },
   { id: "parceiros", rotulo: "Parceiros", icone: Handshake },
   { id: "operacao", rotulo: "Operação", icone: Power },
 ];
 
-/** Júri e Parceiros são do MVP do Festival (ver src/lib/modulos.ts). */
-export const SECOES = TODAS_AS_SECOES.filter((s) => MODULOS_FESTIVAL || (s.id !== "juri" && s.id !== "parceiros"));
+/** Júri, Totens e Parceiros são do MVP do Festival (ver src/lib/modulos.ts). */
+export const SECOES = TODAS_AS_SECOES.filter((s) => MODULOS_FESTIVAL || (s.id !== "juri" && s.id !== "totens" && s.id !== "parceiros"));
 
 /**
  * Etapa 6 (D2): <nav> com Link e aria-current (não é tablist). Sidebar no desktop, faixa rolável no

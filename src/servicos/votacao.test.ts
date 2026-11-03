@@ -70,7 +70,32 @@ describe("consultarEstadoVoto", () => {
 });
 
 describe("votarJuri", () => {
-  it("não existe nesta versão", async () => {
-    expect(await votarJuri({ eventoId: "evt-1", candidatoId: "k1" })).toMatchObject({ ok: false, erro: { codigo: "PAPEL_INVALIDO" } });
+  it("voto registrado ou atualizado: o navegador passa a saber que o jurado votou", async () => {
+    for (const resultado of ["REGISTRADO", "ATUALIZADO", "SEM_ALTERACAO"]) {
+      store = criarStore(criarEstadoDoServidor(publico()));
+      definirAmbiente({ store, relogio: criarRelogio(Date.parse(AGORA)) });
+      servidorResponde({ ok: true, dados: { resultado } });
+      expect(await votarJuri({ eventoId: "evt-1", candidatoId: "k1" })).toEqual({ ok: true, dados: { resultado } });
+      expect(votou()).toBe(true);
+    }
+  });
+
+  it("recusa (modo mudou, urna encerrada, papel) e falha de rede NÃO marcam votou", async () => {
+    for (const codigo of ["MODO_JURI_DIFERENTE", "URNA_ENCERRADA", "PAPEL_INVALIDO", "CANDIDATO_INDISPONIVEL", "VOTO_PROPRIO"]) {
+      servidorResponde({ ok: false, erro: { codigo, mensagem: "x" } });
+      expect(await votarJuri({ eventoId: "evt-1", candidatoId: "k1" })).toMatchObject({ ok: false, erro: { codigo } });
+      expect(votou()).toBe(false);
+    }
+    vi.stubGlobal("fetch", async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    expect(await votarJuri({ eventoId: "evt-1", candidatoId: "k1" })).toMatchObject({ ok: false, erro: { codigo: "REDE" } });
+    expect(votou()).toBe(false);
+  });
+
+  it("consultarEstadoVoto devolve ao jurado o candidato do voto atual", async () => {
+    servidorResponde({ ok: true, dados: { votou: true, candidatoAtualId: "k2" } });
+    expect(await consultarEstadoVoto({ eventoId: "evt-1" })).toEqual({ ok: true, dados: { votou: true, candidatoAtualId: "k2" } });
+    expect(votou()).toBe(true);
   });
 });

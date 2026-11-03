@@ -6,7 +6,7 @@ function abas() {
   const local = criarEstadoInicial();
   local.sessao.usuarioId = "usr-bruno";
   local.ui.palcoAtivo = true;
-  local.ui.totem = { dispositivoId: "disp-hall", quiosqueAtivo: true };
+  local.ui.totem = { quiosqueAtivo: true };
   local.dev.toolbarModo = "OCULTA";
 
   const remoto = criarEstadoInicial();
@@ -31,7 +31,7 @@ describe("mesclarEstadoRemoto", () => {
     const r = mesclarEstadoRemoto(local, remoto, { comSessao: false });
     expect(r.sessao.usuarioId).toBe("usr-bruno");
     expect(r.ui.palcoAtivo).toBe(true);
-    expect(r.ui.totem).toEqual({ dispositivoId: "disp-hall", quiosqueAtivo: true });
+    expect(r.ui.totem).toEqual({ quiosqueAtivo: true });
     expect(r.dev.toolbarModo).toBe("OCULTA");
   });
 

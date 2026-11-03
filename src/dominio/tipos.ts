@@ -54,6 +54,14 @@ export type AcaoAuditoria =
   | "CONVITE_REVOGADO"
   | "CANDIDATO_DESQUALIFICADO"
   | "CANDIDATO_CORRIGIDO"
+  // Totem (voto infantil): nunca a escolha do voto; o PIN nunca vai em `detalhes`
+  | "CODIGO_PAREAMENTO_GERADO"
+  | "DISPOSITIVO_PAREADO"
+  | "DISPOSITIVO_PAUSADO"
+  | "DISPOSITIVO_REATIVADO"
+  | "DISPOSITIVO_REVOGADO"
+  | "DISPOSITIVO_RENOMEADO"
+  | "PIN_DISPOSITIVO_ALTERADO"
   // Etapa 7 (exportação)
   | "EXPORTACAO_CSV"
   | "RELATORIO_GERADO"
@@ -161,7 +169,7 @@ export type ConfigPlacar = {
   pesoJuri: number; // inteiro
   pesoInfantil: number; // inteiro
   regraDesempate: RegraDesempate;
-  /** Mock-only (08/10/2026): como os votos do júri viram o placar do júri. Trava com a urna aberta, como os pesos. */
+  /** Como os votos do júri viram o placar do júri (no schema desde 02/11/2026). Trava com a urna aberta, como os pesos. */
   modoVotoJuri: ModoVotoJuri;
   atualizadoEm: Instante;
 };
@@ -252,7 +260,7 @@ export type Parceiro = {
   ordem: number;
 };
 
-/** Mock-only (08/10/2026): critério de avaliação do júri (ex.: Direção, Roteiro). Vale para os dois modos por critério. */
+/** Critério de avaliação do júri (ex.: Direção, Roteiro). Vale para os dois modos por critério. */
 export type CriterioJuri = {
   id: string;
   eventoId: string;
@@ -260,7 +268,7 @@ export type CriterioJuri = {
   ordem: number;
 };
 
-/** Mock-only (08/10/2026): nota de um jurado a um candidato num critério (NOTAS_POR_CRITERIO). Única por (participação, candidato, critério). */
+/** Nota de um jurado a um candidato num critério (NOTAS_POR_CRITERIO). Única por (participação, candidato, critério). */
 export type NotaJuri = {
   id: string;
   eventoId: string;
@@ -273,7 +281,7 @@ export type NotaJuri = {
   atualizadoEm: Instante;
 };
 
-/** Mock-only (08/10/2026): o melhor candidato de um critério para um jurado (MELHOR_POR_CRITERIO). Única por (participação, critério). */
+/** O melhor candidato de um critério para um jurado (MELHOR_POR_CRITERIO). Única por (participação, critério). */
 export type EscolhaCriterioJuri = {
   id: string;
   eventoId: string;
@@ -418,7 +426,14 @@ export type EstadoUiApresentacao = {
 export type BloqueioTentativas = { falhas: number; ateMs: number | null };
 
 /** MVP Maratona Tech Tivit: `tipo` diz se o código aguardado é o de confirmação do e-mail (padrão) ou o de recuperação de senha. */
-export type LoginPendente = { email: string; de?: string; eventoId: string; tipo?: "verificacao" | "recuperacao" };
+export type LoginPendente = {
+  email: string;
+  de?: string;
+  eventoId: string;
+  tipo?: "verificacao" | "recuperacao";
+  /** Cadastro como jurado: o código de convite digitado fica só na memória do navegador até o e-mail ser confirmado; então é resgatado. */
+  codigoConvite?: string;
+};
 
 /** Etapa 5 (seção 5.1): avisos do fluxo de voto. */
 export type AvisoVotacao = "NAO_REGISTRADO" | "ESCOLHA_INDISPONIVEL" | "VOTO_PROPRIO" | "JA_VOTOU_ANTES";
@@ -466,10 +481,10 @@ export type EstadoUi = {
 };
 
 /**
- * Totem (rev. 4, A7): este aparelho no protótipo. `dispositivoId` faz o papel do token guardado no tablet
- * depois do pareamento; `quiosqueAtivo` esconde a toolbar em AUTO, como o palco.
+ * Totem (rev. 4, A7): estado de tela do quiosque. `quiosqueAtivo` esconde a toolbar em AUTO, como o palco. Qual aparelho é
+ * este tablet o servidor responde pelo token do cookie (src/server/totem.ts); nada disso fica no navegador.
  */
-export type EstadoUiTotem = { dispositivoId: string | null; quiosqueAtivo: boolean };
+export type EstadoUiTotem = { quiosqueAtivo: boolean };
 
 /** Etapa 7 (D7, C17): resultado já revelado na aba Resultado, por `eventoId:versao`; nova versão volta a ocultar. */
 export type EstadoUiDashboard = { resultadoVisivel: string | null };

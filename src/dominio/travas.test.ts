@@ -25,6 +25,8 @@ const ESPERADO: Record<Exclude<AcaoConfig, "MODULO_JURI_DESLIGAR">, NivelTrava[]
   CONVITES_GERAR: [L, L, L, T, LE],
   CONVITES_RENOMEAR: [L, L, L, T, LE],
   CONVITES_REVOGAR: [L, L, A, T, LE],
+  DISPOSITIVOS_PAREAR: [L, L, L, T, LE],
+  DISPOSITIVOS_GERIR: [L, L, L, L, LE],
   PLACAR: [L, L, T, T, LE],
   JURI_AVALIACAO: [L, L, T, T, LE],
   TEMA: [L, L, L, L, LE],

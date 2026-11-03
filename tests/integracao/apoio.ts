@@ -4,7 +4,7 @@ import { db } from "@/server/db";
 import { caixaDeSaida } from "@/server/email";
 import { usuarioDaSessao, type UsuarioSessao } from "@/server/sessao";
 import { semearMaratonaTechTivit } from "@/server/semente";
-import type { PapelParticipacao } from "@/dominio/tipos";
+import type { ModoVotoJuri, PapelParticipacao } from "@/dominio/tipos";
 
 // Apoio dos testes de integração (banco real).
 
@@ -43,7 +43,13 @@ export async function esperarEmail(email: string, antes: number, ms = 5000): Pro
 }
 
 export async function semearEvento(slug: string, opcoes: { ativo?: boolean; urna?: "NAO_INICIADA" | "ABERTA" | "ENCERRADA" } = {}) {
-  const { eventoId } = await semearMaratonaTechTivit({ slug, nome: `Evento ${slug}` });
+  // Janela relativa a "agora": a do seed é uma data fixa, e o checklist de ativação exige o fim da janela no futuro.
+  const { eventoId } = await semearMaratonaTechTivit({
+    slug,
+    nome: `Evento ${slug}`,
+    janelaInicio: new Date(Date.now() - 60 * 60_000).toISOString(),
+    janelaFim: new Date(Date.now() + 12 * 60 * 60_000).toISOString(),
+  });
   if (opcoes.ativo || opcoes.urna) {
     await db().evento.update({
       where: { id: eventoId },
@@ -55,6 +61,37 @@ export async function semearEvento(slug: string, opcoes: { ativo?: boolean; urna
     });
   }
   return eventoId;
+}
+
+/**
+ * Liga o módulo júri do evento (pesos 50/50 por padrão) no modo pedido e cria os critérios, na ordem. Devolve os ids dos
+ * critérios. Direto no banco: a configuração pelo admin tem os próprios testes.
+ */
+export async function ligarJuri(
+  eventoId: string,
+  opcoes: { modo?: ModoVotoJuri; criterios?: string[]; pesoJuri?: number } = {},
+): Promise<string[]> {
+  const peso = opcoes.pesoJuri ?? 50;
+  await db().evento.update({ where: { id: eventoId }, data: { moduloJuri: true } });
+  await db().configPlacar.update({
+    where: { eventoId },
+    data: { pesoPopular: 100 - peso, pesoJuri: peso, modoVotoJuri: opcoes.modo ?? "VOTO_UNICO" },
+  });
+  const ids: string[] = [];
+  for (const [i, nome] of (opcoes.criterios ?? []).entries()) {
+    ids.push((await db().criterioJuri.create({ data: { eventoId, nome, ordem: i + 1 } })).id);
+  }
+  return ids;
+}
+
+/**
+ * Liga o módulo infantil do evento (peso infantil 30 por padrão, o resto no popular; supõe o júri desligado). Direto no banco: a
+ * troca pelo admin (alternarModuloInfantil) tem os próprios testes.
+ */
+export async function ligarInfantil(eventoId: string, opcoes: { pesoInfantil?: number } = {}): Promise<void> {
+  const peso = opcoes.pesoInfantil ?? 30;
+  await db().evento.update({ where: { id: eventoId }, data: { moduloInfantil: true } });
+  await db().configPlacar.update({ where: { eventoId }, data: { pesoPopular: 100 - peso, pesoJuri: 0, pesoInfantil: peso } });
 }
 
 export async function criarCandidatos(eventoId: string, quantidade: number, opcoes: { publicados?: boolean } = {}) {

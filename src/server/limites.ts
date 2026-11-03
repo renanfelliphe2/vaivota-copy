@@ -63,7 +63,14 @@ export type ReservaDeSenha = { permitido: true } | { permitido: false; restanteS
  * tentar, recomeça.
  */
 export async function reservarTentativaDeSenha(email: string, agoraMs = Date.now()): Promise<ReservaDeSenha> {
-  const chave = chaveDeEmail("senha", email);
+  return reservarTentativa(chaveDeEmail("senha", email), agoraMs);
+}
+
+/**
+ * Mesma reserva atômica, para qualquer chave (`chaveDe`): usada também no código de convite do júri. Cinco tentativas por
+ * sequência; a sexta e as seguintes, por 60 s depois da quinta, ficam bloqueadas. Acerto apaga o contador (`zerarTentativas`).
+ */
+export async function reservarTentativa(chave: string, agoraMs = Date.now()): Promise<ReservaDeSenha> {
   const agora = BigInt(agoraMs);
   const velhaDemais = BigInt(agoraMs - JANELA_FALHAS_MS);
   const bloqueioVencido = BigInt(agoraMs - BLOQUEIO_SENHA_MS);
@@ -88,7 +95,16 @@ export async function reservarTentativaDeSenha(email: string, agoraMs = Date.now
 }
 
 export async function zerarRecusasDeSenha(email: string): Promise<void> {
-  await db().rateLimit.deleteMany({ where: { key: chaveDeEmail("senha", email) } });
+  await zerarTentativas(chaveDeEmail("senha", email));
+}
+
+export async function zerarTentativas(chave: string): Promise<void> {
+  await db().rateLimit.deleteMany({ where: { key: chave } });
+}
+
+/** Chave sem dado em claro: o texto vira hash. */
+export function chaveDe(prefixo: string, texto: string): string {
+  return `${prefixo}:${createHash("sha256").update(texto).digest("hex").slice(0, 32)}`;
 }
 
 // ─────────────────────────────────────────────

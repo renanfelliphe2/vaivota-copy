@@ -1,10 +1,24 @@
 import { paraMs } from "@/lib/tempo";
-import type { ConviteJurado } from "./tipos";
+import type { ConviteJurado, Instante } from "./tipos";
 
 // Etapa 6 (seção 5.4): estado exibido e resumo dos convites. A aba Operação do Dashboard (Etapa 7)
 // usa as mesmas funções, e os números batem por construção.
 
 export type EstadoExibidoConvite = "DISPONIVEL" | "USADO" | "REVOGADO" | "EXPIRADO";
+
+/** Linha da lista de convites do admin. Nunca carrega o hash nem e-mail. */
+export type ConviteListado = {
+  id: string;
+  rotulo: string | null;
+  estado: EstadoExibidoConvite;
+  validadeAte: Instante | null;
+  /** Nome de quem resgatou; nunca e-mail nem hash. */
+  resgatadoPor: string | null;
+  resgatadoEm: Instante | null;
+};
+
+/** O código legível sai só na resposta da geração: no banco fica apenas o hash. */
+export type CodigoGerado = { rotulo: string | null; codigo: string; validadeAte: Instante | null };
 
 /** "Expirado" é derivado: DISPONIVEL com validadeAte anterior ao relógio. */
 export function estadoExibidoConvite(

@@ -3,14 +3,15 @@ import type { AcaoAuditoria, Auditoria, Instante } from "./tipos";
 // Etapa 7 (D15, seção 5.9): catálogo de exibição da auditoria de todas as ações das Etapas 0 a 8.
 // `descrever` nunca devolve escolha de voto, código de convite, rótulo digitado, nome de jurado nem e-mail.
 
-export type GrupoAuditoria = "ESTADO" | "CONFIGURACAO" | "JURI" | "SEGURANCA" | "EXPORTACAO" | "APRESENTACAO" | "OUTRAS";
+export type GrupoAuditoria = "ESTADO" | "CONFIGURACAO" | "JURI" | "TOTEM" | "SEGURANCA" | "EXPORTACAO" | "APRESENTACAO" | "OUTRAS";
 
-export const GRUPOS_AUDITORIA: GrupoAuditoria[] = ["ESTADO", "CONFIGURACAO", "JURI", "SEGURANCA", "EXPORTACAO", "APRESENTACAO", "OUTRAS"];
+export const GRUPOS_AUDITORIA: GrupoAuditoria[] = ["ESTADO", "CONFIGURACAO", "JURI", "TOTEM", "SEGURANCA", "EXPORTACAO", "APRESENTACAO", "OUTRAS"];
 
 export const ROTULO_GRUPO_AUDITORIA: Record<GrupoAuditoria, string> = {
   ESTADO: "Estado",
   CONFIGURACAO: "Configuração",
   JURI: "Júri",
+  TOTEM: "Totens",
   SEGURANCA: "Segurança",
   EXPORTACAO: "Exportação",
   APRESENTACAO: "Apresentação",
@@ -123,6 +124,13 @@ export const CATALOGO_AUDITORIA: Record<AcaoAuditoria, ItemCatalogo> = {
     descrever: (_d, entidade) =>
       entidade === "nota_juri" ? "Notas de jurado alteradas" : entidade === "escolha_juri" ? "Escolha por critério alterada" : "Voto de jurado alterado",
   },
+  CODIGO_PAREAMENTO_GERADO: { rotulo: "Código de pareamento gerado", grupo: "TOTEM", descrever: () => "Código de pareamento de totem gerado" },
+  DISPOSITIVO_PAREADO: { rotulo: "Totem pareado", grupo: "TOTEM", descrever: () => "Totem pareado com o evento" },
+  DISPOSITIVO_PAUSADO: { rotulo: "Totem pausado", grupo: "TOTEM", descrever: () => "Totem pausado" },
+  DISPOSITIVO_REATIVADO: { rotulo: "Totem reativado", grupo: "TOTEM", descrever: () => "Totem reativado" },
+  DISPOSITIVO_REVOGADO: { rotulo: "Totem revogado", grupo: "TOTEM", descrever: () => "Totem revogado: não recebe mais votos" },
+  DISPOSITIVO_RENOMEADO: { rotulo: "Totem renomeado", grupo: "TOTEM", descrever: () => "Totem renomeado" },
+  PIN_DISPOSITIVO_ALTERADO: { rotulo: "PIN de totem alterado", grupo: "TOTEM", descrever: () => "PIN de saída de um totem alterado" },
   TENTATIVA_CODIGO_INVALIDA: { rotulo: "Código recusado", grupo: "SEGURANCA", descrever: () => "Código recusado" },
   ADMIN_CONVITE_RESGATADO: {
     rotulo: "Admin adicionado",
@@ -137,7 +145,11 @@ export const CATALOGO_AUDITORIA: Record<AcaoAuditoria, ItemCatalogo> = {
         ? "Código de login bloqueado por excesso de tentativas"
         : d?.alvo === "SENHA"
           ? "Login bloqueado por excesso de senhas erradas"
-          : "Campo bloqueado por excesso de tentativas",
+          : d?.alvo === "CODIGO_PAREAMENTO"
+            ? "Pareamento de totem bloqueado por excesso de códigos errados"
+            : d?.alvo === "PIN_TOTEM"
+              ? "PIN de um totem bloqueado por excesso de tentativas"
+              : "Campo bloqueado por excesso de tentativas",
   },
   EXPORTACAO_CSV: {
     rotulo: "Arquivo exportado",

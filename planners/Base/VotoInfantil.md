@@ -51,7 +51,7 @@ Permitir que crianças votem de forma simples e rápida em **totens ou tablets d
 ## 5. Modelo de dados (conceitual)
 
 - **Dispositivo:** id, evento, nome, hash do token, estado, PIN de saída (hash), criado em, último uso.
-- **CodigoPareamento:** id, evento, hash do código, validade, estado (`disponivel` | `usado` | `expirado`).
+- **CodigoPareamento:** id, evento, hash do código, validade, estado (`disponivel` | `usado` | `expirado`) e, definidos pelo admin ao gerar o código, o nome e o hash do PIN do totem (passam ao `Dispositivo` no pareamento).
 - **VotoInfantil:** id, evento, candidato, horário, dispositivo.
   - Sem referência a usuário ou a qualquer dado da criança.
 - **ConfigPlacar** (já existente): ganha o **peso infantil**; ver `Jurado.md`.

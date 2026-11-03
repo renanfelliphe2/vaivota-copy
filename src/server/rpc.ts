@@ -3,13 +3,17 @@ import { z } from "zod";
 import * as acesso from "./acesso";
 import * as candidatos from "./candidatos";
 import * as configuracao from "./configuracao";
+import * as convites from "./convites";
 import * as dashboard from "./dashboard";
+import * as dispositivos from "./dispositivos";
 import { montarEstadoPublico } from "./estadoPublico";
 import * as exportacao from "./exportacao";
+import * as juri from "./juri";
 import * as operacao from "./operacao";
 import { garantirParticipacao } from "./participacao";
 import { falha, falhaInterna, sucesso, type Resultado } from "./resultado";
 import { usuarioDaSessao, type UsuarioSessao } from "./sessao";
+import * as totem from "./totem";
 import * as votacao from "./votacao";
 
 // Fronteira entre o navegador e o servidor (MVP Maratona Tech Tivit, seção 3). Cada serviço do protótipo (`src/servicos/*`) vira
@@ -34,7 +38,7 @@ const dadosCandidato = z.object({
   camposExtras: z.record(z.string().max(60), texto(1500)),
 });
 
-const gruposAuditoria = z.enum(["ESTADO", "CONFIGURACAO", "JURI", "SEGURANCA", "EXPORTACAO", "APRESENTACAO", "OUTRAS"]);
+const gruposAuditoria = z.enum(["ESTADO", "CONFIGURACAO", "JURI", "TOTEM", "SEGURANCA", "EXPORTACAO", "APRESENTACAO", "OUTRAS"]);
 const arquivosExportacao = z.enum(["resumo_evento", "resultado_candidatos", "votos_por_minuto", "jurados", "dispositivos", "auditoria"]);
 
 type Definicao<S extends z.ZodType> = {
@@ -85,6 +89,49 @@ const servicos = {
   consultarEstadoVoto: definir(z.object({ eventoId: id }), (ctx, usuario, a) => votacao.consultarEstadoVoto(usuario, a, { ip: ctx.ip }), {
     sessaoEmCache: true,
   }),
+
+  // Júri (Festival): convite, voto único, notas por critério e melhor por critério
+  resgatarConvite: definir(z.object({ eventoId: id, codigo: texto(40) }), (ctx, usuario, a) => convites.resgatarConvite(usuario, { ip: ctx.ip }, a)),
+  votarJuri: definir(z.object({ eventoId: id, candidatoId: id }), (ctx, usuario, a) => juri.votarJuri(usuario, a, { ip: ctx.ip })),
+  avaliarCandidatoJuri: definir(
+    z.object({ eventoId: id, candidatoId: id, notas: z.record(id, z.number()) }),
+    (ctx, usuario, a) => juri.avaliarCandidatoJuri(usuario, a, { ip: ctx.ip }),
+  ),
+  escolherMelhoresJuri: definir(
+    z.object({ eventoId: id, candidatoId: id, criterioIds: z.array(id).max(20) }),
+    (ctx, usuario, a) => juri.escolherMelhoresJuri(usuario, a, { ip: ctx.ip }),
+  ),
+  consultarAvaliacaoJuri: definir(z.object({ eventoId: id }), (_c, usuario, a) => juri.consultarAvaliacaoJuri(usuario, a)),
+
+  // Totem (voto infantil), lado do aparelho. Sem login: a identidade é o token do cookie HttpOnly, nunca um campo enviado.
+  parearTotem: definir(z.object({ eventoId: id, codigo: texto(40) }), (ctx, _u, a) => totem.parearTotem(ctx, a)),
+  obterEstadoTotem: definir(semArgs, (ctx) => totem.obterEstadoTotem(ctx), { sessaoEmCache: true }),
+  votarInfantil: definir(z.object({ eventoId: id, candidatoId: id }), (ctx, _u, a) => totem.votarInfantil(ctx, a), { sessaoEmCache: true }),
+  conferirPinTotem: definir(z.object({ pin: texto(20) }), (ctx, _u, a) => totem.conferirPinTotem(ctx, a), { sessaoEmCache: true }),
+
+  // Totem: gestão pelo admin
+  alternarModuloInfantil: definir(z.object({ eventoId: id, ligado: z.boolean() }), (ctx, u, a) =>
+    dispositivos.alternarModuloInfantil(u, a.eventoId, a.ligado, { ip: ctx.ip }),
+  ),
+  listarDispositivos: definir(z.object({ eventoId: id }), (_c, u, a) => dispositivos.listarDispositivos(u, a.eventoId)),
+  gerarCodigoPareamento: definir(z.object({ eventoId: id, nome: texto(100), pin: texto(20) }), (ctx, u, a) =>
+    dispositivos.gerarCodigoPareamento(u, a.eventoId, { nome: a.nome, pin: a.pin }, { ip: ctx.ip }),
+  ),
+  pausarDispositivo: definir(z.object({ eventoId: id, dispositivoId: id }), (ctx, u, a) =>
+    dispositivos.pausarDispositivo(u, a.eventoId, a.dispositivoId, { ip: ctx.ip }),
+  ),
+  reativarDispositivo: definir(z.object({ eventoId: id, dispositivoId: id }), (ctx, u, a) =>
+    dispositivos.reativarDispositivo(u, a.eventoId, a.dispositivoId, { ip: ctx.ip }),
+  ),
+  revogarDispositivo: definir(z.object({ eventoId: id, dispositivoId: id, motivo: texto(500).optional() }), (ctx, u, a) =>
+    dispositivos.revogarDispositivo(u, a.eventoId, a.dispositivoId, { motivo: a.motivo }, { ip: ctx.ip }),
+  ),
+  renomearDispositivo: definir(z.object({ eventoId: id, dispositivoId: id, nome: texto(100) }), (_c, u, a) =>
+    dispositivos.renomearDispositivo(u, a.eventoId, a.dispositivoId, a.nome),
+  ),
+  alterarPinDispositivo: definir(z.object({ eventoId: id, dispositivoId: id, pin: texto(20) }), (ctx, u, a) =>
+    dispositivos.alterarPinDispositivo(u, a.eventoId, a.dispositivoId, a.pin, { ip: ctx.ip }),
+  ),
 
   // Operação
   ativarEvento: definir(z.object({ eventoId: id }), (_c, u, a) => operacao.ativarEvento(u, a.eventoId)),
@@ -168,8 +215,41 @@ const servicos = {
     (_c, u, a) => configuracao.salvarTema(u, a.eventoId, a.dados),
   ),
 
+  // Júri: configuração (admin)
+  salvarAvaliacaoJuri: definir(
+    z.object({
+      eventoId: id,
+      dados: z.object({
+        modoVotoJuri: z.enum(["VOTO_UNICO", "NOTAS_POR_CRITERIO", "MELHOR_POR_CRITERIO"]),
+        criterios: z.array(z.object({ id: id.nullable(), nome: texto(100) })).max(20),
+      }),
+    }),
+    (ctx, u, a) => juri.salvarAvaliacaoJuri(u, a.eventoId, a.dados, { ip: ctx.ip }),
+  ),
+  listarConvites: definir(z.object({ eventoId: id }), (_c, u, a) => convites.listarConvites(u, a.eventoId)),
+  gerarConvites: definir(
+    z.object({
+      eventoId: id,
+      quantidade: z.number().int(),
+      rotuloBase: texto(100).optional(),
+      validadeAte: instanteOuNulo,
+    }),
+    (ctx, u, a) => convites.gerarConvites(u, a.eventoId, { quantidade: a.quantidade, rotuloBase: a.rotuloBase, validadeAte: a.validadeAte }, { ip: ctx.ip }),
+  ),
+  renomearConvite: definir(z.object({ eventoId: id, conviteId: id, rotulo: texto(100) }), (_c, u, a) =>
+    convites.renomearConvite(u, a.eventoId, a.conviteId, a.rotulo),
+  ),
+  revogarConvite: definir(
+    z.object({ eventoId: id, conviteId: id, gerarSubstituto: z.boolean(), motivo: texto(500).optional() }),
+    (ctx, u, a) => convites.revogarConvite(u, a.eventoId, a.conviteId, { gerarSubstituto: a.gerarSubstituto, motivo: a.motivo }, { ip: ctx.ip }),
+  ),
+  registrarExportacaoConvites: definir(z.object({ eventoId: id, quantidade: z.number().int().min(0).max(100_000) }), (ctx, u, a) =>
+    convites.registrarExportacaoConvites(u, a.eventoId, a.quantidade, { ip: ctx.ip }),
+  ),
+
   // Painel
   obterOperacao: definir(z.object({ eventoId: id }), (_c, u, a) => dashboard.obterOperacao(u, a.eventoId)),
+  obterVotosJuri: definir(z.object({ eventoId: id }), (_c, u, a) => dashboard.obterVotosJuri(u, a.eventoId)),
   obterResultado: definir(z.object({ eventoId: id }), (_c, u, a) => dashboard.obterResultado(u, a.eventoId)),
   listarAuditoria: definir(
     z.object({ eventoId: id, grupo: gruposAuditoria.optional(), limite: z.number().int().min(1).max(500).optional() }),

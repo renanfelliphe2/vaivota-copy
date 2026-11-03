@@ -8,6 +8,8 @@ import type { Banco, Transacao } from "./db";
 export type EntradaAuditoria = {
   eventoId: string | null;
   usuarioId: string | null;
+  /** Ações do próprio totem (pareamento, PIN bloqueado): o ator é o aparelho, não uma pessoa. */
+  dispositivoId?: string;
   acao: AcaoAuditoria;
   entidade: string;
   entidadeId?: string;
@@ -20,6 +22,7 @@ export async function registrarAuditoria(cliente: Banco | Transacao, entrada: En
     data: {
       eventoId: entrada.eventoId,
       atorUsuarioId: entrada.usuarioId,
+      atorDispositivoId: entrada.dispositivoId ?? null,
       acao: entrada.acao,
       entidade: entrada.entidade,
       entidadeId: entrada.entidadeId ?? null,

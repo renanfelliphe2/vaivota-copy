@@ -211,7 +211,15 @@ export async function removerCandidato(usuario: UsuarioSessao | null, eventoId: 
   const atual = await db().candidato.findFirst({ where: { id: candidatoId, eventoId }, select: { id: true } });
   if (!atual) return falha("NAO_ENCONTRADO");
   const r = await comEventoTravado(eventoId, "CANDIDATOS_PUBLICACAO", async (tx) => {
-    const votos = await tx.voto.count({ where: { candidatoId } });
+    // Qualquer rastro de voto (popular, júri em qualquer modo ou histórico de alteração do júri) impede a remoção.
+    const [populares, juri, notas, escolhas, historico] = await Promise.all([
+      tx.voto.count({ where: { candidatoId } }),
+      tx.votoJuri.count({ where: { candidatoId } }),
+      tx.notaJuri.count({ where: { candidatoId } }),
+      tx.escolhaCriterioJuri.count({ where: { candidatoId } }),
+      tx.historicoVotoJuri.count({ where: { OR: [{ candidatoAnteriorId: candidatoId }, { candidatoNovoId: candidatoId }] } }),
+    ]);
+    const votos = populares + juri + notas + escolhas + historico;
     if (votos > 0)
       return falha("CONFLITO", {
         detalhe: `candidato ${candidatoId} tem votos`,

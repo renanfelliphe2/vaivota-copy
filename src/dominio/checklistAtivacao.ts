@@ -7,7 +7,7 @@ import type { EstadoApp } from "./tipos";
 // Etapa 6 (D19, seção 5.7): checklist de ativação. Função pura sobre valores públicos e contagens;
 // o seletor (tela) e o serviço de operação (revalidação) usam a mesma montagem e a mesma avaliação.
 
-export type SecaoConfig = "geral" | "candidatos" | "juri" | "placar" | "tema" | "parceiros" | "operacao";
+export type SecaoConfig = "geral" | "candidatos" | "juri" | "totens" | "placar" | "tema" | "parceiros" | "operacao";
 
 export type EntradaChecklist = {
   agoraMs: number;
@@ -96,7 +96,7 @@ export function avaliarChecklist(e: EntradaChecklist): ItemChecklist[] {
       "Totem ativo",
       e.moduloInfantil ? e.dispositivosAtivos >= 1 : null,
       e.moduloInfantil ? `${e.dispositivosAtivos} totem(ns) ativo(s).` : "Módulo infantil desligado.",
-      null,
+      "totens",
       "AVISO",
     ),
     item(

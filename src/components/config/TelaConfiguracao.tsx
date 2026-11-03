@@ -17,6 +17,7 @@ import { SecaoOperacao } from "./operacao/SecaoOperacao";
 import { SecaoParceiros } from "./parceiros/SecaoParceiros";
 import { SecaoPlacar } from "./placar/SecaoPlacar";
 import { SecaoTema } from "./tema/SecaoTema";
+import { SecaoTotens } from "./totens/SecaoTotens";
 import { TituloPainel } from "@/components/nav/TituloPainel";
 
 function ehSecao(valor: string | null): valor is SecaoConfig {
@@ -58,6 +59,7 @@ export function TelaConfiguracao() {
   if (secao === "geral") conteudo = <FormGeral travas={travas} />;
   else if (secao === "candidatos") conteudo = <SecaoCandidatos travas={travas} />;
   else if (secao === "juri") conteudo = <SecaoJuri travas={travas} />;
+  else if (secao === "totens") conteudo = <SecaoTotens travas={travas} />;
   else if (secao === "placar") conteudo = <SecaoPlacar travas={travas} />;
   else if (secao === "tema") conteudo = <SecaoTema travas={travas} />;
   else if (secao === "parceiros") conteudo = <SecaoParceiros travas={travas} />;

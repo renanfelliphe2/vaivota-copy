@@ -100,8 +100,8 @@ export async function votarPopular(
 }
 
 /**
- * Estado real do voto (verificação depois de erro de rede). Só diz SE a pessoa votou, nunca em quem: `candidatoAtualId`
- * existe para o jurado do Festival e aqui é sempre nulo.
+ * Estado real do voto (verificação depois de erro de rede). Para o público só diz SE votou, nunca em quem. Para o jurado
+ * (voto identificado, alterável) traz também o candidato do voto único atual: `candidatoAtualId`, nulo nos modos por critério.
  */
 export async function consultarEstadoVoto(
   usuario: UsuarioSessao | null,
@@ -119,10 +119,18 @@ export async function consultarEstadoVoto(
     if (!evento) return falha("NAO_ENCONTRADO", { detalhe: `evento ${entrada.eventoId} não existe` });
     const participacao = await db().participacao.findUnique({
       where: { usuarioId_eventoId: { usuarioId: usuario.id, eventoId: evento.id } },
-      select: { papel: true, votou: true },
+      select: { id: true, papel: true, votou: true },
     });
     if (!participacao || participacao.papel === "ADMIN") return sucesso({ votou: false, candidatoAtualId: null });
-    return sucesso({ votou: participacao.votou, candidatoAtualId: null });
+    // Só o próprio jurado lê a escolha dele (o voto do júri é identificado, nunca o popular).
+    const voto =
+      participacao.papel === "JURADO"
+        ? await db().votoJuri.findUnique({
+            where: { participacaoId_eventoId: { participacaoId: participacao.id, eventoId: evento.id } },
+            select: { candidatoId: true },
+          })
+        : null;
+    return sucesso({ votou: participacao.votou, candidatoAtualId: voto?.candidatoId ?? null });
   } catch (e) {
     return falhaInterna(e, "consultarEstadoVoto");
   }

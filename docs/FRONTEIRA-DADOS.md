@@ -4,7 +4,7 @@ O que a trilha de produção (Prisma + Supabase) precisa trocar. O protótipo gu
 
 ## Situação: trilha de produção implementada (MVP Maratona Tech Tivit, 15/10/2026)
 
-A troca descrita abaixo foi feita para o que a Maratona Tech Tivit usa. O que **não** foi trocado (júri, voto infantil, totem, apresentação, parceiros, convites) segue como protótipo, com as rotas fechadas por `NEXT_PUBLIC_MODULOS_FESTIVAL`.
+A troca descrita abaixo foi feita para o que a Maratona Tech Tivit usa. O que **não** foi trocado (apresentação e parceiros) segue como protótipo. Júri e convites ficaram reais em 02/11/2026 e o voto infantil com o totem em 02/11/2026 (linhas abaixo); as rotas do Festival continuam fechadas por `NEXT_PUBLIC_MODULOS_FESTIVAL`.
 
 - **Fronteira real:** cada serviço de `src/servicos/` mantém a assinatura e chama `POST /api/servico/<nome>` (`src/servicos/rpc.ts` → `src/app/api/servico/[nome]/route.ts` → `src/server/rpc.ts`). O servidor valida os argumentos (zod), resolve a sessão do cookie (nunca de um campo enviado) e revalida papel e fase a cada chamada.
 - **Leitura pública:** `src/server/estadoPublico.ts` monta o estado já filtrado (eventos, tema, candidatos publicados, a própria pessoa e participação); o layout raiz o entrega ao `AppProvider` e o polling o renova (`obterEstado`: a cada 10 s para quem espera a urna, 30 s para quem já votou, 60 s com a urna encerrada; cache de 3 s por instância, sem cache para o admin). `src/store/estadoReal.ts` o transforma no mesmo `EstadoApp` do protótipo, então **seletores e telas não mudaram**.
@@ -20,7 +20,12 @@ A troca descrita abaixo foi feita para o que a Maratona Tech Tivit usa. O que **
 | `salvarGeral`, `salvarPlacar`, `salvarTema` | `src/server/configuracao.ts` | ST7; encerramento automático recusado (não existe rotina que feche sozinha) |
 | `obterOperacao`, `obterResultado`, `listarAuditoria` | `src/server/dashboard.ts` | Sem contagem por projeto durante a votação; resultado só da maior versão oficial |
 | `prepararExportacao`, `registrarRelatorioGerado` | `src/server/exportacao.ts` | Audita cada exportação |
-| `obterVotosJuri`, `votarJuri`, `resgatarConvite`, `entrarComo` | stubs / mock | Festival ou toolbar |
+| `resgatarConvite`, `listarConvites`, `gerarConvites`, `renomearConvite`, `revogarConvite`, `registrarExportacaoConvites` | `src/server/convites.ts` | Festival (02/11/2026). Só o hash (HMAC com o segredo do servidor, por evento) vai ao banco; o código legível sai uma vez na geração. Resgate atômico (`UPDATE` condicional + participação travada): dois resgates do mesmo código nunca passam. Cinco recusas por pessoa bloqueiam por 60 s (`rate_limit`), com auditoria do motivo exato |
+| `votarJuri`, `avaliarCandidatoJuri`, `escolherMelhoresJuri`, `consultarAvaliacaoJuri`, `salvarAvaliacaoJuri` | `src/server/juri.ts` | Festival (02/11/2026). Voto único, notas 0 a 10 por critério ou melhor por critério. Uma transação por envio: `FOR SHARE` no evento (o encerramento espera) e `FOR UPDATE` na participação (envios do mesmo jurado se enfileiram). Idempotente: repetir devolve `SEM_ALTERACAO`. A apuração lê o modo ativo (`contarVotosJuri`) |
+| `obterVotosJuri` | `src/server/dashboard.ts` | Votos identificados do júri, só depois do encerramento; `jurados.csv` sai por `prepararExportacao` |
+| `parearTotem`, `obterEstadoTotem`, `votarInfantil`, `conferirPinTotem` | `src/server/totem.ts` (credenciais em `credenciaisTotem.ts`) | Festival (02/11/2026). O totem não tem login: a identidade é um token de 32 bytes no cookie `vaivota_totem` (HttpOnly), e só o SHA-256 dele vai ao banco; o cliente nunca envia o id do aparelho. Pareamento com código de uso único (HMAC com o segredo do servidor, por evento; vale 15 min; `UPDATE` condicional, então dois pareamentos do mesmo código nunca passam; cinco códigos errados por IP bloqueiam por 60 s). Voto: uma transação com `FOR SHARE` no evento e `FOR NO KEY UPDATE` no aparelho, então pausa, revogação e encerramento da urna valem na hora e nenhum voto entra depois. PIN de saída com scrypt e sal; cinco erros bloqueiam o aparelho por 60 s |
+| `listarDispositivos`, `gerarCodigoPareamento`, `pausarDispositivo`, `reativarDispositivo`, `revogarDispositivo`, `renomearDispositivo`, `alterarPinDispositivo`, `alternarModuloInfantil` | `src/server/dispositivos.ts` | Festival (02/11/2026). Admin do evento; tudo auditado (grupo Totens), nunca o PIN, o código legível nem a escolha. O admin define nome e PIN ao gerar o código. Revogado é definitivo. O módulo infantil trava com a urna aberta e não desliga com votos registrados |
+| `entrarComo` e os de parceiros e apresentação | stubs / mock | Telão |
 
 ## Dois pontos de troca (Etapa 9, D2)
 
@@ -47,6 +52,12 @@ Reaproveitável sem mudança: `src/dominio/**` (regras puras: apuração, travas
 | `salvarGeral` | `configGeral.ts` | ação | sim | `TRAVADO`, `VALIDACAO`, `CONFLITO` | Configuração · Geral |
 | `criarCandidato`, `salvarCandidato`, `alterarPublicacao`, `salvarOrdemCandidatos`, `removerCandidato`, `desqualificarCandidato`, `salvarCamposExtras` | `candidatosAdmin.ts` | ação | sim | `TRAVADO`, `VALIDACAO`, `CONFLITO` | Configuração · Candidatos |
 | `listarConvites` | `convites.ts` | leitura | não | `NAO_AUTORIZADO` | Configuração · Júri |
+| `parearTotem` | `totem.ts` | ação | não | `CODIGO_*`, `LIMITE_TENTATIVAS`, `VALIDACAO`, `EVENTO_CONCLUIDO`, `URNA_ENCERRADA` | Pareamento do totem |
+| `obterEstadoTotem` | `totem.ts` | leitura | não | `LIMITE_TENTATIVAS`, `REDE` | Quiosque (a cada 10 s) |
+| `votarInfantil` | `totem.ts` | ação | não | `DISPOSITIVO_INATIVO`, `URNA_*`, `EVENTO_*`, `CANDIDATO_INDISPONIVEL`, `REDE` | Quiosque |
+| `conferirPinTotem` | `totem.ts` | ação | não | `CREDENCIAIS_INVALIDAS`, `LIMITE_TENTATIVAS` | Sair do quiosque |
+| `listarDispositivos` | `dispositivos.ts` | leitura | não | `NAO_AUTORIZADO` | Configuração · Totens |
+| `gerarCodigoPareamento`, `pausarDispositivo`, `reativarDispositivo`, `revogarDispositivo`, `renomearDispositivo`, `alterarPinDispositivo`, `alternarModuloInfantil` | `dispositivos.ts` | ação | sim | `TRAVADO`, `VALIDACAO`, `CONFLITO`, `NAO_ENCONTRADO` | Configuração · Totens |
 | `gerarConvites`, `renomearConvite`, `revogarConvite`, `registrarExportacaoConvites` | `convites.ts` | ação | sim | `TRAVADO`, `VALIDACAO` | Configuração · Júri |
 | `salvarPlacar` | `placarConfig.ts` | ação | sim | `TRAVADO`, `VALIDACAO` | Configuração · Placar |
 | `listarPresetsTema` / `salvarTema` | `temaConfig.ts` | leitura / ação | não / sim | `VALIDACAO` | Configuração · Tema |
@@ -70,6 +81,7 @@ Escritas fora de `servicos/` (só estado de tela ou ferramenta do protótipo): `
 | `ui.bloqueioCodigo`, `ui.bloqueioLoginCodigo` | `ui`, no cliente | Bloqueio de tentativas é do servidor; o cliente só exibe |
 | `hashRecibo` do voto | `hashMock("recibo:{eventoId}:{sequência}")` | **Aleatório de 32 bytes**, nunca derivado de sequência, id ou instante (C20) |
 | `ConviteJurado.hashCodigo` | `banco`; o código legível só no retorno de `gerarConvites` | Hash no servidor; o código nunca volta depois da criação |
+| `Dispositivo.hashToken`, `Dispositivo.hashPin`, `CodigoPareamento.hashCodigo` | `banco` (hashes sintéticos no mock) | Token só no cookie HttpOnly do tablet (SHA-256 no banco); PIN com scrypt e sal; código legível só na resposta de `gerarCodigoPareamento`. O admin recebe `dispositivos` no estado público sem nenhum hash; o totem recebe só id, evento, nome e estado |
 | `Usuario.email` | `banco` (inclui os 515 usuários gerados `vol-NNNN@demo.com`) | O cliente recebe só o próprio perfil e o nome de quem o admin pode ver; nenhuma tela, CSV ou auditoria mostra e-mail |
 | Código de login `123456` | Constante do mock, mostrada na tela | Código de uso único por e-mail (Resend), validado pelo Better Auth |
 | `resultados` | `banco`, lidos por serviço | Servidor entrega só o oficial (maior versão) e só com a urna encerrada |

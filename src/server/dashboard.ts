@@ -2,14 +2,17 @@ import "server-only";
 import type { Auditoria as AuditoriaLinha, Evento as EventoLinha } from "@/generated/prisma/client";
 import { descreverAuditoria, grupoDaAcao, resumirAuditoria, type GrupoAuditoria } from "@/dominio/auditoria";
 import type { Participantes } from "@/dominio/contagens";
-import type { ItemAuditoria, OperacaoDados, ResultadoVisao } from "@/dominio/painel";
+import { resumirConvites } from "@/dominio/convites";
+import type { ItemAuditoria, OperacaoDados, ResultadoVisao, VotosJuriVisao } from "@/dominio/painel";
 import { resumirApuracao } from "@/dominio/resultado";
 import { montarSerie } from "@/dominio/serie";
 import { resolverSituacaoEvento } from "@/dominio/situacaoEvento";
 import type { AcaoAuditoria, DadosResultado, Grupo, MotivoResultado } from "@/dominio/tipos";
 import { resolverFaseConfig } from "@/dominio/travas";
 import { paraInstante } from "@/lib/tempo";
+import { contarVotosJuri } from "./apuracao";
 import { db } from "./db";
+import { totensDoEvento } from "./dispositivos";
 import { apresentacaoParaDominio, eventoParaDominio, instante } from "./mapeadores";
 import { falha, falhaInterna, sucesso, type Resultado } from "./resultado";
 import { exigirAdmin, type UsuarioSessao } from "./sessao";
@@ -29,18 +32,57 @@ export function faseComResultado(evento: Pick<EventoLinha, "estado" | "estadoUrn
   return fase === "URNA_ENCERRADA" || fase === "CONCLUIDO";
 }
 
+/** Instante do PRIMEIRO registro de cada jurado (voto único, nota ou escolha): é o que entra na série do júri. */
+async function primeirosRegistrosDoJuri(eventoId: string): Promise<string[]> {
+  const linhas = await db().$queryRaw<{ em: Date }[]>`
+    SELECT MIN(criado_em) AS em FROM (
+      SELECT participacao_id, criado_em FROM voto_juri WHERE evento_id = ${eventoId}
+      UNION ALL SELECT participacao_id, criado_em FROM nota_juri WHERE evento_id = ${eventoId}
+      UNION ALL SELECT participacao_id, criado_em FROM escolha_criterio_juri WHERE evento_id = ${eventoId}
+    ) t GROUP BY participacao_id`;
+  return linhas.map((l) => l.em.toISOString());
+}
+
 /** Série de votos: de urnaAbertaEm até agora (aberta) ou urnaEncerradaEm. */
 export async function serieDoEvento(evento: EventoLinha, agoraMs: number) {
   const ateMs = evento.urnaEncerradaEm ? evento.urnaEncerradaEm.getTime() : agoraMs;
   const votos = evento.urnaAbertaEm
     ? await db().voto.findMany({ where: { eventoId: evento.id }, select: { criadoEm: true } })
     : [];
+  const juri = evento.urnaAbertaEm && evento.moduloJuri ? await primeirosRegistrosDoJuri(evento.id) : [];
+  const infantis =
+    evento.urnaAbertaEm && evento.moduloInfantil
+      ? await db().votoInfantil.findMany({ where: { eventoId: evento.id }, select: { criadoEm: true } })
+      : [];
   return montarSerie({
     abertaEm: evento.urnaAbertaEm ? evento.urnaAbertaEm.toISOString() : null,
     ateMs,
-    votos: { popular: votos.map((v) => v.criadoEm.toISOString()), juri: [], infantil: [] },
+    votos: { popular: votos.map((v) => v.criadoEm.toISOString()), juri, infantil: infantis.map((v) => v.criadoEm.toISOString()) },
     paraInstante: (ms) => paraInstante(ms, evento.fusoHorario),
   });
+}
+
+type JuradoLinha = { participacaoId: string; nome: string; rotulo: string | null; votou: boolean };
+
+/** Jurados pelo rótulo do convite USADO ligado à participação; pendentes primeiro, depois por rótulo. */
+async function juradosDoEvento(eventoId: string): Promise<JuradoLinha[]> {
+  const linhas = await db().participacao.findMany({
+    where: { eventoId, papel: "JURADO" },
+    select: { id: true, votou: true, usuario: { select: { nome: true } }, conviteJurado: { select: { rotulo: true, estado: true } } },
+  });
+  return linhas
+    .map((p) => ({
+      participacaoId: p.id,
+      nome: p.usuario.nome,
+      rotulo: p.conviteJurado?.estado === "USADO" ? p.conviteJurado.rotulo : null,
+      votou: p.votou,
+    }))
+    .sort(
+      (a, b) =>
+        Number(a.votou) - Number(b.votou) ||
+        (a.rotulo ?? "").localeCompare(b.rotulo ?? "", "pt-BR", { numeric: true }) ||
+        a.nome.localeCompare(b.nome, "pt-BR"),
+    );
 }
 
 /** Cadastrados e que votaram por papel (ADMIN não conta). */
@@ -109,14 +151,21 @@ export async function obterOperacao(usuario: UsuarioSessao | null, eventoId: str
     const { fase, incoerente } = resolverFaseConfig(evento);
     const dominio = eventoParaDominio(evento);
 
-    const [totalPopular, participantes, serie, auditoria, temResultado] = await Promise.all([
+    const [totalPopular, participantes, serie, auditoria, temResultado, juri, jurados, convites, totalInfantil, totens] = await Promise.all([
       db().voto.count({ where: { eventoId } }),
       contarParticipantesDoEvento(eventoId),
       serieDoEvento(evento, agoraMs),
       auditoriaDoEvento(eventoId),
       db().resultadoOficial.count({ where: { eventoId } }),
+      evento.moduloJuri ? contarVotosJuri(db(), eventoId) : Promise.resolve({} as Record<string, number>),
+      evento.moduloJuri ? juradosDoEvento(eventoId) : Promise.resolve([] as JuradoLinha[]),
+      db().conviteJurado.findMany({ where: { eventoId }, select: { estado: true, validadeAte: true } }),
+      evento.moduloInfantil ? db().votoInfantil.count({ where: { eventoId } }) : Promise.resolve(0),
+      evento.moduloInfantil ? totensDoEvento(db(), eventoId, evento.fusoHorario) : Promise.resolve([] as OperacaoDados["totens"]),
     ]);
-    const totais: Record<Grupo, number> = { POPULAR: totalPopular, JURI: 0, INFANTIL: 0 };
+    // Total bruto do júri pelo modo ativo (a mesma conta do resultado oficial): sem parcial por candidato, só o total.
+    // O infantil também: durante a votação nenhuma contagem por candidato sai do servidor.
+    const totais: Record<Grupo, number> = { POPULAR: totalPopular, JURI: Object.values(juri).reduce((s, n) => s + n, 0), INFANTIL: totalInfantil };
     const itens = await itensDeAuditoria(evento, auditoria.slice(0, LIMITE_AUDITORIA));
 
     return sucesso({
@@ -132,9 +181,12 @@ export async function obterOperacao(usuario: UsuarioSessao | null, eventoId: str
       totais,
       participantes,
       serie,
-      jurados: [],
-      totens: [],
-      convites: { disponiveis: 0, usados: 0, revogados: 0, expirados: 0 },
+      jurados: jurados.map((j) => ({ rotulo: j.rotulo, nome: j.nome, votou: j.votou })),
+      totens,
+      convites: resumirConvites(
+        convites.map((c) => ({ estado: c.estado, validadeAte: c.validadeAte ? instante(c.validadeAte, evento.fusoHorario) : null })),
+        agoraMs,
+      ),
       auditoria: {
         resumo: resumirAuditoria(auditoria.map((a) => ({ acao: a.acao as AcaoAuditoria, criadoEm: instante(a.criadoEm, evento.fusoHorario) }))),
         itens,
@@ -189,6 +241,59 @@ export async function obterResultado(usuario: UsuarioSessao | null, eventoId: st
     return sucesso(visao);
   } catch (e) {
     return falhaInterna(e, "obterResultado");
+  }
+}
+
+/** Votos identificados do júri (voto único com histórico, notas ou escolhas por critério). Só o admin, só depois do encerramento. */
+export async function montarVotosJuri(evento: EventoLinha): Promise<VotosJuriVisao> {
+  const eventoId = evento.id;
+  const fuso = evento.fusoHorario;
+  const [placar, criterios, jurados, votos, notas, escolhas] = await Promise.all([
+    db().configPlacar.findUnique({ where: { eventoId }, select: { modoVotoJuri: true } }),
+    db().criterioJuri.findMany({ where: { eventoId }, orderBy: [{ ordem: "asc" }, { id: "asc" }], select: { id: true, nome: true } }),
+    juradosDoEvento(eventoId),
+    db().votoJuri.findMany({ where: { eventoId }, include: { historico: { orderBy: { id: "asc" } } } }),
+    db().notaJuri.findMany({ where: { eventoId }, select: { participacaoId: true, candidatoId: true, criterioId: true, nota: true } }),
+    db().escolhaCriterioJuri.findMany({ where: { eventoId }, select: { participacaoId: true, criterioId: true, candidatoId: true } }),
+  ]);
+  const votoDe = new Map(votos.map((v) => [v.participacaoId, v]));
+  return {
+    modo: placar?.modoVotoJuri ?? "VOTO_UNICO",
+    criterios,
+    jurados: jurados.map((j) => {
+      const voto = votoDe.get(j.participacaoId);
+      const avaliacaoNotas: Record<string, Record<string, number>> = {};
+      for (const n of notas)
+        if (n.participacaoId === j.participacaoId) avaliacaoNotas[n.candidatoId] = { ...avaliacaoNotas[n.candidatoId], [n.criterioId]: n.nota };
+      const avaliacaoEscolhas: Record<string, string> = {};
+      for (const e of escolhas) if (e.participacaoId === j.participacaoId) avaliacaoEscolhas[e.criterioId] = e.candidatoId;
+      return {
+        nome: j.nome,
+        rotulo: j.rotulo,
+        votou: j.votou,
+        candidatoId: voto?.candidatoId ?? null,
+        atualizadoEm: voto ? instante(voto.atualizadoEm, fuso) : null,
+        historico: (voto?.historico ?? []).map((h) => ({
+          candidatoAnteriorId: h.candidatoAnteriorId,
+          candidatoId: h.candidatoNovoId,
+          em: instante(h.criadoEm, fuso),
+        })),
+        notas: avaliacaoNotas,
+        escolhas: avaliacaoEscolhas,
+      };
+    }),
+  };
+}
+
+export async function obterVotosJuri(usuario: UsuarioSessao | null, eventoId: string): Promise<Resultado<VotosJuriVisao>> {
+  const admin = await exigirAdmin(usuario, eventoId);
+  if (!admin.ok) return admin;
+  const { evento } = admin.dados;
+  if (!faseComResultado(evento)) return falha("RESULTADO_INDISPONIVEL", { detalhe: "votos do júri antes do encerramento" });
+  try {
+    return sucesso(await montarVotosJuri(evento));
+  } catch (e) {
+    return falhaInterna(e, "obterVotosJuri");
   }
 }
 

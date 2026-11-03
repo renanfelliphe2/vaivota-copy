@@ -37,7 +37,7 @@ Feita (F-11): `provider = "postgresql"`, gerador `prisma-client` em `src/generat
 
 | Modelo | Quando entra |
 |---|---|
-| `CodigoPareamento`, `EstadoCodigoPareamento` | Planner Totem (A7) |
+| `CodigoPareamento`, `EstadoCodigoPareamento` | Em uso desde 02/11/2026 (totem, ver abaixo) |
 | `ConviteAdmin`, `EstadoConviteAdmin` | Depois; admins adicionais por seed (A9) |
 | Tabelas do Better Auth | Trilha de produção (A5) |
 
@@ -45,7 +45,9 @@ Feita (F-11): `provider = "postgresql"`, gerador `prisma-client` em `src/generat
 
 `banco.sequencias`, `ui` (estado de tela), `dev` (toolbar), `dev.vinculosVoto` (só para "Resetar meu voto"), usuários e participações gerados pelo volume.
 
-**Júri por critério (08/10/2026, A8), a levar ao schema:** `ConfigPlacar.modoVotoJuri` (`VOTO_UNICO` | `NOTAS_POR_CRITERIO` | `MELHOR_POR_CRITERIO`), `CriterioJuri` (id, evento, nome, ordem), `NotaJuri` (participação, candidato, critério, nota inteira 0 a 10; única por participação, candidato e critério) e `EscolhaCriterioJuri` (participação, critério, candidato; única por participação e critério). Substituem os `Criterio` e `NotaJuri` previstos. Ids legíveis no mock (`crit-fv-direcao`, `nj-…`, `ec-…`). Auditoria com `entidade` `nota_juri`, `escolha_juri` e `config_juri`.
+**Júri por critério (08/10/2026, A8): no schema desde 02/11/2026** (migração `20261102000000_juri_por_criterio`; `ConviteJurado`, `VotoJuri` e `HistoricoVotoJuri` já existiam). Os ids do banco são UUID (os legíveis abaixo são só do mock), nota com CHECK de 0 a 10, FKs compostas por evento e critério removido só se nunca recebeu nota nem escolha. Descrição original: `ConfigPlacar.modoVotoJuri` (`VOTO_UNICO` | `NOTAS_POR_CRITERIO` | `MELHOR_POR_CRITERIO`), `CriterioJuri` (id, evento, nome, ordem), `NotaJuri` (participação, candidato, critério, nota inteira 0 a 10; única por participação, candidato e critério) e `EscolhaCriterioJuri` (participação, critério, candidato; única por participação e critério). Substituem os `Criterio` e `NotaJuri` previstos. Ids legíveis no mock (`crit-fv-direcao`, `nj-…`, `ec-…`). Auditoria com `entidade` `nota_juri`, `escolha_juri` e `config_juri`.
+
+**Totem (02/11/2026, A7):** `Dispositivo`, `CodigoPareamento` e `VotoInfantil` já existiam desde a migração inicial; a migração `20261102000001_totem_pareamento` só acrescenta `codigo_pareamento.nome` e `codigo_pareamento.hash_pin` (o admin define o nome e o PIN do totem ao gerar o código, e os dois passam ao `Dispositivo` no pareamento, sem janela em que o totem fique sem PIN) e o índice `(evento_id, estado)`. O `Dispositivo` guarda o SHA-256 do token (`hash_token`, único) e o PIN como `scrypt$sal$hash` (cabe nos 255 caracteres). `EXPIRADO` só é gravado na arrumação feita ao gerar um código novo; a validade em si é sempre conferida pela data. O `Auditoria.ator_dispositivo_id` passou a ser gravado (pareamento e bloqueio de PIN). Auditoria com `entidade` `dispositivo` e `codigo_pareamento`; o grupo de exibição novo é `TOTEM`.
 
 ## Invariantes × constraints
 

@@ -1,6 +1,6 @@
 import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
-import { apurar } from "@/dominio/apuracao";
+import { apurar, arredondar6 } from "@/dominio/apuracao";
 import type { DadosResultado, Grupo, MotivoResultado } from "@/dominio/tipos";
 import type { Banco, Transacao } from "./db";
 
@@ -15,7 +15,35 @@ export async function contarVotosPopulares(cliente: Cliente, eventoId: string): 
   return Object.fromEntries(linhas.map((l) => [l.candidatoId, l._count._all]));
 }
 
-/** Calcula os dados do resultado com o estado atual do banco. Na Maratona Tech Tivit só o grupo POPULAR conta (peso 100). */
+/**
+ * Placar bruto do júri pelo modo ativo (mesma regra de `contarJuri`, em `src/dominio/avaliacaoJuri.ts`, agregada no banco).
+ * VOTO_UNICO: a escolha atual de cada jurado. MELHOR_POR_CRITERIO: 1 por escolha. NOTAS_POR_CRITERIO: média simples de todas as
+ * notas que o candidato recebeu (todos os critérios e jurados), com 6 casas. Só o modo ativo conta; os dados dos outros ficam.
+ */
+export async function contarVotosJuri(cliente: Cliente, eventoId: string): Promise<Record<string, number>> {
+  const placar = await cliente.configPlacar.findUnique({ where: { eventoId }, select: { modoVotoJuri: true } });
+  const modo = placar?.modoVotoJuri ?? "VOTO_UNICO";
+  if (modo === "NOTAS_POR_CRITERIO") {
+    const linhas = await cliente.notaJuri.groupBy({ by: ["candidatoId"], where: { eventoId }, _sum: { nota: true }, _count: { _all: true } });
+    return Object.fromEntries(linhas.map((l) => [l.candidatoId, arredondar6((l._sum.nota ?? 0) / l._count._all)]));
+  }
+  const linhas =
+    modo === "MELHOR_POR_CRITERIO"
+      ? await cliente.escolhaCriterioJuri.groupBy({ by: ["candidatoId"], where: { eventoId }, _count: { _all: true } })
+      : await cliente.votoJuri.groupBy({ by: ["candidatoId"], where: { eventoId }, _count: { _all: true } });
+  return Object.fromEntries(linhas.map((l) => [l.candidatoId, l._count._all]));
+}
+
+/**
+ * Votos infantis por candidato (placar "Escolha das Crianças"). Contam todos os votos do evento, de qualquer totem: o voto de um
+ * totem pausado ou revogado depois continua valendo (foi aceito enquanto o aparelho estava ativo).
+ */
+export async function contarVotosInfantis(cliente: Cliente, eventoId: string): Promise<Record<string, number>> {
+  const linhas = await cliente.votoInfantil.groupBy({ by: ["candidatoId"], where: { eventoId }, _count: { _all: true } });
+  return Object.fromEntries(linhas.map((l) => [l.candidatoId, l._count._all]));
+}
+
+/** Calcula os dados do resultado com o estado atual do banco. */
 export async function calcularDadosDoResultado(cliente: Cliente, eventoId: string): Promise<{
   dados: DadosResultado;
   pesos: Record<Grupo, number>;
@@ -34,10 +62,11 @@ export async function calcularDadosDoResultado(cliente: Cliente, eventoId: strin
   if (evento.moduloJuri) gruposAtivos.push("JURI");
   if (evento.moduloInfantil) gruposAtivos.push("INFANTIL");
   const pesos: Record<Grupo, number> = { POPULAR: placar.pesoPopular, JURI: placar.pesoJuri, INFANTIL: placar.pesoInfantil };
+  const juri = evento.moduloJuri ? await contarVotosJuri(cliente, eventoId) : {};
+  const infantil = evento.moduloInfantil ? await contarVotosInfantis(cliente, eventoId) : {};
   const dados = apurar({
     candidatos,
-    // JURI e INFANTIL ficam para o Festival: sem módulo, sem votos.
-    votos: { POPULAR: popular, JURI: {}, INFANTIL: {} },
+    votos: { POPULAR: popular, JURI: juri, INFANTIL: infantil },
     pesos,
     gruposAtivos,
     criterio: placar.regraDesempate,

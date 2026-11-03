@@ -1,10 +1,12 @@
 import "server-only";
 import type * as P from "@/generated/prisma/client";
+import type { ConvitePublico, DispositivoPublico } from "@/dominio/estadoPublico";
 import type {
   CampoCandidato,
   Candidato,
   ConfigApresentacao,
   ConfigPlacar,
+  CriterioJuri,
   Evento,
   Instante,
   Participacao,
@@ -20,7 +22,7 @@ export function instante(data: Date, fuso: string = FUSO_PADRAO): Instante {
   return paraInstante(data.getTime(), fuso);
 }
 
-function instanteOuNulo(data: Date | null, fuso: string): Instante | null {
+export function instanteOuNulo(data: Date | null, fuso: string): Instante | null {
   return data ? instante(data, fuso) : null;
 }
 
@@ -79,9 +81,37 @@ export function placarParaDominio(c: P.ConfigPlacar, fuso: string): ConfigPlacar
     pesoJuri: c.pesoJuri,
     pesoInfantil: c.pesoInfantil,
     regraDesempate: c.regraDesempate,
-    // Mock-only (Festival): o júri por critério ainda não existe no banco.
-    modoVotoJuri: "VOTO_UNICO",
+    modoVotoJuri: c.modoVotoJuri,
     atualizadoEm: instante(c.atualizadoEm, fuso),
+  };
+}
+
+export function criterioParaDominio(c: P.CriterioJuri): CriterioJuri {
+  return { id: c.id, eventoId: c.eventoId, nome: c.nome, ordem: c.ordem };
+}
+
+/** Convite para o admin no estado público: nunca o hash do código nem a participação de quem resgatou. */
+export function convitePublicoParaDominio(c: P.ConviteJurado, fuso: string): ConvitePublico {
+  return {
+    id: c.id,
+    eventoId: c.eventoId,
+    rotulo: c.rotulo,
+    validadeAte: instanteOuNulo(c.validadeAte, fuso),
+    estado: c.estado,
+    resgatadoEm: instanteOuNulo(c.resgatadoEm, fuso),
+    criadoEm: instante(c.criadoEm, fuso),
+  };
+}
+
+/** Totem para o admin no estado público: nunca o hash do token nem o do PIN. */
+export function dispositivoPublicoParaDominio(d: P.Dispositivo, fuso: string): DispositivoPublico {
+  return {
+    id: d.id,
+    eventoId: d.eventoId,
+    nome: d.nome,
+    estado: d.estado,
+    ultimoUsoEm: instanteOuNulo(d.ultimoUsoEm, fuso),
+    criadoEm: instante(d.criadoEm, fuso),
   };
 }
 

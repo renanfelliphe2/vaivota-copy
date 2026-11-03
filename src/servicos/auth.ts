@@ -2,6 +2,7 @@ import { votaveis } from "@/dominio/candidatos";
 import { resolverDestinoAcesso, rotaRecuperarSenha, rotaVerificarEmail } from "@/dominio/destinoAcesso";
 import type { EstadoApp, PapelParticipacao } from "@/dominio/tipos";
 import { resolverVisaoEvento } from "@/dominio/visaoEvento";
+import { validarFormatoCodigo } from "@/lib/codigos";
 import { normalizarEmail } from "@/lib/validarAcesso";
 import { obterAmbiente } from "@/store/ambiente";
 import { recarregarEstado } from "@/store/servidor";
@@ -50,7 +51,7 @@ export function destinoAposAcesso(eventoId: string, de?: string | null): string 
 }
 
 /** O bloqueio é do servidor; o cliente só o exibe (contagem regressiva). */
-function mostrarBloqueio(erro: ErroServico, campo: "bloqueioSenha" | "bloqueioLoginCodigo"): void {
+function mostrarBloqueio(erro: ErroServico, campo: "bloqueioSenha" | "bloqueioLoginCodigo" | "bloqueioCodigo"): void {
   if (erro.codigo !== "LIMITE_TENTATIVAS" || !erro.retryAposSegundos) return;
   const { store, agoraMs } = ambiente();
   store.atualizar((e) => ({ ...e, ui: { ...e.ui, [campo]: { falhas: 0, ateMs: agoraMs + erro.retryAposSegundos! * 1000 } } }));
@@ -68,13 +69,13 @@ function limparBloqueios(): void {
   }));
 }
 
-function guardarPendente(eventoId: string, email: string, tipo: "verificacao" | "recuperacao", de?: string): void {
+function guardarPendente(eventoId: string, email: string, tipo: "verificacao" | "recuperacao", de?: string, codigoConvite?: string): void {
   const { store, agoraMs } = ambiente();
   store.atualizar((e) => ({
     ...e,
     ui: {
       ...e.ui,
-      loginPendente: { email: normalizarEmail(email), eventoId, tipo, ...(de ? { de } : {}) },
+      loginPendente: { email: normalizarEmail(email), eventoId, tipo, ...(de ? { de } : {}), ...(codigoConvite ? { codigoConvite } : {}) },
       reenvioVerificacaoAteMs: agoraMs + COOLDOWN_REENVIO_MS,
     },
   }));
@@ -146,7 +147,9 @@ export type DadosRegistro = {
  * confirmado (sem isso, contas falsas permitiriam votos repetidos). Segue para a tela do código.
  */
 export async function registrar(eventoId: string, dados: DadosRegistro): Promise<Resultado<ComDestino>> {
-  if (dados.papel === "JURADO") return falha("VALIDACAO", { campos: { papel: "Este evento não tem votação do júri." } });
+  const jurado = dados.papel === "JURADO";
+  if (jurado && !validarFormatoCodigo(dados.codigo ?? ""))
+    return falha("VALIDACAO", { campos: { codigo: "Digite o código completo, no formato XXXX-XXXX." } });
   const r = await chamar<{ email: string }>("registrar", {
     eventoId,
     nome: dados.nome,
@@ -161,14 +164,15 @@ export async function registrar(eventoId: string, dados: DadosRegistro): Promise
   }
   const slug = slugDoEvento(ambiente().estado, eventoId);
   if (!slug) return falha("NAO_ENCONTRADO", { detalhe: `evento ${eventoId} não está no estado` });
-  guardarPendente(eventoId, r.dados.email, "verificacao", dados.de);
+  // Como jurado, o código só é resgatado depois do e-mail confirmado (antes disso não há sessão): fica só na memória.
+  guardarPendente(eventoId, r.dados.email, "verificacao", dados.de, jurado ? dados.codigo : undefined);
   return sucesso({ destino: rotaVerificarEmail(slug, dados.de) });
 }
 
 /** E-mail que aguarda o código: o de `ui.loginPendente` ou, sem ele, o do usuário da sessão. */
-function emailPendente(estado: EstadoApp): { email: string; tipo: "verificacao" | "recuperacao" } | null {
+function emailPendente(estado: EstadoApp): { email: string; tipo: "verificacao" | "recuperacao"; codigoConvite?: string } | null {
   const pendente = estado.ui.loginPendente;
-  if (pendente) return { email: pendente.email, tipo: pendente.tipo ?? "verificacao" };
+  if (pendente) return { email: pendente.email, tipo: pendente.tipo ?? "verificacao", codigoConvite: pendente.codigoConvite };
   const usuario = estado.banco.usuarios.find((u) => u.id === estado.sessao.usuarioId);
   return usuario ? { email: usuario.email, tipo: "verificacao" } : null;
 }
@@ -188,6 +192,14 @@ export async function confirmarCodigo(
   }
   await recarregarEstado();
   limparBloqueios();
+  // Cadastro como jurado: agora que há sessão, resgata o código digitado no formulário. Se o código não valer, a conta já
+  // existe e está confirmada: segue para a tela do convite, onde a pessoa digita outro.
+  if (pendente.codigoConvite) {
+    const resgate = await resgatarConvite(eventoId, pendente.codigoConvite);
+    if (resgate.ok) return sucesso({ destino: resgate.dados.destino, contaConfirmada: true });
+    const slug = slugDoEvento(ambiente().estado, eventoId);
+    if (slug) return sucesso({ destino: `/e/${slug}/convite`, contaConfirmada: true });
+  }
   return sucesso({ destino: destinoAposAcesso(eventoId, de), contaConfirmada: true });
 }
 
@@ -243,11 +255,23 @@ export async function redefinirSenha(
   return sucesso({ destino: destinoAposAcesso(eventoId, dados.de ?? pendente.de) });
 }
 
-/** Resgate de convite de jurado: fica para o MVP do Festival (júri). */
+/**
+ * Resgate de convite de jurado (exige e-mail verificado). Cinco códigos recusados seguidos bloqueiam o campo por 60 s (o
+ * bloqueio é do servidor). Qualquer código recusado dá a mesma mensagem; o motivo exato fica só na auditoria.
+ */
 export async function resgatarConvite(eventoId: string, codigo: string): Promise<Resultado<{ papel: PapelParticipacao; destino: string }>> {
-  void eventoId;
-  void codigo;
-  return falha("CODIGO_INVALIDO", { detalhe: "convite de jurado não existe no MVP da Maratona Tech Tivit" });
+  const r = await chamar<{ papel: "JURADO" }>("resgatarConvite", { eventoId, codigo });
+  if (!r.ok) {
+    mostrarBloqueio(r.erro, "bloqueioCodigo");
+    return r;
+  }
+  await recarregarEstado();
+  limparBloqueioCodigo();
+  return sucesso({ papel: r.dados.papel, destino: destinoAposAcesso(eventoId) });
+}
+
+function limparBloqueioCodigo(): void {
+  ambiente().store.atualizar((e) => ({ ...e, ui: { ...e.ui, bloqueioCodigo: { falhas: 0, ateMs: null } } }));
 }
 
 /**

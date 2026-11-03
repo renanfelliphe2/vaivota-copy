@@ -32,7 +32,17 @@ export async function entradaDoChecklist(
   });
   if (!evento?.tema || !evento.configPlacar) return null;
   const qtdVotaveis = await cliente.candidato.count({ where: { eventoId, publicado: true, desqualificado: false } });
+  // Convite que conta: usado, ou disponível e ainda dentro da validade (revogado e expirado não contam).
+  const convitesUtilizaveis = evento.moduloJuri
+    ? await cliente.conviteJurado.count({
+        where: {
+          eventoId,
+          OR: [{ estado: "USADO" }, { estado: "DISPONIVEL", OR: [{ validadeAte: null }, { validadeAte: { gte: new Date(agoraMs) } }] }],
+        },
+      })
+    : 0;
   const dominio = eventoParaDominio(evento);
+  const dispositivosAtivos = evento.moduloInfantil ? await cliente.dispositivo.count({ where: { eventoId, estado: "ATIVO" } }) : 0;
   return {
     agoraMs,
     qtdVotaveis,
@@ -41,9 +51,9 @@ export async function entradaDoChecklist(
     moduloInfantil: evento.moduloInfantil,
     janelaInicioMs: evento.janelaInicio?.getTime() ?? null,
     janelaFimMs: evento.janelaFim?.getTime() ?? null,
-    convitesUtilizaveis: 0,
+    convitesUtilizaveis,
     temaAprovado: avaliarContrasteTema(temaParaDominio(evento.tema, dominio.fusoHorario)).aprovado,
-    dispositivosAtivos: 0,
+    dispositivosAtivos,
     trailerConfigurado: false,
   };
 }

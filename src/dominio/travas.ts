@@ -27,6 +27,10 @@ export type AcaoConfig =
   | "CONVITES_GERAR"
   | "CONVITES_RENOMEAR"
   | "CONVITES_REVOGAR"
+  /** Totens (voto infantil): gerar código de pareamento. Vale já no rascunho (o tablet é preparado antes da urna abrir). */
+  | "DISPOSITIVOS_PAREAR"
+  /** Pausar, reativar, revogar, renomear e trocar o PIN: livres com a urna aberta (um tablet perdido se revoga na hora). */
+  | "DISPOSITIVOS_GERIR"
   | "PLACAR"
   /** Modo de votação e critérios do júri (08/10/2026): travam com a urna aberta, como os pesos. */
   | "JURI_AVALIACAO"
@@ -53,6 +57,8 @@ const MATRIZ: Record<Exclude<AcaoConfig, "MODULO_JURI_DESLIGAR">, Linha> = {
   CONVITES_GERAR: ["LIVRE", "LIVRE", "LIVRE", "TRAVADO"],
   CONVITES_RENOMEAR: ["LIVRE", "LIVRE", "LIVRE", "TRAVADO"],
   CONVITES_REVOGAR: ["LIVRE", "LIVRE", "AUDITADO", "TRAVADO"],
+  DISPOSITIVOS_PAREAR: ["LIVRE", "LIVRE", "LIVRE", "TRAVADO"],
+  DISPOSITIVOS_GERIR: ["LIVRE", "LIVRE", "LIVRE", "LIVRE"],
   PLACAR: ["LIVRE", "LIVRE", "TRAVADO", "TRAVADO"],
   JURI_AVALIACAO: ["LIVRE", "LIVRE", "TRAVADO", "TRAVADO"],
   TEMA: ["LIVRE", "LIVRE", "LIVRE", "LIVRE"],

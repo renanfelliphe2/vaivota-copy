@@ -1,48 +1,32 @@
-import { aplicarVotoInfantil } from "@/dominio/aplicarVoto";
-import { votaveis } from "@/dominio/candidatos";
-import { pinConfere } from "@/dominio/totem";
-import { acharEvento, iniciarServico, lerAmbiente } from "./apoio";
-import { falha, sucesso, type Resultado } from "./resultado";
+import type { DispositivoDoTotem } from "@/dominio/totem";
+import { chamar } from "./rpc";
+import type { Resultado } from "./resultado";
 
-// Totem (rev. 4, A7; Base/VotoInfantil.md §9 e §10): imita o servidor. O totem não tem sessão: a identidade
-// é o dispositivo pareado. Valida tudo antes de gravar e grava com um único `atualizar`.
-// Nunca audita a escolha (só pareamento, pausa, revogação e PIN são auditáveis; nenhum deles tem tela ainda).
+// Totem (Base/VotoInfantil.md §4, §6 e §9). Toda regra mora no servidor (src/server/totem.ts): aparelho pareado e ativo, módulo,
+// urna, candidato e PIN. O totem não tem login: a identidade é o token que o pareamento grava num cookie HttpOnly do tablet, e o
+// navegador o envia sozinho. Por isso nenhuma destas chamadas leva o id do aparelho.
 
-type EntradaVotoInfantil = { eventoId: string; dispositivoId: string; candidatoId: string };
+export type { DispositivoDoTotem };
 
-export async function votarInfantil(entrada: EntradaVotoInfantil): Promise<Resultado<{ resultado: "REGISTRADO" }>> {
-  const erro = await iniciarServico();
-  if (erro) return erro;
-  const { estado, agoraMs, store } = lerAmbiente();
-
-  const evento = acharEvento(estado, entrada.eventoId);
-  if (!evento) return falha("NAO_ENCONTRADO", { detalhe: `evento ${entrada.eventoId} não existe` });
-  const dispositivo = estado.banco.dispositivos.find((d) => d.id === entrada.dispositivoId);
-  if (!dispositivo || dispositivo.eventoId !== evento.id)
-    return falha("DISPOSITIVO_INATIVO", { detalhe: `dispositivo ${entrada.dispositivoId} não pareado com ${evento.id}` });
-  if (dispositivo.estado !== "ATIVO")
-    return falha("DISPOSITIVO_INATIVO", { detalhe: `dispositivo ${dispositivo.id} ${dispositivo.estado}` });
-  if (evento.estado === "CONCLUIDO") return falha("EVENTO_CONCLUIDO");
-  if (evento.estado === "RASCUNHO" || !evento.moduloInfantil)
-    return falha("EVENTO_INDISPONIVEL", { detalhe: `evento ${evento.estado}, módulo infantil ${evento.moduloInfantil}` });
-  if (evento.estadoUrna === "NAO_INICIADA") return falha("URNA_NAO_ABERTA");
-  if (evento.estadoUrna === "ENCERRADA") return falha("URNA_ENCERRADA");
-  const candidato = votaveis(estado.banco.candidatos.filter((c) => c.eventoId === evento.id)).find((c) => c.id === entrada.candidatoId);
-  if (!candidato) return falha("CANDIDATO_INDISPONIVEL", { detalhe: `candidato ${entrada.candidatoId} não votável em ${evento.id}` });
-
-  store.atualizar((e) => aplicarVotoInfantil(e, { eventoId: evento.id, dispositivoId: dispositivo.id, candidatoId: candidato.id, agoraMs }));
-  return sucesso({ resultado: "REGISTRADO" });
+/** Troca o código de pareamento (digitado uma vez no tablet) pelo token do aparelho, gravado no cookie. */
+export function parearTotem(entrada: { eventoId: string; codigo: string }): Promise<Resultado<{ dispositivo: DispositivoDoTotem }>> {
+  return chamar<{ dispositivo: DispositivoDoTotem }>("parearTotem", entrada, { tempoMs: 15_000 });
 }
 
-/** Saída do modo quiosque (§6): só com o PIN do totem. Só obedece a `simularErroRede`. */
-export async function conferirPinTotem(entrada: { dispositivoId: string; pin: string }): Promise<Resultado<null>> {
-  const erro = await iniciarServico({ leitura: true });
-  if (erro) return erro;
-  const { estado } = lerAmbiente();
-  const dispositivo = estado.banco.dispositivos.find((d) => d.id === entrada.dispositivoId);
-  // Sem aparelho pareado não há quiosque a proteger.
-  if (!dispositivo) return sucesso(null);
-  if (!pinConfere(dispositivo, entrada.pin))
-    return falha("CREDENCIAIS_INVALIDAS", { mensagem: "PIN incorreto.", detalhe: `PIN errado em ${dispositivo.id}` });
-  return sucesso(null);
+/** O totem deste aparelho (null = não pareado). Lido de tempos em tempos: pausar ou revogar aparece no quiosque. */
+export function obterEstadoTotem(): Promise<Resultado<{ dispositivo: DispositivoDoTotem | null }>> {
+  return chamar<{ dispositivo: DispositivoDoTotem | null }>("obterEstadoTotem", undefined, { tempoMs: 10_000 });
+}
+
+/**
+ * Um toque confirmado = um voto. `REDE` significa "pode ter gravado": o totem não tem como conferir (não há identificação da
+ * criança), então a tela oferece tentar de novo e o mediador adulto cuida da integridade (§8).
+ */
+export function votarInfantil(entrada: { eventoId: string; candidatoId: string }): Promise<Resultado<{ resultado: "REGISTRADO" }>> {
+  return chamar<{ resultado: "REGISTRADO" }>("votarInfantil", entrada, { tempoMs: 15_000 });
+}
+
+/** Saída do modo quiosque (§6): só com o PIN do totem. */
+export function conferirPinTotem(entrada: { pin: string }): Promise<Resultado<null>> {
+  return chamar<null>("conferirPinTotem", entrada, { tempoMs: 10_000 });
 }

@@ -5,7 +5,7 @@ import { criarStore } from "@/store/criarStore";
 import { criarEstadoDoServidor } from "@/store/estadoReal";
 import { AGORA, evento, publico } from "@/store/estadoPublicoDeTeste";
 import { criarRelogio } from "@/store/relogio";
-import { confirmarCodigo, destinoAposAcesso, entrar, registrar, solicitarRecuperacao } from "./auth";
+import { confirmarCodigo, destinoAposAcesso, entrar, registrar, resgatarConvite, solicitarRecuperacao } from "./auth";
 
 // ST1 no cliente: o destino depois do acesso (mesmas funções puras do protótipo, sobre o estado do servidor) e o
 // encadeamento registrar → código → entrar com a chamada ao servidor simulada.
@@ -88,11 +88,78 @@ describe("registrar → confirmar → entrar", () => {
     expect(chamadas[0].args).not.toHaveProperty("codigo");
   });
 
-  it("recusa o papel de jurado (fora do MVP) sem chamar o servidor", async () => {
+  it("cadastro como jurado sem o código no formato certo é recusado sem chamar o servidor", async () => {
     servidor({});
-    const r = await registrar("evt-1", { nome: "Bia", email: "b@c.de", senha: "12345678", confirmacaoSenha: "12345678", papel: "JURADO", aceite: true });
-    expect(r).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
+    const dados = { nome: "Bia", email: "b@c.de", senha: "12345678", confirmacaoSenha: "12345678", papel: "JURADO" as const, aceite: true };
+    expect(await registrar("evt-1", dados)).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO", campos: { codigo: expect.any(String) } } });
+    expect(await registrar("evt-1", { ...dados, codigo: "ABC" })).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
     expect(chamadas).toEqual([]);
+  });
+
+  it("cadastro como jurado: o código fica na memória e só é resgatado depois do e-mail confirmado", async () => {
+    const jurado = comPapel("PUBLICO");
+    jurado.eventos[0] = { ...jurado.eventos[0], evento: evento({ moduloJuri: true }), participacao: { id: "p1", usuarioId: "u1", eventoId: "evt-1", papel: "JURADO", votou: false } };
+    servidor({
+      registrar: { ok: true, dados: { email: "bia@exemplo.com" } },
+      confirmarCodigo: { ok: true, dados: { emailVerificado: true } },
+      resgatarConvite: { ok: true, dados: { papel: "JURADO" } },
+      obterEstado: { ok: true, dados: jurado },
+    });
+    const store = iniciar(publico({ usuario: null, eventos: [{ ...publico().eventos[0], participacao: null }] }));
+    const r = await registrar("evt-1", {
+      nome: "Bia",
+      email: "bia@exemplo.com",
+      senha: "minha-senha-1",
+      confirmacaoSenha: "minha-senha-1",
+      papel: "JURADO",
+      codigo: "K7M3-QX9P",
+      aceite: true,
+    });
+    expect(r.ok).toBe(true);
+    expect(chamadas.map((c) => c.nome)).toEqual(["registrar"]);
+    expect(JSON.stringify(chamadas[0].args)).not.toContain("K7M3"); // o servidor de cadastro nunca recebe o código
+    expect(store.getState().ui.loginPendente).toMatchObject({ email: "bia@exemplo.com", codigoConvite: "K7M3-QX9P" });
+
+    const confirmacao = await confirmarCodigo("evt-1", "123456");
+    expect(confirmacao).toEqual({ ok: true, dados: { destino: "/e/maratona-tech-tivit#candidatos", contaConfirmada: true } });
+    expect(chamadas.map((c) => c.nome)).toEqual(["registrar", "confirmarCodigo", "obterEstado", "resgatarConvite", "obterEstado"]);
+    expect(chamadas[3].args).toEqual({ eventoId: "evt-1", codigo: "K7M3-QX9P" });
+    expect(store.getState().ui.loginPendente).toBeNull();
+  });
+
+  it("cadastro como jurado com código que o servidor recusa: a conta fica e a pessoa vai digitar outro código na tela do convite", async () => {
+    const logado = comPapel("PUBLICO");
+    servidor({
+      registrar: { ok: true, dados: { email: "bia@exemplo.com" } },
+      confirmarCodigo: { ok: true, dados: { emailVerificado: true } },
+      resgatarConvite: { ok: false, erro: { codigo: "CODIGO_USADO", mensagem: "Código inválido ou expirado. Fale com a organização." } },
+      obterEstado: { ok: true, dados: logado },
+    });
+    await registrar("evt-1", {
+      nome: "Bia",
+      email: "bia@exemplo.com",
+      senha: "minha-senha-1",
+      confirmacaoSenha: "minha-senha-1",
+      papel: "JURADO",
+      codigo: "K7M3-QX9P",
+      aceite: true,
+    });
+    expect(await confirmarCodigo("evt-1", "123456")).toEqual({ ok: true, dados: { destino: "/e/maratona-tech-tivit/convite", contaConfirmada: true } });
+  });
+
+  it("resgatarConvite: sucesso recarrega o estado e leva à votação; o bloqueio do servidor vira contagem regressiva", async () => {
+    const jurado = comPapel("PUBLICO");
+    jurado.eventos[0] = { ...jurado.eventos[0], evento: evento({ moduloJuri: true }), participacao: { id: "p1", usuarioId: "u1", eventoId: "evt-1", papel: "JURADO", votou: false } };
+    servidor({ resgatarConvite: { ok: true, dados: { papel: "JURADO" } }, obterEstado: { ok: true, dados: jurado } });
+    iniciar(comPapel("PUBLICO"));
+    expect(await resgatarConvite("evt-1", "K7M3-QX9P")).toEqual({ ok: true, dados: { papel: "JURADO", destino: "/e/maratona-tech-tivit#candidatos" } });
+    expect(chamadas.map((c) => c.nome)).toEqual(["resgatarConvite", "obterEstado"]);
+
+    const store = iniciar(comPapel("PUBLICO"));
+    servidor({ resgatarConvite: { ok: false, erro: { codigo: "LIMITE_TENTATIVAS", mensagem: "Muitas tentativas. Tente novamente em 42s.", retryAposSegundos: 42 } } });
+    expect(await resgatarConvite("evt-1", "K7M3-QX9P")).toMatchObject({ ok: false, erro: { codigo: "LIMITE_TENTATIVAS" } });
+    expect(store.getState().ui.bloqueioCodigo.ateMs).toBe(Date.parse(AGORA) + 42_000);
+    expect(chamadas.map((c) => c.nome)).toEqual(["resgatarConvite"]);
   });
 
   it("confirmarCodigo usa o e-mail pendente, recarrega o estado e segue para a votação", async () => {

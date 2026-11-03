@@ -22,7 +22,7 @@ export function criarUiInicial(): EstadoUi {
     votacao: criarVotacaoInicial(),
     dashboard: { resultadoVisivel: null },
     acesso: null,
-    totem: { dispositivoId: null, quiosqueAtivo: false },
+    totem: { quiosqueAtivo: false },
   };
 }
 

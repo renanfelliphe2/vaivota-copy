@@ -32,16 +32,17 @@ function limiteDoPasso(passo: Passo["tipo"]): number | null {
 
 export type FluxoTotemProps = {
   eventoId: string;
-  dispositivoId: string;
   candidatos: Candidato[];
   rotuloCategoria: string;
   logo: ReactNode;
   logoPequeno: ReactNode;
   /** Primeiro toque: o gesto que pede a tela cheia. */
   aoComecar: () => void;
+  /** Voto recusado ou sem rede: quem monta confere de novo o aparelho e o evento (pausa, revogação, urna encerrada). */
+  aoFalhar: () => void;
 };
 
-export function FluxoTotem({ eventoId, dispositivoId, candidatos, rotuloCategoria, logo, logoPequeno, aoComecar }: FluxoTotemProps) {
+export function FluxoTotem({ eventoId, candidatos, rotuloCategoria, logo, logoPequeno, aoComecar, aoFalhar }: FluxoTotemProps) {
   const [passo, setPasso] = useState<Passo>(INICIO);
   const enviando = useRef(false);
   const raiz = useRef<HTMLDivElement>(null);
@@ -68,8 +69,9 @@ export function FluxoTotem({ eventoId, dispositivoId, candidatos, rotuloCategori
     if (enviando.current) return;
     enviando.current = true;
     setPasso({ tipo: "ENVIANDO", candidatoId });
-    const r = await votarInfantil({ eventoId, dispositivoId, candidatoId });
+    const r = await votarInfantil({ eventoId, candidatoId });
     enviando.current = false;
+    if (!r.ok) aoFalhar();
     setPasso(r.ok ? { tipo: "SUCESSO" } : { tipo: "ERRO", candidatoId });
   }
 

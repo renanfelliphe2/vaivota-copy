@@ -93,6 +93,16 @@ enum OrdemCandidatos {
   ALFABETICA
 }
 
+// Como os votos do júri viram o placar do júri (Festival). VOTO_UNICO: um candidato por jurado (`voto_juri`).
+// NOTAS_POR_CRITERIO: nota inteira de 0 a 10 por candidato e critério (`nota_juri`); o placar é a média simples das notas.
+// MELHOR_POR_CRITERIO: um candidato por critério (`escolha_criterio_juri`); cada escolha vale 1 voto. Só o modo ativo
+// entra na apuração; os dados dos outros modos ficam guardados.
+enum ModoVotoJuri {
+  VOTO_UNICO
+  NOTAS_POR_CRITERIO
+  MELHOR_POR_CRITERIO
+}
+
 // ─────────────────────────────────────────────
 // Identidade (Better Auth)
 // ─────────────────────────────────────────────
@@ -220,6 +230,7 @@ model Evento {
   configApresentacao ConfigApresentacao?
   camposCandidato    CampoCandidato[]
   candidatos         Candidato[]
+  criteriosJuri      CriterioJuri[]
   participacoes      Participacao[]
   convitesJurado     ConviteJurado[]
   convitesAdmin      ConviteAdmin[]
@@ -261,6 +272,8 @@ model ConfigPlacar {
   pesoJuri       Int            @default(0) @map("peso_juri")
   pesoInfantil   Int            @default(0) @map("peso_infantil")
   regraDesempate RegraDesempate @default(JURI) @map("regra_desempate")
+  // Trava com a urna aberta, como os pesos (JURI_AVALIACAO em src/dominio/travas.ts).
+  modoVotoJuri   ModoVotoJuri   @default(VOTO_UNICO) @map("modo_voto_juri")
   atualizadoEm   DateTime       @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
   evento Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
@@ -324,6 +337,8 @@ model Candidato {
 
   votos                 Voto[]
   votosJuri             VotoJuri[]
+  notasJuri             NotaJuri[]
+  escolhasCriterioJuri  EscolhaCriterioJuri[]
   votosInfantis         VotoInfantil[]
   historicoComoAnterior HistoricoVotoJuri[] @relation("HistoricoAnterior")
   historicoComoNovo     HistoricoVotoJuri[] @relation("HistoricoNovo")
@@ -350,8 +365,10 @@ model Participacao {
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
   evento  Evento  @relation(fields: [eventoId], references: [id], onDelete: Restrict)
 
-  conviteJurado ConviteJurado?
-  votoJuri      VotoJuri?
+  conviteJurado        ConviteJurado?
+  votoJuri             VotoJuri?
+  notasJuri            NotaJuri[]
+  escolhasCriterioJuri EscolhaCriterioJuri[]
 
   // Um usuário, uma participação por evento.
   @@unique([usuarioId, eventoId])
@@ -433,6 +450,67 @@ model HistoricoVotoJuri {
   @@map("historico_voto_juri")
 }
 
+// Critério de avaliação do júri (ex.: Direção, Roteiro). Vale para os dois modos por critério. Critério que já recebeu
+// nota ou escolha não é removido (o serviço recusa; as FKs também).
+model CriterioJuri {
+  id       String   @id @default(uuid())
+  eventoId String   @map("evento_id")
+  nome     String   @db.VarChar(60)
+  ordem    Int      @default(0)
+  criadoEm DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
+
+  evento Evento @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+
+  notas    NotaJuri[]
+  escolhas EscolhaCriterioJuri[]
+
+  // Alvo das FKs compostas de nota e escolha (mesmo evento).
+  @@unique([id, eventoId])
+  @@index([eventoId, ordem])
+  @@map("criterio_juri")
+}
+
+// Nota de um jurado a um candidato num critério (NOTAS_POR_CRITERIO). Identificada, alterável com a urna aberta.
+// CHECK na migração: 0 a 10.
+model NotaJuri {
+  id             String   @id @default(uuid())
+  eventoId       String   @map("evento_id")
+  participacaoId String   @map("participacao_id")
+  candidatoId    String   @map("candidato_id")
+  criterioId     String   @map("criterio_id")
+  nota           Int
+  criadoEm       DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm   DateTime @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+
+  participacao Participacao @relation(fields: [participacaoId, eventoId], references: [id, eventoId], onDelete: Restrict)
+  candidato    Candidato    @relation(fields: [candidatoId, eventoId], references: [id, eventoId], onDelete: Restrict)
+  criterio     CriterioJuri @relation(fields: [criterioId, eventoId], references: [id, eventoId], onDelete: Restrict)
+
+  @@unique([participacaoId, candidatoId, criterioId])
+  @@index([eventoId, candidatoId])
+  @@index([eventoId, criterioId])
+  @@map("nota_juri")
+}
+
+// O melhor candidato de um critério para um jurado (MELHOR_POR_CRITERIO): uma por jurado e critério.
+model EscolhaCriterioJuri {
+  id             String   @id @default(uuid())
+  eventoId       String   @map("evento_id")
+  participacaoId String   @map("participacao_id")
+  criterioId     String   @map("criterio_id")
+  candidatoId    String   @map("candidato_id")
+  criadoEm       DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm   DateTime @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+
+  participacao Participacao @relation(fields: [participacaoId, eventoId], references: [id, eventoId], onDelete: Restrict)
+  criterio     CriterioJuri @relation(fields: [criterioId, eventoId], references: [id, eventoId], onDelete: Restrict)
+  candidato    Candidato    @relation(fields: [candidatoId, eventoId], references: [id, eventoId], onDelete: Restrict)
+
+  @@unique([participacaoId, criterioId])
+  @@index([eventoId, candidatoId])
+  @@map("escolha_criterio_juri")
+}
+
 // ─────────────────────────────────────────────
 // Voto infantil (totens) — entra no MVP do Festival
 // ─────────────────────────────────────────────
@@ -460,10 +538,14 @@ model Dispositivo {
   @@map("dispositivo")
 }
 
+// Código de uso único para parear um totem (só o hash do código é guardado: HMAC com o segredo do servidor, por evento).
+// O admin define o nome e o PIN do totem ao gerar o código; os dois passam ao `Dispositivo` no pareamento.
 model CodigoPareamento {
   id            String                 @id @default(uuid())
   eventoId      String                 @map("evento_id")
   hashCodigo    String                 @map("hash_codigo") @db.VarChar(64)
+  nome          String?                @db.VarChar(120)
+  hashPin       String?                @map("hash_pin") @db.VarChar(255)
   validadeAte   DateTime               @map("validade_ate") @db.Timestamptz(3)
   estado        EstadoCodigoPareamento @default(DISPONIVEL)
   dispositivoId String?                @map("dispositivo_id")
@@ -473,6 +555,7 @@ model CodigoPareamento {
   dispositivo Dispositivo? @relation(fields: [dispositivoId], references: [id], onDelete: Restrict)
 
   @@unique([eventoId, hashCodigo])
+  @@index([eventoId, estado])
   @@map("codigo_pareamento")
 }
 

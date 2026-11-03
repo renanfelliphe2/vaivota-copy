@@ -4,6 +4,8 @@ import {
   arquivosDisponiveis,
   nomeArquivoCsv,
   planilhaAuditoria,
+  planilhaDispositivos,
+  planilhaJurados,
   planilhaResultadoCandidatos,
   planilhaResumoEvento,
   planilhaVotosPorMinuto,
@@ -17,8 +19,9 @@ import { resolverFaseConfig } from "@/dominio/travas";
 import type { CelulaCsv } from "@/lib/csv";
 import { paraInstante } from "@/lib/tempo";
 import { registrarAuditoria } from "./auditoria";
-import { auditoriaDoEvento, faseComResultado, itensDeAuditoria, montarResultadoVisao, serieDoEvento } from "./dashboard";
+import { auditoriaDoEvento, faseComResultado, itensDeAuditoria, montarResultadoVisao, montarVotosJuri, serieDoEvento } from "./dashboard";
 import { db } from "./db";
+import { totensDoEvento } from "./dispositivos";
 import { hashDoIp } from "./ip";
 import { eventoParaDominio } from "./mapeadores";
 import { falha, falhaInterna, sucesso, type Resultado } from "./resultado";
@@ -66,11 +69,14 @@ export async function prepararExportacao(
           motivo: motivoDaAuditoria((a.detalhes as Record<string, unknown> | null) ?? null),
         })),
       );
+    } else if (arquivo === "dispositivos") {
+      planilha = planilhaDispositivos(await totensDoEvento(db(), eventoId, evento.fusoHorario));
     } else if (resultado) {
       const candidatos = await db().candidato.findMany({ where: { eventoId }, select: { id: true, titulo: true } });
       const titulos = new Map(candidatos.map((c) => [c.id, c.titulo]));
       const titulo = (id: string) => titulos.get(id) ?? id;
-      planilha = arquivo === "resumo_evento" ? planilhaResumoEvento(eventoParaDominio(evento), resultado) : planilhaResultadoCandidatos(resultado, titulo);
+      if (arquivo === "jurados") planilha = planilhaJurados(await montarVotosJuri(evento), titulo);
+      else planilha = arquivo === "resumo_evento" ? planilhaResumoEvento(eventoParaDominio(evento), resultado) : planilhaResultadoCandidatos(resultado, titulo);
     }
     if (!planilha) return falha("RESULTADO_INDISPONIVEL", { detalhe: "sem versão calculada" });
 

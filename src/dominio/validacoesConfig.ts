@@ -23,6 +23,8 @@ export const LIMITES = {
   convitesPorLote: 50,
   rotuloBaseConvite: 40,
   rotuloConvite: 40,
+  nomeDispositivo: [2, 40],
+  pinTotem: [4, 8],
   rotuloTema: [2, 30],
   nomeExibicao: [2, 60],
   imagemBytes: 2 * 1024 * 1024,
@@ -147,6 +149,21 @@ export function validarGeracaoConvites(e: {
 
 export function validarRotuloConvite(rotulo: string): string | null {
   return rotulo.trim().length > LIMITES.rotuloConvite ? "Use até 40 caracteres." : null;
+}
+
+// ─────────────────────────────────────────────
+// Totens (voto infantil)
+// ─────────────────────────────────────────────
+
+/** Nome do totem na lista do admin (ex.: "Totem Hall"). */
+export function validarNomeDispositivo(nome: string): string | null {
+  const t = nome.trim();
+  return entre(t, LIMITES.nomeDispositivo) ? null : "Use de 2 a 40 caracteres.";
+}
+
+/** PIN de saída do quiosque: só números, de 4 a 8. */
+export function validarPinTotem(pin: string): string | null {
+  return /^\d+$/.test(pin) && entre(pin, LIMITES.pinTotem) ? null : "Use de 4 a 8 números.";
 }
 
 // ─────────────────────────────────────────────
