@@ -5,14 +5,19 @@ import { LogoVaiVota } from "@/components/plataforma/LogoVaiVota";
 import { calcularTokens } from "@/lib/tema";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { AvisoPrivacidade } from "./AvisoPrivacidade";
-import { LogoOrganizador, MARCA_ORGANIZADOR } from "./MarcaOrganizador";
+import { useIdentidadePagina } from "./identidadePagina";
+import { LogoEvento } from "./LogoEvento";
+import { LogoOrganizador } from "./MarcaOrganizador";
 
 /**
  * Rodapé comum (Etapa 2): nome, "Feito com VaiVota", aviso da plataforma (sempre) e o do evento (opcional).
  * 19/10/2026: faixa clara com o logo do organizador, como a faixa de patrocínio das artes da Maratona Tech Tivit.
+ * 07/11/2026: a marca do organizador vem da identidade da página (só a Maratona tem); com logo do evento, ele no lugar do
+ * nome em texto.
  */
 export function RodapeEvento() {
   const ativo = useEventoAtivo();
+  const { organizador } = useIdentidadePagina();
   if (!ativo) return null;
   const { evento, tema } = ativo;
   const nome = tema.nomeExibicao ?? evento.nome;
@@ -24,13 +29,17 @@ export function RodapeEvento() {
       <div aria-hidden className="h-1 w-full bg-linear-to-r from-tema-primaria to-tema-secundaria" />
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-8 text-center sm:px-6 md:flex-row md:justify-between md:text-left">
         <div className="flex flex-col items-center gap-3 md:flex-row md:gap-5">
-          {MARCA_ORGANIZADOR && (
+          {organizador && (
             <>
-              <LogoOrganizador marca={MARCA_ORGANIZADOR} claro={fundoEscuro} className="h-14" />
+              <LogoOrganizador marca={organizador} claro={fundoEscuro} className="h-14" />
               <span aria-hidden className="hidden h-10 w-px bg-tema-borda md:block" />
             </>
           )}
-          <p className="font-display text-base font-extrabold text-tema-texto">{nome}</p>
+          {tema.logoUrl ? (
+            <LogoEvento nome={nome} logoUrl={tema.logoUrl} className="h-12 sm:h-14" />
+          ) : (
+            <p className="font-display text-base font-extrabold text-tema-texto">{nome}</p>
+          )}
         </div>
         <div className="flex flex-col items-center gap-1 md:items-end">
           <div className="flex flex-wrap items-center justify-center gap-x-4 md:justify-end">

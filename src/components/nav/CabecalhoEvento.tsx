@@ -4,7 +4,8 @@ import { ChartColumn, Monitor, Settings, Vote, type LucideIcon } from "lucide-re
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoEvento } from "@/components/evento/LogoEvento";
-import { MARCA_ORGANIZADOR, SimboloOrganizador } from "@/components/evento/MarcaOrganizador";
+import { useIdentidadePagina } from "@/components/evento/identidadePagina";
+import { SimboloOrganizador } from "@/components/evento/MarcaOrganizador";
 import { StatusUrna } from "@/components/landing/StatusUrna";
 import { atalhoAtual, atalhosDoPapel, type IdAtalho } from "@/dominio/navegacao";
 import { votacaoAberta } from "@/dominio/situacaoEvento";
@@ -35,6 +36,7 @@ export function CabecalhoEvento() {
   const ui = useUi();
   const pathname = usePathname();
   const visao = useVisaoEvento();
+  const { organizador } = useIdentidadePagina();
   if (!ativo) return null;
   const { slug, evento, tema } = ativo;
   if (pathname === `/e/${slug}/totem` || ui.palcoAtivo) return null;
@@ -56,9 +58,9 @@ export function CabecalhoEvento() {
           // 19/10/2026: sem logo, o nome em dois tons (como no hero), com o símbolo do organizador a partir do sm.
           // Encolhe e trunca no celular, onde divide a linha com os atalhos e o menu.
           <Link href={`/e/${slug}`} className="flex min-h-11 min-w-0 items-center gap-3 rounded-md">
-            {MARCA_ORGANIZADOR && (
+            {organizador && (
               <>
-                <SimboloOrganizador marca={MARCA_ORGANIZADOR} className="hidden h-8 sm:block" />
+                <SimboloOrganizador marca={organizador} className="hidden h-8 sm:block" />
                 <span aria-hidden className="hidden h-7 w-px shrink-0 bg-tema-borda sm:block" />
               </>
             )}

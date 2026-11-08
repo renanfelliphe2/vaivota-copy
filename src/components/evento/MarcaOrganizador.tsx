@@ -15,10 +15,10 @@ export type MarcaOrganizador = {
 
 /**
  * Organizador da Maratona Tech Tivit (19/10/2026): o Rio Pomba Valley, cujo logo assina as artes do evento
- * (public/*-tivit.png). O tema ainda não tem campo para a marca do organizador; até ter, ela fica aqui e aparece no
- * hero, no cabeçalho e no rodapé da página do evento. Para outro evento, troque ou use null.
+ * (public/*-tivit.png). O tema ainda não tem campo para a marca do organizador: ela fica no código e chega a cada evento
+ * pela identidade da página (identidadePagina.ts), que hoje a dá só à Maratona. Aparece no hero, no cabeçalho e no rodapé.
  */
-export const MARCA_ORGANIZADOR: MarcaOrganizador | null = {
+export const RIO_POMBA_VALLEY: MarcaOrganizador = {
   nome: "Rio Pomba Valley",
   logo: "/logo-rpv-standard.png",
   logoClaro: "/logo-rpv-white-bottom-border.png",

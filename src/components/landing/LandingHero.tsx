@@ -1,82 +1,44 @@
 "use client";
 
-import { CircleCheck, Clock, ExternalLink, UserPlus, Vote } from "lucide-react";
 import type { CSSProperties } from "react";
 import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
-import { LogoOrganizador, MARCA_ORGANIZADOR } from "@/components/evento/MarcaOrganizador";
-import { Botao } from "@/components/ui/Botao";
-import { rotaVotacao } from "@/dominio/destinoAcesso";
-import { chamadaDaSituacao, votacaoAberta } from "@/dominio/situacaoEvento";
+import { useIdentidadePagina } from "@/components/evento/identidadePagina";
+import { LogoOrganizador } from "@/components/evento/MarcaOrganizador";
 import type { Candidato } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 import { dividirNome, minusculas } from "@/lib/rotulos";
 import { textoContador } from "@/lib/textosEstado";
-import { anoNoFuso, paraMs } from "@/lib/tempo";
-import { abrirAcesso } from "@/store/acoesAcesso";
 import { useCandidatosParaVotacao } from "@/store/seletores/candidatos";
 import { useEventoAtivo } from "@/store/seletores/evento";
-import { useSessao } from "@/store/seletores/sessao";
 import { useSituacaoEvento } from "@/store/seletores/situacao";
-import { useVisaoEvento } from "@/store/seletores/visao";
+import { AcoesDoHero } from "./AcoesDoHero";
 import { Constelacao, Onda } from "./Decoracoes";
 import { useDestaqueCandidato } from "./DestaqueCandidato";
 
-const ID_EXPLICACAO = "cta-indisponivel";
-const ICONES_CHAMADA = { "Quero votar": Vote, "Criar conta": UserPlus, "Em breve": Clock } as const;
 /** Casas do mosaico além do centro (3 × 3). Com mais candidatos, o mosaico mostra os primeiros e o centro, o total. */
 const CASAS_MOSAICO = 8;
 const MAX_AVATARES = 8;
 
-/** Botões de vidro sobre o fundo escuro do hero (âncora e link externo). */
-const CLASSES_VIDRO =
-  "inline-flex min-h-12 grow items-center justify-center gap-2 rounded-full bg-white/10 px-6 text-base font-semibold text-white ring-1 ring-white/35 backdrop-blur transition hover:bg-white/20 sm:grow-0";
-
 const atraso = (ms: number) => ({ "--atraso": `${ms}ms` }) as CSSProperties;
-
-/**
- * Rola até a lista de candidatos (19/10/2026). Um <Link> para "/e/slug#candidatos" não rola quando a URL já termina
- * nesse hash (é o caso logo após o login: o destino do acesso é essa mesma âncora). A rolagem suave vem do CSS.
- * Sem a seção na página, cai na navegação normal.
- */
-function irParaCandidatos(rota: string) {
-  const secao = document.getElementById("candidatos");
-  if (!secao) {
-    window.location.assign(rota);
-    return;
-  }
-  secao.scrollIntoView({ block: "start" });
-  secao.querySelector<HTMLElement>("h2")?.focus({ preventScroll: true });
-}
 
 /**
  * Primeira dobra da página do evento (/e/[slug]; 19/10/2026: redesenho com a identidade das artes da Maratona Tech Tivit).
  * Fundo noite → mar com a rede de nós do logo do organizador, nome em dois tons, a chamada da situação e os candidatos
  * (avatares no celular, mosaico no desktop) logo na primeira tela: o objetivo da página é mostrá-los e levar ao voto.
  * Cada casa do mosaico leva ao cartão do candidato na lista e o destaca (DestaqueCandidato).
- * A chamada (Criar conta / Quero votar / Em breve) abre o diálogo de acesso do visitante; logado, "Quero votar" rola até
- * a lista de candidatos (não há outro botão para isso), "Criar conta" some e, para quem já votou, vira o aviso de voto registrado.
+ * A chamada (Criar conta / Quero votar / Em breve) fica em AcoesDoHero, a mesma do estilo cinema (HeroCinema).
  */
 export function LandingHero() {
   const ativo = useEventoAtivo();
   const situacao = useSituacaoEvento();
-  const visao = useVisaoEvento();
   const lista = useCandidatosParaVotacao();
-  const { logado } = useSessao();
+  const { organizador } = useIdentidadePagina();
   const { destacar } = useDestaqueCandidato();
   if (!ativo || !situacao) return null;
-  const { slug, evento, tema } = ativo;
-  const chamada = chamadaDaSituacao(situacao);
+  const { evento, tema } = ativo;
   const candidatos = lista?.itens.map((i) => i.candidato) ?? [];
   const n = candidatos.length;
-  const ano = evento.janelaInicio ? anoNoFuso(paraMs(evento.janelaInicio), evento.fusoHorario) : null;
   const { primeira, resto } = dividirNome(tema.nomeExibicao ?? evento.nome);
-  // "Quero votar" só com o evento ativo e a urna aberta (a situação já garante; a regra fica explícita).
-  const semVoto = chamada.rotulo === "Quero votar" && !votacaoAberta(evento);
-  const jaVotou = logado && visao?.seloVoto === "REGISTRADO";
-  const rotuloChamada = semVoto || jaVotou || (logado && chamada.rotulo === "Criar conta") ? null : chamada.rotulo;
-  const IconeChamada = rotuloChamada ? ICONES_CHAMADA[rotuloChamada] : null;
-  const iconeChamada = IconeChamada && <IconeChamada aria-hidden className="size-5" />;
-  const classesChamada = "grow shadow-lg shadow-black/25 sm:grow-0";
 
   return (
     // Foco branco: a cor de foco do tema (a primária) some sobre o fundo escuro.
@@ -90,9 +52,9 @@ export function LandingHero() {
       <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 pb-24 pt-10 sm:px-6 sm:pb-32 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_25rem] lg:pb-40 lg:pt-16 xl:grid-cols-[minmax(0,1fr)_27rem]">
         <div className="flex min-w-0 flex-col items-start">
           <div className="marca-subir flex items-center gap-4" style={atraso(0)}>
-            {MARCA_ORGANIZADOR && (
+            {organizador && (
               <>
-                <LogoOrganizador marca={MARCA_ORGANIZADOR} claro prioridade className="h-14 sm:h-16" />
+                <LogoOrganizador marca={organizador} claro prioridade className="h-14 sm:h-16" />
                 <span aria-hidden className="h-10 w-px bg-white/30" />
               </>
             )}
@@ -121,48 +83,7 @@ export function LandingHero() {
             </p>
           )}
 
-          {(rotuloChamada || jaVotou || evento.linkSobre) && (
-            <div className="marca-subir mt-8 flex w-full flex-wrap items-center gap-3" style={atraso(300)}>
-              {rotuloChamada &&
-                (chamada.desabilitado ? (
-                  <Botao variante="secundaria" tamanho="grande" disabled aria-describedby={ID_EXPLICACAO} icone={iconeChamada} className={classesChamada}>
-                    {rotuloChamada}
-                  </Botao>
-                ) : logado ? (
-                  <Botao variante="secundaria" tamanho="grande" icone={iconeChamada} className={classesChamada} onClick={() => irParaCandidatos(rotaVotacao(slug))}>
-                    {rotuloChamada}
-                  </Botao>
-                ) : (
-                  <Botao
-                    variante="secundaria"
-                    tamanho="grande"
-                    icone={iconeChamada}
-                    className={classesChamada}
-                    onClick={() => abrirAcesso(rotuloChamada === "Criar conta" ? "criar" : "entrar")}
-                  >
-                    {rotuloChamada}
-                  </Botao>
-                ))}
-              {jaVotou && (
-                <p className="inline-flex min-h-12 grow items-center justify-center gap-2 rounded-full bg-white px-6 font-semibold text-marca-noite shadow-lg shadow-black/25 sm:grow-0">
-                  <CircleCheck aria-hidden className="size-5 text-tema-sucesso" />
-                  Seu voto foi registrado
-                </p>
-              )}
-              {evento.linkSobre && (
-                <a href={evento.linkSobre} target="_blank" rel="noopener noreferrer" className={CLASSES_VIDRO}>
-                  <span>Sobre o evento</span>
-                  <ExternalLink aria-hidden className="size-4" />
-                  <span className="sr-only">(abre em nova aba)</span>
-                </a>
-              )}
-            </div>
-          )}
-          {rotuloChamada && chamada.desabilitado && (
-            <p id={ID_EXPLICACAO} className="mt-3 text-sm text-white/80">
-              A votação ainda não está disponível.
-            </p>
-          )}
+          <AcoesDoHero />
 
           {n > 0 && (
             <div className="marca-subir mt-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:hidden" style={atraso(380)}>
