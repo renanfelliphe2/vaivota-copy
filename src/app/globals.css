@@ -676,3 +676,201 @@ dialog::backdrop {
   transform-origin: left;
   animation: totem-barra linear both;
 }
+
+/*
+ * Landing da plataforma (07/11/2026, refeita do zero). As cores do logo: o marinho e o âmbar entram como primária e
+ * secundária do tema da página (TemaDaLanding); o turquesa, o tom do pássaro, é a terceira cor ("destaque").
+ *
+ * A vitrine "A cara do seu evento" veste a página com o tema de um evento. Por isso todos os tons próprios da landing
+ * derivam dos tokens do tema: com o tema de um evento, o destaque é a secundária dele; com o da VaiVota
+ * (data-tema="vaivota"), o turquesa. Declarados no contêiner que recebe os tokens do <TemaEvento> (como .marca-evento).
+ *
+ * Contraste: o destaque puro fica para fundos, traços e texto grande; texto pequeno usa --vv-destaque-texto (no tema de um
+ * evento, a secundária já ajustada para 4,5:1 pelo lib/tema.ts) e, sobre o escuro, --vv-destaque-claro. O palco e a
+ * noite misturam no máximo 22% (mais 20% no pé do palco) e 40% da primária a um quase preto: texto branco passa de 4,5:1 com qualquer primária,
+ * até branca.
+ */
+.vv-pagina {
+  --vv-destaque: var(--tema-secundaria);
+  --vv-destaque-texto: var(--tema-secundaria-texto);
+  --vv-sobre-destaque: var(--tema-sobre-secundaria);
+  --vv-destaque-claro: color-mix(in srgb, var(--tema-secundaria) 35%, #ffffff);
+  --vv-ceu: color-mix(in srgb, var(--vv-destaque) 9%, var(--tema-fundo));
+  --vv-palco: color-mix(in srgb, var(--tema-primaria) 22%, #04121f);
+  --vv-noite: color-mix(in srgb, var(--tema-primaria) 40%, #04121f);
+  --vv-secundaria-clara: color-mix(in srgb, var(--tema-secundaria) 16%, var(--tema-fundo));
+}
+
+/* Tema da própria VaiVota: o turquesa do pássaro (3,6:1 sobre branco; o texto usa o tom de 5:1). */
+.vv-pagina[data-tema="vaivota"] {
+  --vv-destaque: #0299b3;
+  --vv-destaque-texto: #027a8f;
+  --vv-sobre-destaque: #ffffff;
+  --vv-destaque-claro: #7fd3e2;
+}
+
+@theme inline {
+  --color-vv-destaque: var(--vv-destaque);
+  --color-vv-destaque-texto: var(--vv-destaque-texto);
+  --color-vv-sobre-destaque: var(--vv-sobre-destaque);
+  --color-vv-destaque-claro: var(--vv-destaque-claro);
+  --color-vv-ceu: var(--vv-ceu);
+  --color-vv-palco: var(--vv-palco);
+  --color-vv-noite: var(--vv-noite);
+  --color-vv-secundaria-clara: var(--vv-secundaria-clara);
+}
+
+/* Abertura: céu claro, com o destaque no alto à direita e um calor da secundária embaixo à esquerda. */
+.vv-ceu {
+  background:
+    radial-gradient(60% 55% at 85% 0%, color-mix(in srgb, var(--vv-destaque) 24%, transparent), transparent 70%),
+    radial-gradient(45% 50% at 0% 100%, color-mix(in srgb, var(--tema-secundaria) 20%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--vv-ceu) 0%, var(--tema-fundo) 100%);
+}
+
+/* Ondas em volta do celular da abertura, como um voto caindo na água. Somem para as bordas. */
+.vv-ondas {
+  background: repeating-radial-gradient(
+    circle at 50% 50%,
+    transparent 0 38px,
+    color-mix(in srgb, var(--vv-destaque) 24%, transparent) 38px 39px
+  );
+  mask-image: radial-gradient(circle at 50% 50%, #000 25%, transparent 70%);
+}
+
+/* Palco dos resultados: escuro, com dois focos de luz (destaque e secundária) vindos do alto. */
+.vv-palco {
+  background:
+    radial-gradient(40% 45% at 12% 0%, color-mix(in srgb, var(--vv-destaque) 30%, transparent), transparent 70%),
+    radial-gradient(40% 45% at 88% 0%, color-mix(in srgb, var(--tema-secundaria) 22%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--vv-palco) 0%, color-mix(in srgb, var(--tema-primaria) 20%, var(--vv-palco)) 100%);
+}
+
+/* Fundo da vitrine "A cara do seu evento": manchas suaves da primária e da secundária, que mudam junto com o tema. */
+.vv-identidade {
+  background:
+    radial-gradient(50% 60% at 0% 20%, color-mix(in srgb, var(--tema-primaria) 12%, transparent), transparent 70%),
+    radial-gradient(45% 55% at 100% 90%, color-mix(in srgb, var(--tema-secundaria) 18%, transparent), transparent 70%),
+    var(--tema-fundo);
+}
+
+/*
+ * Troca de tema da landing: o tema novo se abre num círculo a partir do clique (View Transitions; o círculo é animado em
+ * TemaDaLanding). A classe só existe durante a troca, para não mexer em outras transições. Sem suporte ou com
+ * prefers-reduced-motion, a troca é direta.
+ */
+.vv-trocando-tema::view-transition-old(root),
+.vv-trocando-tema::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Cartões que flutuam em volta do celular (parados com prefers-reduced-motion, pela regra geral acima). */
+@keyframes vv-flutuar {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.vv-flutuar {
+  animation: vv-flutuar var(--dur, 6s) ease-in-out infinite;
+  animation-delay: var(--atraso, 0ms);
+}
+
+/*
+ * Demonstração do voto na abertura (DemoDoVoto): troca de tela, selo que estala, o "check" desenhado e os confetes. Com
+ * prefers-reduced-motion, a regra geral lá em cima zera as durações e tudo aparece já no estado final.
+ */
+@keyframes vv-tela {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.vv-tela {
+  animation: vv-tela 350ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes vv-estalo {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.vv-estalo {
+  animation: vv-estalo 450ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* O traço usa pathLength="1": dasharray e dashoffset de 0 a 1 desenham o check inteiro. */
+@keyframes vv-tracar {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.vv-tracar {
+  stroke-dasharray: 1;
+  animation: vv-tracar 450ms 250ms ease-out both;
+}
+
+@keyframes vv-confete {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) rotate(var(--giro));
+  }
+}
+
+.vv-confete {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  animation: vv-confete 1s 200ms cubic-bezier(0.1, 0.7, 0.3, 1) both;
+}
+
+/* Sem movimento, sem confete (senão ele ficaria parado sobre o selo durante o atraso). */
+@media (prefers-reduced-motion: reduce) {
+  .vv-confete {
+    display: none;
+  }
+}
+
+/*
+ * Entrada ao rolar, só com a linha do tempo de rolagem do CSS (sem JavaScript). Onde o navegador não a suporta, ou com
+ * prefers-reduced-motion, o conteúdo simplesmente já está lá.
+ */
+@keyframes vv-surgir {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .vv-surgir {
+      animation: vv-surgir linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 35%;
+    }
+  }
+}

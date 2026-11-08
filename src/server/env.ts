@@ -52,6 +52,14 @@ export const env = {
       .map((o) => o.trim().replace(/\/+$/, ""))
       .filter(Boolean);
   },
+  /**
+   * Contato de quem quer a VaiVota no próprio evento (botão "Quero a VaiVota no meu evento" da landing). Só `https://` ou
+   * `mailto:` (nada de `javascript:`). Opcional: sem ele, o botão não aparece.
+   */
+  get contatoOrganizadoresUrl(): string | undefined {
+    const url = opcional("CONTATO_ORGANIZADORES_URL");
+    return url && /^(https:\/\/|mailto:)\S+$/i.test(url) ? url : undefined;
+  },
   get googleClientId() {
     return opcional("GOOGLE_CLIENT_ID");
   },
