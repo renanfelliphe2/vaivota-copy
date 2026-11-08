@@ -9,6 +9,7 @@ import { Dialogo } from "@/components/ui/Dialogo";
 import type { ItemLista } from "@/store/seletores/candidatos";
 import { AvisoVotoProprio } from "./AvisoVotoProprio";
 import { CamposExtras } from "./CamposExtras";
+import type { FormatoCartao } from "./CartaoCandidato";
 import { ImagemCandidato } from "./ImagemCandidato";
 
 export type DetalheCandidatoProps = {
@@ -21,13 +22,15 @@ export type DetalheCandidatoProps = {
   focoAoFechar?: () => HTMLElement | null;
   /** Rodapé, ao lado de "Fechar" (Etapa 5). */
   renderAcoes?: (item: ItemLista) => ReactNode;
+  /** "cartaz": o cartaz inteiro (5:7), no estilo cinema. */
+  formato?: FormatoCartao;
 };
 
 /**
  * Detalhe sobre o Dialogo (Etapa 4, D3): bottom sheet no celular, modal no desktop. 19/10/2026: imagem quadrada inteira
- * (o 16:9 cortava os logos 1:1), ao lado dos campos a partir do sm.
+ * (o 16:9 cortava os logos 1:1), ao lado dos campos a partir do sm. 07/11/2026: no estilo cinema, o cartaz inteiro.
  */
-export function DetalheCandidato({ posicao, campos, aoFechar, aoNavegar, focoAoFechar, renderAcoes }: DetalheCandidatoProps) {
+export function DetalheCandidato({ posicao, campos, aoFechar, aoNavegar, focoAoFechar, renderAcoes, formato = "quadrado" }: DetalheCandidatoProps) {
   const item = posicao?.item ?? null;
   const candidato = item?.candidato;
   const dicaId = candidato ? `detalhe-dica-${candidato.id}` : undefined;
@@ -56,9 +59,13 @@ export function DetalheCandidato({ posicao, campos, aoFechar, aoNavegar, focoAoF
             <ImagemCandidato
               titulo={candidato.titulo}
               imagemUrl={candidato.imagemUrl}
-              proporcao="1/1"
-              className="mx-auto w-full max-w-64 shrink-0 rounded-2xl ring-1 ring-tema-borda sm:mx-0 sm:w-60"
-              sizes="(min-width: 640px) 15rem, 16rem"
+              proporcao={formato === "cartaz" ? "5/7" : "1/1"}
+              className={
+                formato === "cartaz"
+                  ? "mx-auto w-full max-w-56 shrink-0 rounded-2xl ring-1 ring-tema-borda sm:mx-0 sm:w-52"
+                  : "mx-auto w-full max-w-64 shrink-0 rounded-2xl ring-1 ring-tema-borda sm:mx-0 sm:w-60"
+              }
+              sizes={formato === "cartaz" ? "(min-width: 640px) 13rem, 14rem" : "(min-width: 640px) 15rem, 16rem"}
             />
             <div className="flex min-w-0 flex-1 flex-col gap-4">
               <div aria-hidden className="h-1.5 w-14 rounded-full bg-linear-to-r from-tema-primaria to-tema-secundaria" />

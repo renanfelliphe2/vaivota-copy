@@ -15,9 +15,11 @@ import { useAvaliacaoJuri } from "@/components/avaliacao/useAvaliacaoJuri";
 import { DetalheCandidato } from "@/components/candidato/DetalheCandidato";
 import { temDetalhes } from "@/components/candidato/CamposExtras";
 import { ListaCandidatos } from "@/components/candidato/ListaCandidatos";
+import { useIdentidadePagina } from "@/components/evento/identidadePagina";
 import { useDestaqueCandidato } from "@/components/landing/DestaqueCandidato";
 import { Botao } from "@/components/ui/Botao";
 import { Selo } from "@/components/ui/Selo";
+import { cx } from "@/lib/classes";
 import { formatarDecimal } from "@/lib/formatar";
 import { textoContador } from "@/lib/textosEstado";
 import { abrirAcesso } from "@/store/acoesAcesso";
@@ -61,6 +63,8 @@ export function SecaoVotacao() {
   const router = useRouter();
   const anunciar = useAnunciar();
   const { destaqueId } = useDestaqueCandidato();
+  // Estilo cinema (07/11/2026): cartazes no lugar dos cartões quadrados, sobre o papel dos cartazes.
+  const formato = useIdentidadePagina().estilo === "cinema" ? "cartaz" : "quadrado";
 
   const tela = estado?.tela ?? "ACESSO_PENDENTE";
   const papelVoto = estado?.papelVoto ?? null;
@@ -277,20 +281,34 @@ export function SecaoVotacao() {
   const tituloSucesso = lista.itens.find((i) => i.candidato.id === votacao.ultimoVoto?.candidatoId)?.candidato.titulo ?? null;
 
   return (
-    // 19/10/2026: fundo água → menta claros, o mesmo da onda que fecha o hero (a passagem não tem emenda).
+    // 19/10/2026: fundo água → menta claros, o mesmo da onda que fecha o hero (a passagem não tem emenda). No estilo
+    // cinema, o papel dos cartazes, logo abaixo da borda da película.
     <section
       id="candidatos"
       aria-labelledby={ID_TITULO}
-      className={`w-full scroll-mt-40 bg-linear-to-r from-marca-agua-clara to-marca-menta-clara ${escolhendo ? "pb-40 sm:pb-28" : ""}`}
+      className={cx(
+        "w-full scroll-mt-40",
+        formato === "cartaz" ? "bg-cine-papel" : "bg-linear-to-r from-marca-agua-clara to-marca-menta-clara",
+        escolhendo && "pb-40 sm:pb-28",
+      )}
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-16 pt-6 sm:gap-8 sm:px-6 sm:pb-24 sm:pt-8">
+      <div
+        className={cx(
+          "mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-16 sm:gap-8 sm:px-6 sm:pb-24",
+          formato === "cartaz" ? "pt-12 sm:pt-16" : "pt-6 sm:pt-8",
+        )}
+      >
         <header className="flex flex-col gap-3">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-tema-primaria-texto">
             <span aria-hidden className="h-1 w-6 rounded-full bg-linear-to-r from-tema-primaria to-tema-secundaria" />
             {jurado ? "Votação do júri" : "Votação popular"}
           </p>
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 id={ID_TITULO} tabIndex={-1} className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
+            <h2
+              id={ID_TITULO}
+              tabIndex={-1}
+              className={cx("text-3xl tracking-tight sm:text-4xl", formato === "cartaz" ? "font-cine font-bold" : "font-display font-extrabold")}
+            >
               {tema.rotuloCandidatos}
             </h2>
             <p className="rounded-full bg-tema-fundo px-4 py-1.5 text-sm font-semibold text-tema-primaria-texto shadow-sm ring-1 ring-tema-borda/80">
@@ -320,6 +338,7 @@ export function SecaoVotacao() {
           itens={itensVisiveis}
           campos={lista.campos}
           destaqueId={destaqueId}
+          formato={formato}
           aoVerDetalhes={visitante ? (id) => pedirAcesso(id, "candidato") : abrirDetalhe}
           renderAcao={(item) =>
             !mostraVotar || item.bloqueadoVotoProprio || ehVotoAtual(item) ? null : porCriterio ? (
@@ -354,6 +373,7 @@ export function SecaoVotacao() {
       <DetalheCandidato
         posicao={posicao}
         campos={lista.campos}
+        formato={formato}
         aoFechar={fecharDetalhe}
         aoNavegar={navegarDetalhe}
         focoAoFechar={() =>
@@ -372,6 +392,7 @@ export function SecaoVotacao() {
       />
 
       <DialogoRevisao
+        formato={formato}
         item={passo === "REVISAO" ? itemSelecionado : null}
         papelVoto={papel}
         primeiroVotoJurado={jurado && !sessao.jaVotou}

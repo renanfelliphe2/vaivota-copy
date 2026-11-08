@@ -145,7 +145,7 @@ O que passa por onde, serviço a serviço, está em [`docs/FRONTEIRA-DADOS.md`](
 | Rota | Quem | Tela |
 |---|---|---|
 | `/` | Todos | Landing do VaiVota (`src/app/(plataforma)/page.tsx`): demonstração do voto, eventos com votação aberta ou por abrir, números das votações encerradas, vencedor das concluídas (ver `docs/FRONTEIRA-DADOS.md`) e a vitrine "A cara do seu evento", que veste a página com o tema de cada votação que já aconteceu. Prévia de compartilhamento própria (`opengraph-image.tsx`), que não desce para as páginas dos eventos. Com `EVENTO_PADRAO_SLUG`, leva direto ao evento |
-| `/e/{slug}` | Todos | Entrada do evento: status, acesso (entrar ou criar conta), como funciona e a votação (lista, revisão e confirmação). Visitante vê a lista e entra para votar |
+| `/e/{slug}` | Todos | Entrada do evento: status, acesso (entrar ou criar conta), como funciona e a votação (lista, revisão e confirmação). Visitante vê a lista e entra para votar. O desenho segue a identidade do evento (`src/components/evento/identidadePagina.ts`): padrão (Maratona Tech Tivit) ou cinema (Festival Ver e Fazer Filmes: sala escura, película com os cartazes, cartões em formato de cartaz, ingressos e créditos) |
 | `/e/{slug}/verificar-email` | Quem acabou de criar conta | Código do e-mail; é ele que abre a sessão |
 | `/e/{slug}/recuperar-senha` | Todos | E-mail → código → senha nova |
 | `/e/{slug}/continuar` | Quem entrou com Google | Cria a participação e segue ao destino |

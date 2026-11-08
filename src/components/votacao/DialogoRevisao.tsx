@@ -4,7 +4,9 @@ import { ArrowLeft, Check, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import type { PapelVoto } from "@/dominio/estadoVotar";
 import type { EstadoUiVotacao } from "@/dominio/tipos";
+import type { FormatoCartao } from "@/components/candidato/CartaoCandidato";
 import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
+import { cx } from "@/lib/classes";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Checkbox } from "@/components/ui/Campo";
@@ -26,6 +28,8 @@ export type DialogoRevisaoProps = {
   aoConfirmar: () => void;
   aoTrocar: () => void;
   aoVerificar: () => void;
+  /** "cartaz": a miniatura no formato do cartaz (estilo cinema). */
+  formato?: FormatoCartao;
 };
 
 /**
@@ -53,7 +57,7 @@ export function DialogoRevisao(props: DialogoRevisaoProps) {
 }
 
 function ConteudoRevisao(props: DialogoRevisaoProps & { item: ItemLista }) {
-  const { item, papelVoto, primeiroVotoJurado, ehVotoAtual, envio, falhaEnvio } = props;
+  const { item, papelVoto, primeiroVotoJurado, ehVotoAtual, envio, falhaEnvio, formato = "quadrado" } = props;
   const [ciente, setCiente] = useState(false);
   const jurado = papelVoto === "JURADO";
   const ocupado = envio !== "OCIOSO";
@@ -69,13 +73,15 @@ function ConteudoRevisao(props: DialogoRevisaoProps & { item: ItemLista }) {
         <ImagemCandidato
           titulo={candidato.titulo}
           imagemUrl={candidato.imagemUrl}
-          proporcao="1/1"
-          className="w-24 shrink-0 rounded-xl sm:w-28"
+          proporcao={formato === "cartaz" ? "5/7" : "1/1"}
+          className={cx("shrink-0 rounded-xl", formato === "cartaz" ? "w-20 sm:w-24" : "w-24 sm:w-28")}
           sizes="7rem"
         />
         <div className="flex min-w-0 flex-col gap-1">
           <p className="text-sm text-tema-texto-suave">Você está votando em</p>
-          <p className="font-display text-xl font-extrabold leading-tight wrap-anywhere">{candidato.titulo}</p>
+          <p className={cx("text-xl leading-tight wrap-anywhere", formato === "cartaz" ? "font-cine font-bold" : "font-display font-extrabold")}>
+            {candidato.titulo}
+          </p>
         </div>
       </div>
 

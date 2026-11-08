@@ -1,6 +1,8 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { ComoFuncionaCinema } from "@/components/landing/cinema/ComoFuncionaCinema";
+import { HeroCinema } from "@/components/landing/cinema/HeroCinema";
 import { ComoFunciona } from "@/components/landing/ComoFunciona";
 import { DestaqueCandidatoProvider } from "@/components/landing/DestaqueCandidato";
 import { LandingHero } from "@/components/landing/LandingHero";
@@ -12,6 +14,7 @@ import { useVisaoEvento } from "@/store/seletores/visao";
 import { useSessao } from "@/store/seletores/sessao";
 import { AbrirAcessoAutomatico, type IntencaoAcesso } from "./AcessoEvento";
 import { BannerRascunho } from "./BannerRascunho";
+import { useIdentidadePagina } from "./identidadePagina";
 import { UrnaStatusCard } from "./UrnaStatusCard";
 
 /**
@@ -20,10 +23,13 @@ import { UrnaStatusCard } from "./UrnaStatusCard";
  * mostrar os candidatos e levar ao voto é o objetivo da página). A faixa de status fica presa no cabeçalho (CabecalhoEvento).
  * Mesmo desenho para todos, logado ou não (08/10/2026: o da visita); muda só o que cada botão consegue fazer. As
  * diferenças por papel virão depois. Nunca mostra resultado. `?de=`/`?acesso=` (volta de login) abrem o acesso.
+ * 07/11/2026: o desenho segue a identidade do evento (identidadePagina.ts). No estilo cinema (Festival Ver e Fazer
+ * Filmes), o hero, o "Como funciona" e os parceiros são os de cinema; a votação é a mesma, com os cartões em cartaz.
  */
 export function EntradaEvento() {
   const visao = useVisaoEvento();
   const { logado } = useSessao();
+  const cinema = useIdentidadePagina().estilo === "cinema";
   const busca = useSearchParams();
   const de = busca.get("de");
   const acesso = busca.get("acesso");
@@ -51,12 +57,12 @@ export function EntradaEvento() {
       )}
       {/* 19/10/2026: o mosaico do hero destaca um cartão da lista (os outros em tons de cinza). */}
       <DestaqueCandidatoProvider>
-        <LandingHero />
+        {cinema ? <HeroCinema /> : <LandingHero />}
         {!logado && <AbrirAcessoAutomatico de={deInterno} intencao={intencao} />}
         <SecaoVotacao />
       </DestaqueCandidatoProvider>
-      <ComoFunciona />
-      <Parceiros />
+      {cinema ? <ComoFuncionaCinema /> : <ComoFunciona />}
+      <Parceiros cinema={cinema} />
     </>
   );
 }

@@ -121,6 +121,89 @@ dialog::backdrop {
     linear-gradient(155deg, var(--marca-noite) 0%, var(--marca-petroleo) 55%, var(--marca-mar) 100%);
 }
 
+/*
+ * Estilo cinema da página do evento (07/11/2026; Festival Ver e Fazer Filmes, ver components/evento/identidadePagina.ts).
+ * Sala escura com a luz do projetor, película com os cartazes, ingressos e créditos. Tudo deriva do tema do evento:
+ *  - a sala é um quase preto com 9% da primária: texto branco passa de 15:1;
+ *  - as cores "claras" são o texto colorido sobre a sala. As seções escuras recebem as calculadas para o tema
+ *    (tokensCinema, em lib/tema.ts: clareia cada cor só o bastante para 4,5:1, com teste); os valores daqui (65% da cor
+ *    + branco) são só a reserva;
+ *  - o papel (5% da primária no fundo) é o fundo claro dos cartazes, onde os tokens de texto do tema seguem valendo.
+ * A luz dos furos da película é um branco quente fixo: é luz, não marca.
+ */
+.marca-evento {
+  --cine-sala: color-mix(in srgb, var(--tema-primaria) 9%, #0a0807);
+  --cine-pelicula: #141110;
+  --cine-luz: #fff4e0;
+  --cine-primaria-clara: color-mix(in srgb, var(--tema-primaria) 65%, #ffffff);
+  --cine-secundaria-clara: color-mix(in srgb, var(--tema-secundaria) 65%, #ffffff);
+  --cine-papel: color-mix(in srgb, var(--tema-primaria) 5%, var(--tema-fundo));
+}
+
+@theme inline {
+  --font-cine: var(--fonte-arvo), var(--tema-fonte);
+  --color-cine-sala: var(--cine-sala);
+  --color-cine-pelicula: var(--cine-pelicula);
+  --color-cine-luz: var(--cine-luz);
+  --color-cine-primaria-clara: var(--cine-primaria-clara);
+  --color-cine-secundaria-clara: var(--cine-secundaria-clara);
+  --color-cine-papel: var(--cine-papel);
+}
+
+/* Sala: a luz do projetor vem do alto à direita; a primária e a secundária brilham baixinho nos cantos de baixo. */
+.cine-sala {
+  background:
+    radial-gradient(60% 75% at 82% -12%, color-mix(in srgb, var(--cine-luz) 18%, transparent), transparent 70%),
+    radial-gradient(45% 55% at 0% 105%, color-mix(in srgb, var(--tema-primaria) 26%, transparent), transparent 70%),
+    radial-gradient(35% 45% at 100% 100%, color-mix(in srgb, var(--tema-secundaria) 14%, transparent), transparent 70%),
+    var(--cine-sala);
+}
+
+/* Feixe do projetor: uma fatia de luz que desce do canto de cima, à direita, em diagonal. */
+.cine-feixe {
+  background: conic-gradient(
+    from 196deg at 86% -4%,
+    transparent 0deg,
+    color-mix(in srgb, var(--cine-luz) 9%, transparent) 9deg,
+    color-mix(in srgb, var(--cine-luz) 3%, transparent) 22deg,
+    transparent 30deg
+  );
+}
+
+/* Granulação de filme (ruído em SVG), bem fraca: não mexe no contraste do texto. */
+.cine-grao {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  opacity: 0.08;
+  mix-blend-mode: soft-light;
+}
+
+/* Furos da película: uma coluna (tiras de pé) ou uma linha (bordas e tiras deitadas), com a luz passando. */
+.cine-furos-v {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='22'%3E%3Crect x='3' y='5' width='8' height='12' rx='2' fill='%23fff4e0' fill-opacity='0.85'/%3E%3C/svg%3E");
+  background-size: 14px 22px;
+  background-repeat: repeat-y;
+  background-position: center top;
+}
+
+.cine-furos-h {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='14'%3E%3Crect x='5' y='3' width='12' height='8' rx='2' fill='%23fff4e0' fill-opacity='0.85'/%3E%3C/svg%3E");
+  background-size: 22px 14px;
+  background-repeat: repeat-x;
+  background-position: left center;
+}
+
+/*
+ * Ingresso (passo a passo): o canhoto fica separado por dois recortes redondos nas laterais, na altura --corte. A máscara
+ * tem duas metades (51% cada, para não abrir fresta no meio), cada uma com o recorte na própria borda.
+ */
+.cine-ingresso {
+  --corte: 4.5rem;
+  --furo: 0.85rem;
+  mask:
+    radial-gradient(circle var(--furo) at 0 var(--corte), #0000 98%, #000) 0 0 / 51% 100% no-repeat,
+    radial-gradient(circle var(--furo) at 100% var(--corte), #0000 98%, #000) 100% 0 / 51% 100% no-repeat;
+}
+
 /* Mosaico do hero: colunas que flutuam em tempos diferentes (desligado por prefers-reduced-motion abaixo). */
 @keyframes marca-flutuar {
   0%,

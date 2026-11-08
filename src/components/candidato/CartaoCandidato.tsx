@@ -11,6 +11,9 @@ import { ImagemCandidato } from "./ImagemCandidato";
 /** Destaque vindo do mosaico do hero (19/10/2026): este cartão em evidência, os demais em tons de cinza. */
 export type DestaqueCartao = "DESTACADO" | "APAGADO";
 
+/** "quadrado": imagem 1:1 (logos e artes dos projetos); "cartaz": 5:7, o cartaz do filme (estilo cinema, 07/11/2026). */
+export type FormatoCartao = "quadrado" | "cartaz";
+
 export type CartaoCandidatoProps = {
   item: ItemLista;
   campos: readonly CampoCandidato[];
@@ -20,6 +23,7 @@ export type CartaoCandidatoProps = {
   /** Slot do rodapé ("Votar"). */
   acao?: ReactNode;
   destaque?: DestaqueCartao | null;
+  formato?: FormatoCartao;
 };
 
 const ESTILOS = {
@@ -36,10 +40,11 @@ const ESTILOS = {
  * devolução do foco) e a ação fica acima dele. No teclado e no leitor de tela: "Ver detalhes: título" e "Votar".
  * Isolado: sem isso, o Safari perde o arredondamento durante o zoom da imagem.
  */
-export function CartaoCandidato({ item, campos, aoVerDetalhes, selo, acao, destaque = null }: CartaoCandidatoProps) {
+export function CartaoCandidato({ item, campos, aoVerDetalhes, selo, acao, destaque = null, formato = "quadrado" }: CartaoCandidatoProps) {
   const { candidato, bloqueadoVotoProprio } = item;
   const tituloId = `cartao-titulo-${candidato.id}`;
   const dicaId = `cartao-dica-${candidato.id}`;
+  const cartaz = formato === "cartaz";
 
   return (
     <article
@@ -55,15 +60,25 @@ export function CartaoCandidato({ item, campos, aoVerDetalhes, selo, acao, desta
         <ImagemCandidato
           titulo={candidato.titulo}
           imagemUrl={candidato.imagemUrl}
-          proporcao="1/1"
+          proporcao={cartaz ? "5/7" : "1/1"}
           className="transition-transform duration-500 group-hover:scale-105"
-          sizes="(min-width: 1152px) 17rem, (min-width: 1024px) 24vw, (min-width: 768px) 32vw, 48vw"
+          sizes={
+            cartaz
+              ? "(min-width: 1152px) 17rem, (min-width: 1024px) 24vw, 48vw"
+              : "(min-width: 1152px) 17rem, (min-width: 1024px) 24vw, (min-width: 768px) 32vw, 48vw"
+          }
         />
         {selo && <div className="absolute left-2 top-2 sm:left-3 sm:top-3">{selo}</div>}
       </div>
       <div aria-hidden className="h-1 w-full bg-linear-to-r from-tema-primaria to-tema-secundaria" />
       <div className="flex flex-1 flex-col gap-2 p-3 sm:gap-3 sm:p-4">
-        <h3 id={tituloId} className="line-clamp-2 font-display text-base font-extrabold leading-snug tracking-tight wrap-anywhere sm:text-lg">
+        <h3
+          id={tituloId}
+          className={cx(
+            "line-clamp-2 text-base leading-snug tracking-tight wrap-anywhere sm:text-lg",
+            cartaz ? "font-cine font-bold" : "font-display font-extrabold",
+          )}
+        >
           {candidato.titulo}
         </h3>
         <CamposExtras candidato={candidato} campos={campos} modo="resumo" />

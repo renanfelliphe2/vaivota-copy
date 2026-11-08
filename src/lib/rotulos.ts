@@ -33,3 +33,13 @@ export function dividirNome(nome: string): { primeira: string; resto: string | n
   const [primeira, ...resto] = nome.trim().split(/\s+/);
   return { primeira, resto: resto.length > 0 ? resto.join(" ") : null };
 }
+
+/**
+ * Título de cartaz do estilo cinema (07/11/2026): a edição vira uma linha de chamada acima do nome ("9º Festival" +
+ * "Ver e Fazer Filmes"). Sem número de edição no começo (ou sem nada depois dele), o nome fica inteiro, sem chamada.
+ */
+export function dividirTitulo(nome: string): { chamada: string | null; principal: string } {
+  const limpo = nome.trim().replace(/\s+/g, " ");
+  const edicao = /^(\d+\s?[ºª°o]\.?\s+\S+)\s+(.+)$/u.exec(limpo);
+  return edicao ? { chamada: edicao[1], principal: edicao[2] } : { chamada: null, principal: limpo };
+}

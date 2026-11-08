@@ -11,7 +11,38 @@ import {
   restanteAte,
   T0,
   T0_MS,
+  descreverPeriodo,
 } from "./tempo";
+
+describe("descreverPeriodo (página do evento)", () => {
+  const SP = "America/Sao_Paulo";
+  const ms = (iso: string) => Date.parse(iso);
+
+  it("dias seguidos no mesmo mês: só o mês no fim", () => {
+    expect(descreverPeriodo(ms("2026-11-25T10:00:00-03:00"), ms("2026-11-28T20:00:00-03:00"), SP)).toBe("25 a 28 de novembro");
+  });
+
+  it("um dia só: o dia e o horário, com os minutos quando não fecham a hora", () => {
+    expect(descreverPeriodo(ms("2026-11-28T19:00:00-03:00"), ms("2026-11-28T21:00:00-03:00"), SP)).toBe("28 de novembro, das 19h às 21h");
+    expect(descreverPeriodo(ms("2026-11-28T09:30:00-03:00"), ms("2026-11-28T21:05:00-03:00"), SP)).toBe("28 de novembro, das 9h30 às 21h05");
+  });
+
+  it("meses diferentes e o primeiro dia do mês com ordinal", () => {
+    expect(descreverPeriodo(ms("2026-11-30T10:00:00-03:00"), ms("2026-12-02T20:00:00-03:00"), SP)).toBe("30 de novembro a 2 de dezembro");
+    expect(descreverPeriodo(ms("2026-12-01T10:00:00-03:00"), ms("2026-12-03T20:00:00-03:00"), SP)).toBe("1º a 3 de dezembro");
+  });
+
+  it("anos diferentes: o ano aparece nas duas pontas", () => {
+    expect(descreverPeriodo(ms("2026-12-30T10:00:00-03:00"), ms("2027-01-02T20:00:00-03:00"), SP)).toBe(
+      "30 de dezembro de 2026 a 2 de janeiro de 2027",
+    );
+  });
+
+  it("vale a data no fuso do evento, não em UTC", () => {
+    // 28/11 23h em São Paulo já é 29/11 em UTC.
+    expect(descreverPeriodo(ms("2026-11-28T19:00:00-03:00"), ms("2026-11-29T02:00:00Z"), SP)).toBe("28 de novembro, das 19h às 23h");
+  });
+});
 
 describe("tempo", () => {
   it("T0 é 25/11/2026 09:30 em São Paulo (30 min antes da janela do Festival)", () => {

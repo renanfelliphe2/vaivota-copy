@@ -121,6 +121,45 @@ export function anoNoFuso(ms: number, fuso: string = FUSO_PADRAO): number {
   return Number(new Intl.DateTimeFormat("en-US", { timeZone: fuso, year: "numeric" }).format(new Date(ms)));
 }
 
+/** Um formatador de partes por fuso (dia, mês por extenso, ano, hora e minuto). */
+const FORMATADORES_PARTES = new Map<string, Intl.DateTimeFormat>();
+
+function partesNoFuso(ms: number, fuso: string) {
+  let formatador = FORMATADORES_PARTES.get(fuso);
+  if (!formatador) {
+    formatador = new Intl.DateTimeFormat("pt-BR", {
+      timeZone: fuso,
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    });
+    FORMATADORES_PARTES.set(fuso, formatador);
+  }
+  const p = Object.fromEntries(formatador.formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
+  return { dia: Number(p.day), mes: p.month, ano: Number(p.year), hora: Number(p.hour), minuto: Number(p.minute) };
+}
+
+/** "1º" no primeiro dia do mês, como se escreve datas em português. */
+const dia = (n: number) => (n === 1 ? "1º" : String(n));
+const horaCurta = (h: number, m: number) => (m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, "0")}`);
+
+/**
+ * Período no fuso do evento, por extenso e sem repetir o que é igual (página do evento, 07/11/2026):
+ * "28 de novembro, das 19h às 21h" (mesmo dia), "25 a 28 de novembro", "30 de novembro a 2 de dezembro" e, só quando o
+ * ano muda, "30 de dezembro de 2026 a 2 de janeiro de 2027".
+ */
+export function descreverPeriodo(inicioMs: number, fimMs: number, fuso: string = FUSO_PADRAO): string {
+  const a = partesNoFuso(inicioMs, fuso);
+  const b = partesNoFuso(fimMs, fuso);
+  if (a.ano !== b.ano) return `${dia(a.dia)} de ${a.mes} de ${a.ano} a ${dia(b.dia)} de ${b.mes} de ${b.ano}`;
+  if (a.mes !== b.mes) return `${dia(a.dia)} de ${a.mes} a ${dia(b.dia)} de ${b.mes}`;
+  if (a.dia !== b.dia) return `${dia(a.dia)} a ${dia(b.dia)} de ${a.mes}`;
+  return `${dia(a.dia)} de ${a.mes}, das ${horaCurta(a.hora, a.minuto)} às ${horaCurta(b.hora, b.minuto)}`;
+}
+
 /** "13:41:05" no fuso do evento ("Atualizado às" do painel). */
 export function formatarHoraCompleta(ms: number, fuso: string = FUSO_PADRAO): string {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: fuso, hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(

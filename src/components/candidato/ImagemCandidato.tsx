@@ -5,13 +5,14 @@ export type ImagemCandidatoProps = {
   titulo: string;
   imagemUrl: string | null;
   /** Proporção fixa para não dar salto de layout. */
-  proporcao?: "4/3" | "16/9" | "1/1";
+  /** "5/7": cartaz de filme (o estilo cinema da página do evento). */
+  proporcao?: "4/3" | "16/9" | "1/1" | "5/7";
   className?: string;
   /** Repassado ao next/image. */
   sizes?: string;
 };
 
-const PROPORCOES = { "4/3": "aspect-[4/3]", "16/9": "aspect-video", "1/1": "aspect-square" };
+const PROPORCOES = { "4/3": "aspect-[4/3]", "16/9": "aspect-video", "1/1": "aspect-square", "5/7": "aspect-[5/7]" };
 
 function inicial(titulo: string): string {
   return titulo.trim().charAt(0).toLocaleUpperCase("pt-BR") || "?";

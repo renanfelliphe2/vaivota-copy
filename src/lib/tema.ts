@@ -105,3 +105,36 @@ export function paresDeContraste(tokens: TokensTema): { par: string; razao: numb
     par("foco × fundo", v["--tema-foco"], v["--tema-fundo"], CONTRASTE_UI),
   ];
 }
+
+/** Sala escura do estilo cinema (globals.css, --cine-sala): 9% da primária num quase preto. */
+const SALA_CINEMA = "#0a0807";
+/** Luz do projetor (globals.css, --cine-luz). */
+const LUZ_CINEMA = "#fff4e0";
+/**
+ * Quanto a luz clareia a sala onde há texto colorido. A luz do projetor bate no canto de cima, à direita; o texto colorido
+ * (o selo "Votação popular", a edição no título, "Passo a passo") fica à esquerda, onde chegam no máximo uns 3% dela e
+ * um pouco do feixe. 12% é essa luz com folga. Texto colorido no canto da luz pediria um valor maior aqui.
+ */
+const LUZ_MAXIMA_NA_SALA = 0.12;
+
+export type TokensCinema = Record<"--cine-primaria-clara" | "--cine-secundaria-clara", string>;
+
+/**
+ * Cores de texto do estilo cinema da página do evento (07/11/2026): a primária e a secundária clareadas (na direção do
+ * branco) só o bastante para passar de 4,5:1 no ponto mais claro da sala escura onde há texto colorido. A primária
+ * viva do Festival muda pouco; uma primária escura (marinho, vinho) clareia mais. Aplicadas no estilo das seções escuras;
+ * o globals.css tem um valor de reserva.
+ */
+export function tokensCinema(cores: Pick<CoresTema, "corPrimaria" | "corSecundaria">): TokensCinema {
+  const sala = misturar(SALA_CINEMA, cores.corPrimaria, 0.09);
+  const pontoMaisClaro = misturar(sala, LUZ_CINEMA, LUZ_MAXIMA_NA_SALA);
+  return {
+    "--cine-primaria-clara": corLegivelSobre(cores.corPrimaria, pontoMaisClaro, "#ffffff"),
+    "--cine-secundaria-clara": corLegivelSobre(cores.corSecundaria, pontoMaisClaro, "#ffffff"),
+  };
+}
+
+/** Para o teste: o ponto mais claro da sala de um tema. */
+export function pontoMaisClaroDaSala(corPrimaria: string): string {
+  return misturar(misturar(SALA_CINEMA, corPrimaria, 0.09), LUZ_CINEMA, LUZ_MAXIMA_NA_SALA);
+}
