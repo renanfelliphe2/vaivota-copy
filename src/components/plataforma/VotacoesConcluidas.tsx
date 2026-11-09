@@ -46,6 +46,7 @@ function CartaoVotacao({ votacao, destaque }: { votacao: VotacaoComResultado; de
   const { slug, nome, local, tema, vencedores, rotuloCandidato } = votacao;
   const tituloId = `votacao-${slug}`;
   const grupos = gruposDaVotacao(votacao);
+  const porCategoria = votacao.vencedoresPorCategoria?.length ? votacao.vencedoresPorCategoria : null;
   const empate = vencedores.length > 1;
 
   return (
@@ -89,9 +90,21 @@ function CartaoVotacao({ votacao, destaque }: { votacao: VotacaoComResultado; de
         <div className="rounded-2xl bg-vv-secundaria-clara p-5">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em]">
             <Trophy aria-hidden className="size-4 text-tema-secundaria-texto" />
-            {empate ? "Empate no 1º lugar" : "Vencedor"}
+            {porCategoria ? "Vencedores por categoria" : empate ? "Empate no 1º lugar" : "Vencedor"}
           </p>
-          {vencedores.length > 0 ? (
+          {porCategoria ? (
+            // Evento com categorias (09/11/2026): o primeiro lugar de cada uma.
+            <ul className="mt-3 flex flex-col gap-3">
+              {porCategoria.map((c) => (
+                <li key={c.categoria}>
+                  <p className="text-sm text-tema-texto-suave">{c.categoria}</p>
+                  <p className="text-lg font-bold leading-tight">
+                    {c.vencedores.length > 0 ? c.vencedores.map((v) => v.titulo).join(" e ") : "Nenhum voto válido"}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : vencedores.length > 0 ? (
             <>
               <p className="mt-2 text-balance text-2xl font-bold leading-tight sm:text-[1.75rem]">
                 {vencedores.map((v) => v.titulo).join(" e ")}

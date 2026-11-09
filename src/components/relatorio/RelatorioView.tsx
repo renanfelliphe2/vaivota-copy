@@ -12,6 +12,7 @@ import { VotosPorMinuto } from "@/components/dashboard/VotosPorMinuto";
 import { LogoEvento } from "@/components/evento/LogoEvento";
 import { Alerta } from "@/components/ui/Alerta";
 import { Carregando } from "@/components/ui/Carregando";
+import { visaoDaCategoria, type ResultadoVisao } from "@/dominio/painel";
 import { casasDaPontuacao, gruposDoResultado } from "@/dominio/resultado";
 import { formatarDecimal, formatarNumero } from "@/lib/formatar";
 import { formatarDataHora, paraMs } from "@/lib/tempo";
@@ -24,6 +25,7 @@ import { BarraAcoesRelatorio } from "./BarraAcoesRelatorio";
 import "./relatorio.print.css";
 
 // Etapa 7 (5.11, D17): relatório imprimível a partir de obterResultado. Sem votos identificados e sem e-mail.
+// 09/11/2026: evento com categorias imprime a classificação, os vencedores e os empates de cada categoria.
 
 const CRITERIO = { JURI: "maior votação do júri", PUBLICO: "maior votação do público" } as const;
 
@@ -32,7 +34,6 @@ export function RelatorioView() {
   const agora = useAgora();
   const eventoId = ativo?.evento.id ?? "";
   const versao = useVersaoResultado(eventoId || null);
-  const titulo = useTitulos();
   const consulta = useConsulta(() => obterResultado(eventoId), { ativo: Boolean(eventoId), chave: `${eventoId}:${versao}` });
   if (!ativo) return null;
   const { evento, tema, configApresentacao } = ativo;
@@ -60,7 +61,7 @@ export function RelatorioView() {
 
   const visao = consulta.dados;
   const grupos = gruposDoResultado(visao.dados);
-  const casas = casasDaPontuacao(visao.dados.ranking);
+
   const nome = tema.nomeExibicao ?? evento.nome;
 
   return (
@@ -110,22 +111,23 @@ export function RelatorioView() {
         </dl>
       </section>
 
-      <section className="relatorio-secao flex flex-col gap-4">
-        <h2 className="text-2xl font-bold">Classificação</h2>
-        <ClassificacaoTable visao={visao} titulo={titulo} rotuloCandidato={tema.rotuloCandidato} />
-        <ForaDaDisputa visao={visao} titulo={titulo} />
-        <BarChart
-          titulo="Pontuação final"
-          itens={visao.dados.ranking.map((r) => ({ rotulo: `${r.posicao}º ${titulo(r.candidatoId)}`, valor: r.pontuacao }))}
-          formato={(v) => formatarDecimal(v, casas)}
-          alt="Pontuação final de cada item na disputa"
-        />
-      </section>
-
-      <section className="relatorio-secao flex flex-col gap-6">
-        <CategoriasCards visao={visao} titulo={titulo} config={configApresentacao} />
-        <PainelEmpates visao={visao} titulo={titulo} />
-      </section>
+      {(visao.dados.porCategoria ?? []).length > 0 ? (
+        (visao.dados.porCategoria ?? []).map((c) => {
+          const escopo = visaoDaCategoria(visao, c.categoriaId);
+          if (!escopo) return null;
+          return (
+            <Classificacao
+              key={c.categoriaId}
+              titulo={c.premio ? `${c.nome} · ${c.premio}` : c.nome}
+              visao={escopo}
+              rotuloCandidato={tema.rotuloCandidato}
+              config={configApresentacao}
+            />
+          );
+        })
+      ) : (
+        <Classificacao titulo="Classificação" visao={visao} rotuloCandidato={tema.rotuloCandidato} config={configApresentacao} />
+      )}
 
       <section className="relatorio-secao flex flex-col gap-4">
         <VotosPorMinuto serie={visao.serie} modulos={{ juri: grupos.includes("JURI"), infantil: grupos.includes("INFANTIL") }} fuso={fuso} />
@@ -136,5 +138,41 @@ export function RelatorioView() {
         {formatarDataHora(agora, fuso)}.
       </footer>
     </div>
+  );
+}
+
+/** Classificação, pontuação, vencedores por grupo e empates de uma apuração (a do evento ou a de uma categoria). */
+function Classificacao({
+  titulo: tituloSecao,
+  visao,
+  rotuloCandidato,
+  config,
+}: {
+  titulo: string;
+  visao: ResultadoVisao;
+  rotuloCandidato: string;
+  config: Parameters<typeof CategoriasCards>[0]["config"];
+}) {
+  const titulo = useTitulos();
+  const casas = casasDaPontuacao(visao.dados.ranking);
+  return (
+    <>
+      <section className="relatorio-secao flex flex-col gap-4">
+        <h2 className="text-2xl font-bold">{tituloSecao}</h2>
+        <ClassificacaoTable visao={visao} titulo={titulo} rotuloCandidato={rotuloCandidato} />
+        <ForaDaDisputa visao={visao} titulo={titulo} />
+        <BarChart
+          titulo="Pontuação final"
+          itens={visao.dados.ranking.map((r) => ({ rotulo: `${r.posicao}º ${titulo(r.candidatoId)}`, valor: r.pontuacao }))}
+          formato={(v) => formatarDecimal(v, casas)}
+          alt="Pontuação final de cada item na disputa"
+        />
+      </section>
+
+      <section className="relatorio-secao flex flex-col gap-6">
+        <CategoriasCards visao={visao} titulo={titulo} config={config} />
+        <PainelEmpates visao={visao} titulo={titulo} />
+      </section>
+    </>
   );
 }

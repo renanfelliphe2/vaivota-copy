@@ -33,9 +33,10 @@ function mudancaDoErro(codigo: CodigoErro): Mudanca {
 
 /**
  * Envio do voto (Etapa 5, seção 5.6): trava síncrona, mapeamento do resultado e verificação depois de erro
- * de rede (D9: nunca libera novo envio sem consultar o estado real).
+ * de rede (D9: nunca libera novo envio sem consultar o estado real). Evento com categorias (09/11/2026): `categoriaId` é a
+ * categoria da página, e a verificação depois de erro de rede pergunta se a pessoa já votou NESSA categoria.
  */
-export function useEnviarVoto(eventoId: string, papelVoto: PapelVoto, aoConcluir: () => void) {
+export function useEnviarVoto(eventoId: string, papelVoto: PapelVoto, aoConcluir: () => void, categoriaId: string | null = null) {
   const lerEstado = useLerEstado();
   const anunciar = useAnunciar();
   // Escritos e lidos só em manipuladores (React Compiler).
@@ -66,7 +67,12 @@ export function useEnviarVoto(eventoId: string, papelVoto: PapelVoto, aoConcluir
       anunciar("Não foi possível confirmar se seu voto foi registrado.", "assertive");
       return;
     }
-    const gravou = papelVoto === "JURADO" ? r.dados.candidatoAtualId === pendente.candidatoId : r.dados.votou;
+    const gravou =
+      papelVoto === "JURADO"
+        ? r.dados.candidatoAtualId === pendente.candidatoId
+        : categoriaId
+          ? (r.dados.categoriasVotadas ?? []).includes(categoriaId)
+          : r.dados.votou;
     if (gravou) {
       sucesso(pendente.candidatoId, pendente.jaVotouAntes ? "ATUALIZADO" : "REGISTRADO");
     } else {
@@ -81,7 +87,7 @@ export function useEnviarVoto(eventoId: string, papelVoto: PapelVoto, aoConcluir
     const participacao = estado.banco.participacoes.find((p) => p.usuarioId === estado.sessao.usuarioId && p.eventoId === eventoId);
     envioAtual.current = { candidatoId, jaVotouAntes: participacao?.votou ?? false };
 
-    const r = papelVoto === "JURADO" ? await votarJuri({ eventoId, candidatoId }) : await votarPopular({ eventoId, candidatoId });
+    const r = papelVoto === "JURADO" ? await votarJuri({ eventoId, candidatoId }) : await votarPopular({ eventoId, candidatoId }, categoriaId);
     if (r.ok) return sucesso(candidatoId, r.dados.resultado);
     if (r.erro.codigo === "REDE") {
       concluirEnvio(eventoId, { envio: "VERIFICANDO" });

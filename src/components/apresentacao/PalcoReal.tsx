@@ -18,7 +18,7 @@ import { useConsulta } from "@/lib/useConsulta";
 import { carregarRevelacao, obterEstadoAoVivo, obterStatusResultado, registrarAcaoApresentacao, type AcaoApresentacao } from "@/servicos/apresentacao";
 import { concluirRevelacao, definirModoAvancoLocal, gravarProgresso, iniciarRevelacao, refazerRevelacao } from "@/store/acoesApresentacao";
 import { useStore } from "@/store/AppProvider";
-import { usePreferenciasSala, useRevelacao } from "@/store/seletores/apresentacao";
+import { useCategoriaApresentada, usePreferenciasSala, useRevelacao } from "@/store/seletores/apresentacao";
 import { useLerEstado, useDev } from "@/store/seletores/dev";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { useAgora } from "@/store/seletores/relogio";
@@ -52,7 +52,11 @@ export function PalcoReal({
   const ativo = useEventoAtivo()!;
   const { evento, tema, configApresentacao } = ativo;
   const eventoId = evento.id;
-  const nome = tema.nomeExibicao ?? evento.nome;
+  // Evento com categorias (09/11/2026): o telão apresenta uma categoria por vez (escolhida na sala): o nome dela vai junto, e os
+  // itens, o status e a revelação são só dela.
+  const categoria = useCategoriaApresentada(eventoId);
+  const categoriaId = categoria?.id ?? null;
+  const nome = categoria ? `${tema.nomeExibicao ?? evento.nome} · ${categoria.nome}` : (tema.nomeExibicao ?? evento.nome);
   const agora = useAgora();
   const anunciar = useAnunciar();
   const dev = useDev();
@@ -71,8 +75,8 @@ export function PalcoReal({
   // 08/10/2026: emSegundoPlano em todas: com uma tela só, o telão fica numa aba de fundo enquanto o controle comanda.
   // O resultado nasce no encerramento e pode ganhar versão nova (desqualificação) com o telão aberto, e o estado do navegador não
   // traz o resultado: a fase entra na chave e, com a urna encerrada, o status é perguntado de novo de tempos em tempos.
-  const status = useConsulta(() => obterStatusResultado(eventoId), {
-    chave: `${eventoId}:${versao}:${fase}`,
+  const status = useConsulta(() => obterStatusResultado(eventoId, categoriaId), {
+    chave: `${eventoId}:${versao}:${fase}:${categoriaId}`,
     intervaloMs: fase === "URNA_ENCERRADA" ? INTERVALO_STATUS_MS : undefined,
     emSegundoPlano: true,
   });
@@ -90,7 +94,7 @@ export function PalcoReal({
   });
 
   const precisaResultado = fasePalco === "REVELACAO" || fasePalco === "FINAL_ESTATICO";
-  const consultaResultado = useConsulta(() => carregarRevelacao(eventoId), {
+  const consultaResultado = useConsulta(() => carregarRevelacao(eventoId, categoriaId), {
     ativo: precisaResultado && carregado?.assinatura !== assinatura,
     chave: `${eventoId}:${assinatura}`,
     emSegundoPlano: true,
@@ -145,7 +149,7 @@ export function PalcoReal({
   }
 
   async function iniciar(irParaFinal: boolean) {
-    const r = await carregarRevelacao(eventoId);
+    const r = await carregarRevelacao(eventoId, categoriaId);
     if (!r.ok) return setMensagemHud("Não foi possível carregar o resultado. Tente de novo.");
     setMensagemHud(null);
     setCarregado(r.dados);
@@ -220,7 +224,9 @@ export function PalcoReal({
     ultimoAnuncio.current = anuncio;
   }, [anuncio, anunciar]);
 
-  const candidatos = votaveis(ativo.candidatos).map((c) => ({ id: c.id, titulo: c.titulo, imagemUrl: c.imagemUrl, ordem: c.ordem }));
+  const candidatos = votaveis(ativo.candidatos)
+    .filter((c) => !categoriaId || c.categoriaId === categoriaId)
+    .map((c) => ({ id: c.id, titulo: c.titulo, imagemUrl: c.imagemUrl, ordem: c.ordem }));
   const catalogo = useCatalogo(dados?.candidatos ?? candidatos);
   const dataEvento = evento.janelaInicio ? formatarDataHora(paraMs(evento.janelaInicio), evento.fusoHorario) : "";
 

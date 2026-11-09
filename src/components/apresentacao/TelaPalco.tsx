@@ -14,7 +14,8 @@ import { useConsulta } from "@/lib/useConsulta";
 import { obterDadosEnsaio } from "@/servicos/apresentacao";
 import { definirPalcoAtivo } from "@/store/acoesApresentacao";
 import { useTelaoPublicado, type EstadoTelao } from "@/store/canalTelao";
-import { usePreferenciasSala } from "@/store/seletores/apresentacao";
+import { useCategoriaApresentada, usePreferenciasSala } from "@/store/seletores/apresentacao";
+import { rotaCategoria } from "@/dominio/categorias";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { PalcoEnsaio } from "./PalcoEnsaio";
 import { PalcoReal } from "./PalcoReal";
@@ -36,6 +37,7 @@ export function TelaPalco() {
   /** Religado pelo controle: o ensaio (que é local e recomeça) volta pausado. */
   const [religado, setReligado] = useState(false);
   const prefs = usePreferenciasSala(ativo?.evento.id ?? "");
+  const categoria = useCategoriaApresentada(ativo?.evento.id ?? "");
   const eventoId = ativo?.evento.id ?? "";
   const ensaio = params.get("modo") === "ensaio";
   const cenarios = ensaio && ativo ? cenariosDoEnsaio({ juri: ativo.evento.moduloJuri, infantil: ativo.evento.moduloInfantil }) : [];
@@ -54,7 +56,8 @@ export function TelaPalco() {
   }, []);
 
   if (!ativo) return null;
-  const urlQr = `${window.location.origin}/e/${ativo.slug}`;
+  // Evento com categorias (09/11/2026): o QR Code do ao vivo leva à página da categoria apresentada.
+  const urlQr = `${window.location.origin}${categoria ? rotaCategoria(ativo.slug, categoria.slug) : `/e/${ativo.slug}`}`;
   const modoAvanco = prefs.modoAvancoLocal ?? ativo.configApresentacao.modoAvanco;
   const ensaioPronto = !ensaio || dadosEnsaio.dados !== null;
   const nome = ativo.tema.nomeExibicao ?? ativo.evento.nome;

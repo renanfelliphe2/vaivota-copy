@@ -1,16 +1,18 @@
 "use client";
 
 import { Eye, FileText, Monitor, TriangleAlert } from "lucide-react";
+import { useState } from "react";
 import { BarChart } from "@/components/charts/BarChart";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Cartao } from "@/components/ui/Cartao";
 import { Selo } from "@/components/ui/Selo";
 import { arquivosDisponiveis, MOTIVO_SEM_RESULTADO } from "@/dominio/exportacao";
-import type { ResultadoVisao } from "@/dominio/painel";
+import { visaoDaCategoria, type ResultadoVisao } from "@/dominio/painel";
 import { casasDaPontuacao } from "@/dominio/resultado";
 import type { FaseConfig } from "@/dominio/travas";
 import type { ConfigApresentacao, Grupo } from "@/dominio/tipos";
+import { cx } from "@/lib/classes";
 import { formatarDecimal, formatarNumero } from "@/lib/formatar";
 import { MODULOS_FESTIVAL } from "@/lib/modulos";
 import { formatarDataHora, paraMs } from "@/lib/tempo";
@@ -71,11 +73,16 @@ export function ResultadoTab({
 }) {
   const ui = useUi();
   const titulo = useTitulos();
+  // Evento com categorias (09/11/2026): classificação, empates e vencedores são por categoria; escolhe-se qual ver.
+  const porCategoria = visao?.dados.porCategoria ?? [];
+  const [categoriaEscolhida, setCategoriaEscolhida] = useState<string | null>(null);
+  const categoriaId = porCategoria.some((c) => c.categoriaId === categoriaEscolhida) ? categoriaEscolhida : (porCategoria[0]?.categoriaId ?? null);
+  const escopo = visao && categoriaId ? (visaoDaCategoria(visao, categoriaId) ?? visao) : visao;
   const exportacao = (
     <ExportPanel eventoId={config.eventoId} disponibilidade={arquivosDisponiveis(fase, visao !== null, modulos)} aoExportar={aoExportar} />
   );
 
-  if (!visao) {
+  if (!visao || !escopo) {
     return (
       <div className="flex flex-col gap-6">
         <Alerta variante="informacao" titulo={MOTIVO_SEM_RESULTADO}>
@@ -89,9 +96,10 @@ export function ResultadoTab({
   const chave = chaveResultado(visao.eventoId, visao.versao);
   const visivel = ui.dashboard.resultadoVisivel === chave;
   const grupos: Grupo[] = visao.dados.categorias.map((c) => c.grupo);
-  const casas = casasDaPontuacao(visao.dados.ranking);
-  const { derivados } = visao;
-  const todosSemVotos = grupos.every((g) => visao.dados.pesosEfetivos[g] === 0);
+  const casas = casasDaPontuacao(escopo.dados.ranking);
+  const { derivados } = escopo;
+  const todosSemVotos = grupos.every((g) => escopo.dados.pesosEfetivos[g] === 0);
+  const nomeCategoria = porCategoria.find((c) => c.categoriaId === categoriaId)?.nome ?? null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -127,6 +135,37 @@ export function ResultadoTab({
             )}
           </Cartao>
 
+          {porCategoria.length > 0 && (
+            <Cartao className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <h3 className="font-bold">Categoria</h3>
+                <p className="text-sm text-tema-texto-suave">
+                  Cada categoria tem a sua classificação e o seu vencedor. Os totais de votos, o período e a série são do evento inteiro.
+                </p>
+              </div>
+              <div role="group" aria-label="Categoria do resultado" className="flex flex-wrap gap-2">
+                {porCategoria.map((c) => {
+                  const atual = c.categoriaId === categoriaId;
+                  return (
+                    <button
+                      key={c.categoriaId}
+                      type="button"
+                      aria-pressed={atual}
+                      onClick={() => setCategoriaEscolhida(c.categoriaId)}
+                      className={cx(
+                        "inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold ring-1",
+                        atual ? "bg-tema-primaria text-tema-sobre-primaria ring-tema-primaria" : "ring-tema-borda hover:bg-tema-superficie",
+                      )}
+                    >
+                      {c.nome}
+                    </button>
+                  );
+                })}
+              </div>
+              {nomeCategoria && <p className="sr-only" aria-live="polite">Mostrando {nomeCategoria}.</p>}
+            </Cartao>
+          )}
+
           {(todosSemVotos || derivados.gruposSemBase.length > 0 || derivados.foraDaDisputa.length > 0) && (
             <div className="flex flex-col gap-2">
               {todosSemVotos ? (
@@ -135,7 +174,7 @@ export function ResultadoTab({
                 derivados.gruposSemBase.map((g) => (
                   <Alerta key={g} variante="aviso">
                     Grupo {ROTULO_GRUPO_PAINEL[g]} sem votos: peso redistribuído. Pesos efetivos:{" "}
-                    {grupos.map((x) => `${ROTULO_GRUPO_PAINEL[x]} ${formatarDecimal(visao.dados.pesosEfetivos[x], 2)}%`).join(" · ")}.
+                    {grupos.map((x) => `${ROTULO_GRUPO_PAINEL[x]} ${formatarDecimal(escopo.dados.pesosEfetivos[x], 2)}%`).join(" · ")}.
                   </Alerta>
                 ))
               )}
@@ -149,19 +188,19 @@ export function ResultadoTab({
           )}
 
           <Cartao className="flex flex-col gap-6">
-            <ClassificacaoTable visao={visao} titulo={titulo} rotuloCandidato={rotuloCandidato} />
-            <ForaDaDisputa visao={visao} titulo={titulo} />
+            <ClassificacaoTable visao={escopo} titulo={titulo} rotuloCandidato={rotuloCandidato} />
+            <ForaDaDisputa visao={escopo} titulo={titulo} />
             <BarChart
               titulo="Pontuação final"
-              itens={visao.dados.ranking.map((r) => ({ rotulo: `${r.posicao}º ${titulo(r.candidatoId)}`, valor: r.pontuacao }))}
+              itens={escopo.dados.ranking.map((r) => ({ rotulo: `${r.posicao}º ${titulo(r.candidatoId)}`, valor: r.pontuacao }))}
               formato={(v) => formatarDecimal(v, casas)}
-              alt={visao.dados.ranking.map((r) => `${titulo(r.candidatoId)}: ${formatarDecimal(r.pontuacao, casas)}`).join("; ")}
+              alt={escopo.dados.ranking.map((r) => `${titulo(r.candidatoId)}: ${formatarDecimal(r.pontuacao, casas)}`).join("; ")}
             />
           </Cartao>
 
           <Cartao className="flex flex-col gap-6">
-            <PainelEmpates visao={visao} titulo={titulo} />
-            <CategoriasCards visao={visao} titulo={titulo} config={config} />
+            <PainelEmpates visao={escopo} titulo={titulo} />
+            <CategoriasCards visao={escopo} titulo={titulo} config={config} />
           </Cartao>
 
           <Cartao className="flex flex-col gap-4">

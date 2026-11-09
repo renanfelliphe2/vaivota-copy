@@ -28,6 +28,8 @@ export type DialogoRevisaoProps = {
   aoConfirmar: () => void;
   aoTrocar: () => void;
   aoVerificar: () => void;
+  /** Título do diálogo (padrão: "Revise seu voto"). Página da categoria: "Votar em <categoria>". */
+  titulo?: string;
   /** "cartaz": a miniatura no formato do cartaz (estilo cinema). */
   formato?: FormatoCartao;
 };
@@ -47,7 +49,7 @@ export function DialogoRevisao(props: DialogoRevisaoProps) {
         if (!travado) props.aoTrocar();
       }}
       fecharNoFundo={false}
-      titulo="Revise seu voto"
+      titulo={props.titulo ?? "Revise seu voto"}
       className="sm:max-w-xl!"
     >
       {/* key: a caixa de ciência recomeça desmarcada a cada candidato. */}

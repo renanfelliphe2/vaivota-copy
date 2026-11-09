@@ -2,12 +2,12 @@
 
 import { Save } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import type { CampoCandidato, Candidato } from "@/dominio/tipos";
+import type { CampoCandidato, Candidato, Categoria } from "@/dominio/tipos";
 import type { Travas } from "@/dominio/travas";
 import { validarCandidato, type DadosCandidato } from "@/dominio/validacoesConfig";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
-import { Campo, Input, Textarea } from "@/components/ui/Campo";
+import { Campo, Input, Select, Textarea } from "@/components/ui/Campo";
 import { criarCandidato, salvarCandidato } from "@/servicos/candidatosAdmin";
 import { DialogoMotivo } from "../DialogoMotivo";
 import { useFormularioSujo } from "../FormularioSujoProvider";
@@ -19,18 +19,25 @@ export type FormCandidatoProps = {
   /** null = novo. */
   candidato: Candidato | null;
   campos: CampoCandidato[];
+  /** Categorias do evento (09/11/2026). Vazio: sem o campo de categoria. */
+  categorias: Categoria[];
   travas: Travas;
   aoSalvar: () => void;
   aoCancelar: () => void;
 };
 
-function inicial(c: Candidato | null): DadosCandidato {
-  return { titulo: c?.titulo ?? "", imagemUrl: c?.imagemUrl ?? null, camposExtras: { ...(c?.camposExtras ?? {}) } };
+/** Com categorias, o formulário manda a categoria (null = sem); sem categorias, nem leva o campo (o servidor não muda nada). */
+function inicial(c: Candidato | null, comCategorias: boolean): DadosCandidato {
+  const base = { titulo: c?.titulo ?? "", imagemUrl: c?.imagemUrl ?? null, camposExtras: { ...(c?.camposExtras ?? {}) } };
+  return comCategorias ? { ...base, categoriaId: c?.categoriaId ?? null } : base;
 }
 
 /** Etapa 6 (CP4): título, imagem e valores dos campos extras. Nunca muda publicação nem ordem. */
-export function FormCandidato({ eventoId, candidato, campos, travas, aoSalvar, aoCancelar }: FormCandidatoProps) {
-  const salvo = inicial(candidato);
+export function FormCandidato({ eventoId, candidato, campos, categorias, travas, aoSalvar, aoCancelar }: FormCandidatoProps) {
+  const comCategorias = categorias.length > 0;
+  const salvo = inicial(candidato, comCategorias);
+  // Mudar de categoria trava com a urna aberta (o voto de cada pessoa é por categoria).
+  const podeCategoria = candidato === null || travas.permite("CATEGORIAS_ESTRUTURA");
   const [d, setD] = useState<DadosCandidato>(salvo);
   const [tentou, setTentou] = useState(false);
   const [pedirMotivo, setPedirMotivo] = useState(false);
@@ -90,6 +97,31 @@ export function FormCandidato({ eventoId, candidato, campos, travas, aoSalvar, a
         <Campo id="cand-titulo" rotulo="Título" obrigatorio erro={mostrar("titulo")} dica={`${d.titulo.length}/150`}>
           <Input value={d.titulo} onChange={(e) => mudar({ titulo: e.target.value })} maxLength={150} />
         </Campo>
+        {comCategorias && (
+          <Campo
+            id="cand-categoria"
+            rotulo="Categoria"
+            erro={servico.erro?.campos?.categoriaId ?? null}
+            dica={
+              podeCategoria
+                ? "Cada categoria tem a sua página e o seu voto. Sem categoria, o item não entra na votação."
+                : "Com a votação aberta, o item não muda de categoria."
+            }
+          >
+            <Select
+              value={d.categoriaId ?? ""}
+              disabled={!podeCategoria}
+              onChange={(e) => mudar({ categoriaId: e.target.value || null })}
+            >
+              <option value="">Sem categoria</option>
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.premio ? `${c.nome} · ${c.premio}` : c.nome}
+                </option>
+              ))}
+            </Select>
+          </Campo>
+        )}
         <SeletorImagem
           titulo={d.titulo}
           valor={d.imagemUrl}

@@ -17,8 +17,9 @@ import type { ModoAvanco } from "@/dominio/tipos";
 import { ROTULO_ESTADO_EVENTO, ROTULO_ESTADO_URNA } from "@/lib/rotulos";
 import { useConsulta } from "@/lib/useConsulta";
 import { obterStatusResultado, registrarAcaoApresentacao } from "@/servicos/apresentacao";
-import { definirCenarioEnsaio, definirModoAvancoLocal, definirModoSala, refazerRevelacao } from "@/store/acoesApresentacao";
-import { usePreferenciasSala, useRevelacao } from "@/store/seletores/apresentacao";
+import { definirCategoriaApresentacao, definirCenarioEnsaio, definirModoAvancoLocal, definirModoSala, refazerRevelacao } from "@/store/acoesApresentacao";
+import { useCategoriaApresentada, usePreferenciasSala, useRevelacao } from "@/store/seletores/apresentacao";
+import { rotaCategoria } from "@/dominio/categorias";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { useVersaoResultado } from "@/store/seletores/resultado";
 import { ListaAtalhos } from "./Palco";
@@ -67,8 +68,11 @@ export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
   const idCenario = useId();
   const versao = useVersaoResultado(eventoId);
   const { fase, incoerente } = resolverFaseConfig(evento);
-  const status = useConsulta(() => obterStatusResultado(eventoId), {
-    chave: `${eventoId}:${versao}:${fase}`,
+  // Evento com categorias (09/11/2026): o telão apresenta uma categoria por vez; o status e a revelação são dela.
+  const categoria = useCategoriaApresentada(eventoId);
+  const categoriaId = categoria?.id ?? null;
+  const status = useConsulta(() => obterStatusResultado(eventoId, categoriaId), {
+    chave: `${eventoId}:${versao}:${fase}:${categoriaId}`,
     intervaloMs: fase === "URNA_ENCERRADA" ? INTERVALO_STATUS_MS : undefined,
   });
   const assinatura = status.dados?.assinatura ?? null;
@@ -83,7 +87,7 @@ export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
   const nomesCenarios = new Map(CENARIOS_ENSAIO.map((c) => [c.id, c]));
   const cenarioId = prefs.cenarioEnsaioId && cenarios.includes(prefs.cenarioEnsaioId) ? prefs.cenarioEnsaioId : cenarios[0];
   const modoAvanco: ModoAvanco = prefs.modoAvancoLocal ?? configApresentacao.modoAvanco;
-  const urlQr = `${origem}/e/${slug}`;
+  const urlQr = `${origem}${categoria ? rotaCategoria(slug, categoria.slug) : `/e/${slug}`}`;
   const local = /\/\/(localhost|127\.0\.0\.1)/.test(origem);
 
   const imagens = votaveis(ativo.candidatos)
@@ -135,6 +139,30 @@ export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
           </li>
         </ul>
       </Alerta>
+
+      {ativo.categorias.length > 0 && (
+        <Cartao className="flex flex-col gap-3">
+          <h2 className="text-xl font-bold">Categoria no telão</h2>
+          <p className="text-sm text-tema-texto-suave">
+            O telão apresenta uma categoria por vez: com a votação aberta, o QR Code leva à página dela; depois do encerramento, a revelação
+            é dela. Troque aqui para passar à próxima (o palco aberto troca junto).
+          </p>
+          <div role="radiogroup" aria-label="Categoria no telão" className="flex flex-wrap gap-2">
+            {ativo.categorias.map((c) => (
+              <Botao
+                key={c.id}
+                variante={categoriaId === c.id ? "primaria" : "contorno"}
+                tamanho="pequeno"
+                role="radio"
+                aria-checked={categoriaId === c.id}
+                onClick={() => definirCategoriaApresentacao(eventoId, c.id)}
+              >
+                {c.nome}
+              </Botao>
+            ))}
+          </div>
+        </Cartao>
+      )}
 
       <Cartao className="flex flex-col gap-4">
         <h2 className="text-xl font-bold">Modo</h2>

@@ -1,9 +1,11 @@
 "use client";
 
 import { CalendarDays, Clapperboard, Film, MapPin, type LucideIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
 import { useIdentidadePagina } from "@/components/evento/identidadePagina";
 import { LogoOrganizador } from "@/components/evento/MarcaOrganizador";
+import { rotaCategoria } from "@/dominio/categorias";
 import { cx } from "@/lib/classes";
 import { dividirTitulo } from "@/lib/rotulos";
 import { tokensCinema } from "@/lib/tema";
@@ -31,11 +33,19 @@ export function HeroCinema() {
   const lista = useCandidatosParaVotacao();
   const { organizador } = useIdentidadePagina();
   const { destacar } = useDestaqueCandidato();
+  const router = useRouter();
   if (!ativo || !situacao) return null;
   const { evento, tema } = ativo;
   const candidatos = lista?.itens.map((i) => i.candidato) ?? [];
   const n = candidatos.length;
   const { chamada, principal } = dividirTitulo(tema.nomeExibicao ?? evento.nome);
+  // Evento com categorias (09/11/2026): o cartaz leva à página da categoria do filme (não há lista na página inicial).
+  const aoEscolher = (candidatoId: string) => {
+    const categoriaId = candidatos.find((c) => c.id === candidatoId)?.categoriaId;
+    const categoria = ativo.categorias.find((c) => c.id === categoriaId);
+    if (categoria) router.push(rotaCategoria(ativo.slug, categoria.slug));
+    else destacar(candidatoId);
+  };
   const periodo =
     evento.janelaInicio && evento.janelaFim
       ? descreverPeriodo(paraMs(evento.janelaInicio), paraMs(evento.janelaFim), evento.fusoHorario)
@@ -114,12 +124,12 @@ export function HeroCinema() {
         </div>
 
         <div className="marca-subir hidden lg:block" style={atraso(200)}>
-          <PeliculaDupla candidatos={candidatos} aoEscolher={destacar} />
+          <PeliculaDupla candidatos={candidatos} aoEscolher={aoEscolher} />
         </div>
       </div>
 
       <div className="marca-subir pb-10 lg:hidden" style={atraso(380)}>
-        <PeliculaDeitada candidatos={candidatos} aoEscolher={destacar} />
+        <PeliculaDeitada candidatos={candidatos} aoEscolher={aoEscolher} />
       </div>
 
       <span aria-hidden className="cine-furos-h block h-[1.125rem] w-full bg-cine-pelicula" />

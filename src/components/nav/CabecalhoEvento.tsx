@@ -39,12 +39,15 @@ export function CabecalhoEvento() {
   const { organizador } = useIdentidadePagina();
   if (!ativo) return null;
   const { slug, evento, tema } = ativo;
-  if (pathname === `/e/${slug}/totem` || ui.palcoAtivo) return null;
+  // 09/11/2026: some também no QR Code de tela cheia das categorias (telão).
+  if (pathname === `/e/${slug}/totem` || pathname.startsWith(`/e/${slug}/qr/`) || ui.palcoAtivo) return null;
 
   // A apresentação (telão) é do MVP do Festival.
   const atalhos = sessao.logado ? atalhosDoPapel(slug, sessao.papel, votacaoAberta(evento)).filter((a) => MODULOS_FESTIVAL || a.id !== "APRESENTACAO") : [];
   // Evento indisponível: a casca mínima já mostra o estado.
-  const comFaixa = pathname === `/e/${slug}` && visao !== null && visao.variante !== "INDISPONIVEL";
+  // 09/11/2026: também nas páginas das categorias (Festival).
+  const naPaginaDeVoto = pathname === `/e/${slug}` || pathname.startsWith(`/e/${slug}/categoria/`);
+  const comFaixa = naPaginaDeVoto && visao !== null && visao.variante !== "INDISPONIVEL";
   const nome = tema.nomeExibicao ?? evento.nome;
 
   return (

@@ -957,3 +957,71 @@ dialog::backdrop {
     }
   }
 }
+
+/*
+ * Coração do voto nas categorias (09/11/2026, Festival): o coração estala (vv-estalo), uma onda de luz se abre atrás dele e
+ * coraçõezinhos sobem e somem em volta. Com prefers-reduced-motion, a regra geral zera as durações: o coração aparece parado,
+ * sem onda nem coraçõezinhos.
+ */
+@keyframes vv-coracao-onda {
+  from {
+    opacity: 0.55;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+.vv-coracao-onda {
+  animation: vv-coracao-onda 900ms 120ms ease-out both;
+}
+
+@keyframes vv-coracao-batida {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.12);
+  }
+  30% {
+    transform: scale(0.98);
+  }
+  45% {
+    transform: scale(1.06);
+  }
+}
+
+.vv-coracao-batida {
+  animation: vv-coracao-batida 1.4s 600ms ease-in-out 2;
+}
+
+@keyframes vv-coracaozinho {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1) rotate(var(--giro));
+  }
+}
+
+.vv-coracaozinho {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  animation: vv-coracaozinho 1.3s var(--atraso, 150ms) cubic-bezier(0.1, 0.7, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vv-coracao-onda,
+  .vv-coracaozinho {
+    display: none;
+  }
+}

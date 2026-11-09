@@ -26,7 +26,8 @@ const atraso = (ms: number) => ({ "--atraso": `${ms}ms` }) as CSSProperties;
  * Sem a seção na página, cai na navegação normal.
  */
 function irParaCandidatos(rota: string) {
-  const secao = document.getElementById("candidatos");
+  // 09/11/2026: em evento com categorias, a seção das categorias vem antes (e no lugar) da lista.
+  const secao = document.getElementById("categorias") ?? document.getElementById("candidatos");
   if (!secao) {
     window.location.assign(rota);
     return;
@@ -84,7 +85,7 @@ export function AcoesDoHero() {
           {jaVotou && (
             <p className="inline-flex min-h-12 grow items-center justify-center gap-2 rounded-full bg-white px-6 font-semibold text-marca-noite shadow-lg shadow-black/25 sm:grow-0">
               <CircleCheck aria-hidden className="size-5 text-tema-sucesso" />
-              Seu voto foi registrado
+              {ativo.categorias.length > 0 ? "Você votou em todas as categorias" : "Seu voto foi registrado"}
             </p>
           )}
           {evento.linkSobre && (

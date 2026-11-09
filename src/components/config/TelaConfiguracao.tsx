@@ -11,6 +11,7 @@ import { ChecklistAtivacao } from "./ChecklistAtivacao";
 import { FormularioSujoProvider } from "./FormularioSujoProvider";
 import { SECOES, SecaoNav } from "./SecaoNav";
 import { SecaoCandidatos } from "./candidatos/SecaoCandidatos";
+import { SecaoCategoriasConfig } from "./categorias/SecaoCategoriasConfig";
 import { FormGeral } from "./geral/FormGeral";
 import { SecaoJuri } from "./juri/SecaoJuri";
 import { SecaoOperacao } from "./operacao/SecaoOperacao";
@@ -57,6 +58,7 @@ export function TelaConfiguracao() {
 
   let conteudo;
   if (secao === "geral") conteudo = <FormGeral travas={travas} />;
+  else if (secao === "categorias") conteudo = <SecaoCategoriasConfig travas={travas} />;
   else if (secao === "candidatos") conteudo = <SecaoCandidatos travas={travas} />;
   else if (secao === "juri") conteudo = <SecaoJuri travas={travas} />;
   else if (secao === "totens") conteudo = <SecaoTotens travas={travas} />;

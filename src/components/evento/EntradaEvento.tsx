@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { SecaoCategorias } from "@/components/categorias/SecaoCategorias";
 import { ComoFuncionaCinema } from "@/components/landing/cinema/ComoFuncionaCinema";
 import { HeroCinema } from "@/components/landing/cinema/HeroCinema";
 import { ComoFunciona } from "@/components/landing/ComoFunciona";
@@ -10,6 +11,7 @@ import { Parceiros } from "@/components/landing/Parceiros";
 import { SecaoVotacao } from "@/components/votacao/SecaoVotacao";
 import { Alerta } from "@/components/ui/Alerta";
 import { ehRotaInterna } from "@/dominio/acesso";
+import { useEventoAtivo } from "@/store/seletores/evento";
 import { useVisaoEvento } from "@/store/seletores/visao";
 import { useSessao } from "@/store/seletores/sessao";
 import { AbrirAcessoAutomatico, type IntencaoAcesso } from "./AcessoEvento";
@@ -25,18 +27,23 @@ import { UrnaStatusCard } from "./UrnaStatusCard";
  * diferenças por papel virão depois. Nunca mostra resultado. `?de=`/`?acesso=` (volta de login) abrem o acesso.
  * 07/11/2026: o desenho segue a identidade do evento (identidadePagina.ts). No estilo cinema (Festival Ver e Fazer
  * Filmes), o hero, o "Como funciona" e os parceiros são os de cinema; a votação é a mesma, com os cartões em cartaz.
+ * 09/11/2026 (organograma do Festival): evento com categorias mostra, no lugar da lista, um botão por categoria; o voto do
+ * público é na página de cada uma. O jurado continua avaliando aqui, na lista de todos os itens. Os parceiros, nesse caso,
+ * vão para o pé de todas as páginas do evento (EventoShell).
  */
 export function EntradaEvento() {
   const visao = useVisaoEvento();
-  const { logado } = useSessao();
+  const ativo = useEventoAtivo();
+  const { logado, papel } = useSessao();
   const cinema = useIdentidadePagina().estilo === "cinema";
   const busca = useSearchParams();
   const de = busca.get("de");
   const acesso = busca.get("acesso");
   const erroGoogle = busca.get("erro") === "google";
   const intencao: IntencaoAcesso | undefined = acesso === "entrar" || acesso === "criar" ? acesso : undefined;
-  if (!visao) return null;
+  if (!visao || !ativo) return null;
   const deInterno = ehRotaInterna(de) ? de : undefined;
+  const comCategorias = ativo.categorias.length > 0;
 
   if (visao.variante === "INDISPONIVEL") {
     // Casca mínima (D2): sem hero.
@@ -59,10 +66,17 @@ export function EntradaEvento() {
       <DestaqueCandidatoProvider>
         {cinema ? <HeroCinema /> : <LandingHero />}
         {!logado && <AbrirAcessoAutomatico de={deInterno} intencao={intencao} />}
-        <SecaoVotacao />
+        {comCategorias ? (
+          <>
+            <SecaoCategorias />
+            {papel === "JURADO" && <SecaoVotacao />}
+          </>
+        ) : (
+          <SecaoVotacao />
+        )}
       </DestaqueCandidatoProvider>
       {cinema ? <ComoFuncionaCinema /> : <ComoFunciona />}
-      <Parceiros cinema={cinema} />
+      {!comCategorias && <Parceiros cinema={cinema} />}
     </>
   );
 }

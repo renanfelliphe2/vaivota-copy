@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, CircleCheck, EyeOff, FilePen, Pencil, Trash2, Vote } from "lucide-react";
+import { Ban, CircleCheck, EyeOff, FilePen, Layers, Pencil, Trash2, Vote } from "lucide-react";
 import type { Travas } from "@/dominio/travas";
 import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
 import { Botao } from "@/components/ui/Botao";
@@ -36,7 +36,7 @@ export function CartaoCandidatoAdmin({
   ocupado: boolean;
   acoes: AcoesCartaoAdmin;
 }) {
-  const { candidato, estado } = item;
+  const { candidato, estado, categoria } = item;
   const selo = SELOS[estado];
   const podePublicar = travas.permite("CANDIDATOS_PUBLICACAO");
   const podeDesqualificar = travas.permite("CANDIDATOS_DESQUALIFICAR");
@@ -53,6 +53,11 @@ export function CartaoCandidatoAdmin({
           <Selo variante={selo.variante} icone={selo.icone}>
             {selo.texto}
           </Selo>
+          {categoria && (
+            <Selo variante="neutro" icone={Layers}>
+              {categoria.nome}
+            </Selo>
+          )}
         </div>
         <h3 id={`adm-${candidato.id}`} className={cx("line-clamp-2 font-bold", fora && "line-through")}>
           {candidato.titulo}

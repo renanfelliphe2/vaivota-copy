@@ -16,9 +16,21 @@ export function ComoFunciona() {
   if (!ativo) return null;
   const rotulos = minusculas(ativo.tema.rotuloCandidatos);
   const temCandidatos = votaveis(ativo.candidatos).length > 0;
+  // Evento com categorias (09/11/2026): um voto em cada categoria, e o atalho leva às categorias.
+  const comCategorias = ativo.categorias.length > 0;
   const passos = [
-    { icone: Eye, titulo: "Conheça", texto: `Veja os ${rotulos} em votação neste evento.` },
-    { icone: Vote, titulo: "Vote", texto: "Crie sua conta, escolha seu favorito e confirme. Cada pessoa vota uma vez." },
+    {
+      icone: Eye,
+      titulo: "Conheça",
+      texto: comCategorias ? `Escolha uma categoria e veja os ${rotulos} dela.` : `Veja os ${rotulos} em votação neste evento.`,
+    },
+    {
+      icone: Vote,
+      titulo: "Vote",
+      texto: comCategorias
+        ? "Entre na sua conta, toque no seu favorito e confirme. Você vota uma vez em cada categoria."
+        : "Crie sua conta, escolha seu favorito e confirme. Cada pessoa vota uma vez.",
+    },
     { icone: Trophy, titulo: "Acompanhe", texto: "O resultado é divulgado pela organização do evento." },
   ];
 
@@ -60,10 +72,10 @@ export function ComoFunciona() {
           </p>
           {temCandidatos && (
             <a
-              href="#candidatos"
+              href={comCategorias ? "#categorias" : "#candidatos"}
               className="inline-flex min-h-12 items-center gap-2 rounded-full bg-marca-noite px-7 font-semibold text-white shadow-lg shadow-marca-noite/25 transition hover:-translate-y-0.5"
             >
-              Ver {rotulos}
+              {comCategorias ? "Ver as categorias" : `Ver ${rotulos}`}
               <ArrowUp aria-hidden className="size-5" />
             </a>
           )}
