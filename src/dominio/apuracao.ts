@@ -166,3 +166,25 @@ export function apurar(entrada: EntradaApuracao): DadosResultado {
     empates,
   };
 }
+
+/**
+ * Evento com categorias (09/11/2026): a mesma apuração de sempre, uma vez por categoria, só com os itens dela (os votos de cada
+ * grupo já são por item, então cada categoria tem os seus totais, o seu ranking e o seu vencedor). Sem categorias, `apurar` puro.
+ * Item sem categoria entra só na apuração geral.
+ */
+export function apurarComCategorias(
+  entrada: Omit<EntradaApuracao, "candidatos"> & { candidatos: (EntradaApuracao["candidatos"][number] & { categoriaId: string | null })[] },
+  categorias: readonly { id: string; nome: string; premio: string | null }[],
+): DadosResultado {
+  const geral = apurar(entrada);
+  if (categorias.length === 0) return geral;
+  return {
+    ...geral,
+    porCategoria: categorias.map((c) => ({
+      categoriaId: c.id,
+      nome: c.nome,
+      premio: c.premio,
+      dados: apurar({ ...entrada, candidatos: entrada.candidatos.filter((x) => x.categoriaId === c.id) }),
+    })),
+  };
+}

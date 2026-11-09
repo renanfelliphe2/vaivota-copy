@@ -25,8 +25,17 @@ async function resultadoAtual(eventoId: string): Promise<ResultadoLinha | null> 
   return db().resultadoOficial.findFirst({ where: { eventoId }, orderBy: { versao: "desc" } });
 }
 
-function assinaturaDe(r: ResultadoLinha, fuso: string): string {
-  return assinaturaDoResultado({
+/**
+ * Evento com categorias (09/11/2026): a apuração da categoria pedida (null se a versão não tem essa categoria); sem categoria
+ * pedida, a do evento. A assinatura leva a categoria: a revelação de cada uma tem o seu próprio progresso.
+ */
+function escopoDoResultado(dados: DadosResultado, categoriaId: string | undefined): DadosResultado | null {
+  if (!categoriaId) return dados;
+  return dados.porCategoria?.find((c) => c.categoriaId === categoriaId)?.dados ?? null;
+}
+
+function assinaturaDe(r: ResultadoLinha, fuso: string, categoriaId?: string): string {
+  const base = assinaturaDoResultado({
     versao: r.versao,
     motivo: r.motivo as MotivoResultado,
     calculadoEm: instante(r.calculadoEm, fuso),
@@ -35,16 +44,26 @@ function assinaturaDe(r: ResultadoLinha, fuso: string): string {
     pesoInfantil: r.pesoInfantil,
     dados: r.dados as DadosResultado,
   });
+  return categoriaId ? `${base}:${categoriaId}` : base;
 }
 
-export async function obterStatusResultado(usuario: UsuarioSessao | null, eventoId: string): Promise<Resultado<StatusResultado>> {
+export async function obterStatusResultado(
+  usuario: UsuarioSessao | null,
+  eventoId: string,
+  categoriaId?: string,
+): Promise<Resultado<StatusResultado>> {
   const admin = await exigirAdmin(usuario, eventoId);
   if (!admin.ok) return admin;
   const { evento } = admin.dados;
   try {
     // Sem resultado fora das fases de encerramento: a versão só existe depois que a urna fecha.
     const atual = faseComResultado(evento) ? await resultadoAtual(eventoId) : null;
-    return sucesso({ existe: atual !== null, versao: atual?.versao ?? null, assinatura: atual ? assinaturaDe(atual, evento.fusoHorario) : null });
+    const existe = atual !== null && escopoDoResultado(atual.dados as DadosResultado, categoriaId) !== null;
+    return sucesso({
+      existe,
+      versao: existe ? atual.versao : null,
+      assinatura: existe ? assinaturaDe(atual, evento.fusoHorario, categoriaId) : null,
+    });
   } catch (e) {
     return falhaInterna(e, "obterStatusResultado");
   }
@@ -83,8 +102,11 @@ export async function obterEstadoAoVivo(usuario: UsuarioSessao | null, eventoId:
   }
 }
 
-/** Uma vez por cerimônia: o resultado oficial como o palco o lê (a versão mais recente, com os itens publicados no momento). */
-export async function carregarRevelacao(usuario: UsuarioSessao | null, eventoId: string): Promise<Resultado<DadosRevelacao>> {
+/**
+ * Uma vez por cerimônia: o resultado oficial como o palco o lê (a versão mais recente, com os itens publicados no momento).
+ * Evento com categorias (09/11/2026): a revelação é de uma categoria por vez (`categoriaId`), com a apuração e os itens dela.
+ */
+export async function carregarRevelacao(usuario: UsuarioSessao | null, eventoId: string, categoriaId?: string): Promise<Resultado<DadosRevelacao>> {
   const admin = await exigirAdmin(usuario, eventoId);
   if (!admin.ok) return admin;
   const { evento } = admin.dados;
@@ -94,19 +116,20 @@ export async function carregarRevelacao(usuario: UsuarioSessao | null, eventoId:
       resultadoAtual(eventoId),
       db().configApresentacao.findUnique({ where: { eventoId } }),
       db().candidato.findMany({
-        where: { eventoId, publicado: true },
+        where: { eventoId, publicado: true, ...(categoriaId ? { categoriaId } : {}) },
         orderBy: [{ ordem: "asc" }, { id: "asc" }],
         select: { id: true, titulo: true, imagemUrl: true, ordem: true },
       }),
     ]);
     if (!atual || !config) return falha("RESULTADO_INDISPONIVEL", { detalhe: "sem versão" });
-    const dados = atual.dados as unknown as DadosResultado;
+    const dados = escopoDoResultado(atual.dados as unknown as DadosResultado, categoriaId);
+    if (!dados) return falha("RESULTADO_INDISPONIVEL", { detalhe: `versão ${atual.versao} sem a categoria ${categoriaId}` });
     const fuso = evento.fusoHorario;
     return sucesso({
       versao: atual.versao,
       motivo: atual.motivo as MotivoResultado,
       calculadoEm: instante(atual.calculadoEm, fuso),
-      assinatura: assinaturaDe(atual, fuso),
+      assinatura: assinaturaDe(atual, fuso, categoriaId),
       pesos: { POPULAR: atual.pesoPopular, JURI: atual.pesoJuri, INFANTIL: atual.pesoInfantil },
       dados,
       candidatos: publicados,

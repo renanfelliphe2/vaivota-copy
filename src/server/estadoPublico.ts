@@ -6,6 +6,7 @@ import {
   apresentacaoParaDominio,
   campoParaDominio,
   candidatoParaDominio,
+  categoriaParaDominio,
   convitePublicoParaDominio,
   criterioParaDominio,
   dispositivoPublicoParaDominio,
@@ -35,7 +36,7 @@ const global = globalThis as unknown as { __vaivotaSnapshot?: Snapshot };
 function carregarEventos(ids?: string[]) {
   return db().evento.findMany({
     ...(ids ? { where: { id: { in: ids } } } : {}),
-    include: { tema: true, configPlacar: true, configApresentacao: true, camposCandidato: true, criteriosJuri: true, parceiros: true },
+    include: { tema: true, configPlacar: true, configApresentacao: true, camposCandidato: true, categorias: true, criteriosJuri: true, parceiros: true },
     orderBy: { criadoEm: "asc" },
   });
 }
@@ -63,7 +64,10 @@ export function invalidarEstadoPublico(): void {
 
 export async function montarEstadoPublico(usuario: UsuarioSessao | null, agoraMs = Date.now()): Promise<EstadoPublico> {
   const [participacoes, fotoComum] = await Promise.all([
-    usuario ? db().participacao.findMany({ where: { usuarioId: usuario.id } }) : Promise.resolve([]),
+    // Com as categorias em que a pessoa já votou (evento com categorias): só os ids, nunca em quem.
+    usuario
+      ? db().participacao.findMany({ where: { usuarioId: usuario.id }, include: { categoriasVotadas: { select: { categoriaId: true } } } })
+      : Promise.resolve([]),
     snapshot(agoraMs),
   ]);
   const adminDe = new Set(participacoes.filter((p) => p.papel === "ADMIN").map((p) => p.eventoId));
@@ -102,12 +106,13 @@ export async function montarEstadoPublico(usuario: UsuarioSessao | null, agoraMs
       configPlacar: placarParaDominio(e.configPlacar, fuso),
       configApresentacao: apresentacaoParaDominio(e.configApresentacao, fuso),
       camposCandidato: [...e.camposCandidato].sort((a, b) => a.ordem - b.ordem).map(campoParaDominio),
+      categorias: [...e.categorias].sort((a, b) => a.ordem - b.ordem || a.id.localeCompare(b.id)).map(categoriaParaDominio),
       candidatos: linhas.map((c) => candidatoParaDominio(c, fuso, usuario?.id ?? null)),
       criteriosJuri: e.moduloJuri ? [...e.criteriosJuri].sort((a, b) => a.ordem - b.ordem || a.id.localeCompare(b.id)).map(criterioParaDominio) : [],
       parceiros: ehAdmin || !rascunho ? [...e.parceiros].sort((a, b) => a.ordem - b.ordem || a.id.localeCompare(b.id)).map(parceiroParaDominio) : [],
       convitesJurado: ehAdmin ? convitesDoAdmin.filter((c) => c.eventoId === e.id).map((c) => convitePublicoParaDominio(c, fuso)) : [],
       dispositivos: ehAdmin ? dispositivosDoAdmin.filter((d) => d.eventoId === e.id).map((d) => dispositivoPublicoParaDominio(d, fuso)) : [],
-      participacao: minha ? participacaoParaDominio(minha) : null,
+      participacao: minha ? participacaoParaDominio(minha, minha.categoriasVotadas.map((c) => c.categoriaId)) : null,
     });
   }
 

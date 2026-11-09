@@ -1,6 +1,6 @@
 import "server-only";
 import type { Evento as EventoLinha } from "@/generated/prisma/client";
-import { avaliarChecklist, checklistTemBloqueio, type EntradaChecklist } from "@/dominio/checklistAtivacao";
+import { avaliarChecklist, checklistTemBloqueio, contarCategorias, type EntradaChecklist } from "@/dominio/checklistAtivacao";
 import { avaliarContrasteTema } from "@/dominio/contrasteTema";
 import type { OrigemEncerramento } from "@/dominio/tipos";
 import { resolverFaseConfig } from "@/dominio/travas";
@@ -43,6 +43,10 @@ export async function entradaDoChecklist(
     : 0;
   const dominio = eventoParaDominio(evento);
   const dispositivosAtivos = evento.moduloInfantil ? await cliente.dispositivo.count({ where: { eventoId, estado: "ATIVO" } }) : 0;
+  const [categorias, votaveis] = await Promise.all([
+    cliente.categoria.findMany({ where: { eventoId }, select: { id: true } }),
+    cliente.candidato.findMany({ where: { eventoId, publicado: true, desqualificado: false }, select: { categoriaId: true } }),
+  ]);
   return {
     agoraMs,
     qtdVotaveis,
@@ -55,6 +59,10 @@ export async function entradaDoChecklist(
     temaAprovado: avaliarContrasteTema(temaParaDominio(evento.tema, dominio.fusoHorario)).aprovado,
     dispositivosAtivos,
     trailerConfigurado: false,
+    categorias: contarCategorias(
+      categorias.map((c) => c.id),
+      votaveis.map((c) => c.categoriaId),
+    ),
   };
 }
 

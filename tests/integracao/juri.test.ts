@@ -456,12 +456,12 @@ describe("voto único do júri", () => {
 
   it("consultarEstadoVoto devolve ao jurado o voto dele; ao público, nunca o candidato", async () => {
     const jurado = await criarUsuarioDireto(eventoId, "JURADO");
-    expect(await consultarEstadoVoto(jurado, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: false, candidatoAtualId: null } });
+    expect(await consultarEstadoVoto(jurado, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: false, candidatoAtualId: null, categoriasVotadas: [] } });
     await votarJuri(jurado, { eventoId, candidatoId: c[2] }, ctx);
-    expect(await consultarEstadoVoto(jurado, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: true, candidatoAtualId: c[2] } });
+    expect(await consultarEstadoVoto(jurado, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: true, candidatoAtualId: c[2], categoriasVotadas: [] } });
     const publico = await criarUsuarioDireto(eventoId);
     await votarPopular(publico, { eventoId, candidatoId: c[2] }, ctx);
-    expect(await consultarEstadoVoto(publico, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: true, candidatoAtualId: null } });
+    expect(await consultarEstadoVoto(publico, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: true, candidatoAtualId: null, categoriasVotadas: [] } });
   });
 
   it("só jurado vota como jurado, e jurado não vota como público", async () => {

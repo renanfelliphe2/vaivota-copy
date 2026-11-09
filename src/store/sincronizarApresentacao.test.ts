@@ -16,7 +16,14 @@ const REVELACAO: NonNullable<EstadoUiApresentacao["revelacao"]> = {
   iniciadaEm: "2026-11-27T20:00:00-03:00",
 };
 
-const APRESENTACAO: EstadoUiApresentacao = { chave: "u1:e1", modoSala: "ENSAIO", cenarioEnsaioId: "SEM_EMPATE", modoAvancoLocal: "MANUAL", revelacao: REVELACAO };
+const APRESENTACAO: EstadoUiApresentacao = {
+  chave: "u1:e1",
+  modoSala: "ENSAIO",
+  cenarioEnsaioId: "SEM_EMPATE",
+  modoAvancoLocal: "MANUAL",
+  categoriaId: "cat-1",
+  revelacao: REVELACAO,
+};
 
 /** Uma "aba": um store próprio, ligado ao mesmo canal e ao mesmo localStorage das outras. */
 function aba() {

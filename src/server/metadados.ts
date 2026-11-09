@@ -40,3 +40,23 @@ export function metadadosDaTela(tela: string) {
     return { ...base, title: `${tela} · ${nome}` };
   };
 }
+
+/** Página e QR Code de uma categoria (09/11/2026): `{categoria} · {nome do evento}`; categoria desconhecida, só o evento. */
+export async function obterMetadadosCategoria(slug: string, slugCategoria: string): Promise<Metadata> {
+  const base = await obterMetadadosEvento(slug);
+  const evento = await eventoDoSlug(slug);
+  if (!evento) return base;
+  const nome = evento.tema?.nomeExibicao ?? evento.nome;
+  try {
+    const categoria = await db().categoria.findFirst({
+      where: { slug: slugCategoria, evento: { slug } },
+      select: { nome: true, premio: true },
+    });
+    if (!categoria) return base;
+    const titulo = categoria.premio ? `${categoria.nome} · ${categoria.premio}` : categoria.nome;
+    return { ...base, title: `${titulo} · ${nome}`, description: `Vote em ${categoria.nome}: ${base.description ?? ""}`.trim() };
+  } catch (erro) {
+    console.error("[servidor] metadados: não foi possível ler a categoria:", erro);
+    return base;
+  }
+}

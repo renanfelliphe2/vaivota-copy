@@ -33,6 +33,7 @@ export function restaurarNucleo(estado: EstadoApp, eventoId: string): EstadoApp 
     configsPlacar: [...fora(atual.configsPlacar), ...doEvento(n.configsPlacar)],
     configsApresentacao: [...fora(atual.configsApresentacao), ...doEvento(n.configsApresentacao)],
     camposCandidato: [...fora(atual.camposCandidato), ...doEvento(n.camposCandidato)],
+    categorias: [...fora(atual.categorias), ...doEvento(n.categorias)],
     candidatos: [...fora(atual.candidatos), ...doEvento(n.candidatos)],
     usuarios,
     participacoes,

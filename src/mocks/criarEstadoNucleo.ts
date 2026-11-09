@@ -52,6 +52,7 @@ export function criarEstadoNucleo(): EstadoApp {
     configsPlacar: seedConfigsPlacar,
     configsApresentacao: seedConfigsApresentacao,
     camposCandidato: seedCamposCandidato,
+    categorias: [],
     candidatos: seedCandidatos,
     usuarios: seedUsuarios,
     participacoes: seedParticipacoes,

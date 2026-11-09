@@ -16,6 +16,7 @@ function candidato(eventoId: string, criadoEm: string, ordem: number, base: Base
     publicado: true,
     desqualificado: false,
     usuarioVinculadoId: null,
+    categoriaId: null,
     ordem,
     criadoEm,
     atualizadoEm: criadoEm,

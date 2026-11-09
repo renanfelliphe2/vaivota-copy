@@ -46,6 +46,7 @@ export function candidato(id: string, ordem: number): Candidato {
     ordem,
     camposExtras: null,
     usuarioVinculadoId: null,
+    categoriaId: null,
     criadoEm: AGORA,
     atualizadoEm: AGORA,
   };
@@ -98,6 +99,7 @@ export function publico(sobrescrever: Partial<EstadoPublico> = {}): EstadoPublic
         },
         camposCandidato: [{ id: "c1", eventoId: "evt-1", chave: "equipe", rotulo: "Equipe", ordem: 1 }],
         candidatos: [candidato("k1", 1), candidato("k2", 2)],
+        categorias: [],
         criteriosJuri: [],
         parceiros: [],
         convitesJurado: [],

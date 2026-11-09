@@ -229,6 +229,7 @@ model Evento {
   configPlacar       ConfigPlacar?
   configApresentacao ConfigApresentacao?
   camposCandidato    CampoCandidato[]
+  categorias         Categoria[]
   candidatos         Candidato[]
   criteriosJuri      CriterioJuri[]
   parceiros          Parceiro[]
@@ -316,6 +317,33 @@ model CampoCandidato {
   @@map("campo_candidato")
 }
 
+// Categoria de premiação dentro do evento (Festival, 09/11/2026), ex.: "Mostra Infantil", prêmio "Melhor filme". Cada uma tem os
+// seus itens, a sua página (/e/[slug]/categoria/[slug da categoria]), o seu QR Code e o seu voto popular: a pessoa vota uma vez em
+// CADA categoria. Evento sem categorias segue com a urna única de sempre. Categoria com item ou voto não é removida (o serviço
+// recusa; as FKs também). CHECKs na migração: nome com 2 caracteres ou mais e ordem >= 0.
+model Categoria {
+  id           String   @id @default(uuid())
+  eventoId     String   @map("evento_id")
+  slug         String   @db.VarChar(60)
+  nome         String   @db.VarChar(80)
+  // Nome do prêmio, opcional (ex.: "Melhor filme Júri Popular").
+  premio       String?  @db.VarChar(80)
+  ordem        Int      @default(0)
+  criadoEm     DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm DateTime @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+
+  evento Evento @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+
+  candidatos Candidato[]
+  votantes   ParticipacaoCategoria[]
+
+  @@unique([eventoId, slug])
+  // Alvo das FKs compostas (mesmo evento).
+  @@unique([id, eventoId])
+  @@index([eventoId, ordem])
+  @@map("categoria")
+}
+
 model Candidato {
   id                 String   @id @default(uuid())
   eventoId           String   @map("evento_id")
@@ -330,23 +358,27 @@ model Candidato {
   camposExtras       Json?    @map("campos_extras")
   // Opcional: usuário ligado ao candidato (para a regra de voto em si mesmo).
   usuarioVinculadoId String?  @map("usuario_vinculado_id")
+  // Categoria do item (Festival). Null em evento sem categorias. FK composta: só categoria do mesmo evento.
+  categoriaId        String?  @map("categoria_id")
   criadoEm           DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
   atualizadoEm       DateTime @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
-  evento           Evento   @relation(fields: [eventoId], references: [id], onDelete: Restrict)
-  usuarioVinculado Usuario? @relation(fields: [usuarioVinculadoId], references: [id], onDelete: SetNull)
+  evento           Evento     @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  usuarioVinculado Usuario?   @relation(fields: [usuarioVinculadoId], references: [id], onDelete: SetNull)
+  categoria        Categoria? @relation(fields: [categoriaId, eventoId], references: [id, eventoId], onDelete: Restrict)
 
   votos                 Voto[]
   votosJuri             VotoJuri[]
   notasJuri             NotaJuri[]
   escolhasCriterioJuri  EscolhaCriterioJuri[]
   votosInfantis         VotoInfantil[]
-  historicoComoAnterior HistoricoVotoJuri[] @relation("HistoricoAnterior")
-  historicoComoNovo     HistoricoVotoJuri[] @relation("HistoricoNovo")
+  historicoComoAnterior HistoricoVotoJuri[]   @relation("HistoricoAnterior")
+  historicoComoNovo     HistoricoVotoJuri[]   @relation("HistoricoNovo")
 
   // Alvo das FKs compostas dos votos (garante mesmo evento).
   @@unique([id, eventoId])
   @@index([eventoId, publicado])
+  @@index([categoriaId, eventoId])
   @@map("candidato")
 }
 
@@ -370,6 +402,7 @@ model Participacao {
   votoJuri             VotoJuri?
   notasJuri            NotaJuri[]
   escolhasCriterioJuri EscolhaCriterioJuri[]
+  categoriasVotadas    ParticipacaoCategoria[]
 
   // Um usuário, uma participação por evento.
   @@unique([usuarioId, eventoId])
@@ -377,6 +410,22 @@ model Participacao {
   @@unique([id, eventoId])
   @@index([eventoId, papel])
   @@map("participacao")
+}
+
+// Voto popular por categoria (Festival, 09/11/2026): marca SE a participação já votou naquela categoria, nunca em quem. Sem
+// horário (sigilo), como a participação. A chave primária (participação, categoria) garante, no banco, um voto por pessoa em cada
+// categoria: o INSERT desta linha e o do voto vão na mesma transação.
+model ParticipacaoCategoria {
+  participacaoId String @map("participacao_id")
+  categoriaId    String @map("categoria_id")
+  eventoId       String @map("evento_id")
+
+  participacao Participacao @relation(fields: [participacaoId, eventoId], references: [id, eventoId], onDelete: Restrict)
+  categoria    Categoria    @relation(fields: [categoriaId, eventoId], references: [id, eventoId], onDelete: Restrict)
+
+  @@id([participacaoId, categoriaId])
+  @@index([eventoId, categoriaId])
+  @@map("participacao_categoria")
 }
 
 // Voto popular: SEM referência ao usuário (sigilo).

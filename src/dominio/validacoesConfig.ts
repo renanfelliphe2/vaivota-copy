@@ -98,6 +98,8 @@ export type DadosCandidato = {
   titulo: string;
   imagemUrl: string | null;
   camposExtras: Record<string, string>;
+  /** Categoria do item (09/11/2026). Ausente: não muda (o formulário só manda em evento com categorias). null: sem categoria. */
+  categoriaId?: string | null;
 };
 
 /** `naVotacao`: o candidato já está na votação (imagem obrigatória, D12). */

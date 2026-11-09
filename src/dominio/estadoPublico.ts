@@ -1,5 +1,6 @@
 import type {
   CampoCandidato,
+  Categoria,
   Candidato,
   ConfigApresentacao,
   ConfigPlacar,
@@ -36,6 +37,8 @@ export type EventoPublico = {
   configPlacar: ConfigPlacar;
   configApresentacao: ConfigApresentacao;
   camposCandidato: CampoCandidato[];
+  /** Categorias do evento (09/11/2026), na ordem. Vazio em evento sem categorias (urna única). */
+  categorias: Categoria[];
   candidatos: Candidato[];
   /** Critérios de avaliação do júri (Festival). Vazio com o módulo júri desligado. Só nomes: nenhuma nota chega aqui. */
   criteriosJuri: CriterioJuri[];
@@ -45,7 +48,7 @@ export type EventoPublico = {
   convitesJurado: ConvitePublico[];
   /** Só o admin do evento recebe (checklist de ativação do totem); para os demais, vazio. */
   dispositivos: DispositivoPublico[];
-  /** Só a da própria pessoa. */
+  /** Só a da própria pessoa (com as categorias em que ela já votou, nunca em quem). */
   participacao: Participacao | null;
 };
 

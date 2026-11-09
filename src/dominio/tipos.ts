@@ -199,6 +199,21 @@ export type CampoCandidato = {
   ordem: number;
 };
 
+/**
+ * Categoria de premiação do evento (Festival, 09/11/2026), ex.: "Mostra Infantil", prêmio "Melhor filme". Cada uma tem os seus
+ * itens, a sua página (/e/[slug]/categoria/[slug]), o seu QR Code e o seu voto popular: a pessoa vota uma vez em CADA categoria.
+ * Evento sem categorias segue com a urna única de sempre.
+ */
+export type Categoria = {
+  id: string;
+  eventoId: string;
+  slug: string;
+  nome: string;
+  /** Nome do prêmio, opcional (ex.: "Melhor filme Júri Popular"). */
+  premio: string | null;
+  ordem: number;
+};
+
 export type Candidato = {
   id: string;
   eventoId: string;
@@ -210,17 +225,23 @@ export type Candidato = {
   ordem: number;
   camposExtras: Record<string, string> | null;
   usuarioVinculadoId: string | null;
+  /** Categoria do item (09/11/2026). Null em evento sem categorias. */
+  categoriaId: string | null;
   criadoEm: Instante;
   atualizadoEm: Instante;
 };
 
-/** Sigilo: nenhum horário (nem do voto, nem da criação). */
+/**
+ * Sigilo: nenhum horário (nem do voto, nem da criação). Em evento com categorias, `votou` liga no primeiro voto e
+ * `categoriasVotadas` diz em quais categorias a pessoa já votou (nunca em quem); ausente = nenhuma.
+ */
 export type Participacao = {
   id: string;
   usuarioId: string;
   eventoId: string;
   papel: PapelParticipacao;
   votou: boolean;
+  categoriasVotadas?: string[];
 };
 
 /** Voto popular: sem referência ao usuário (sigilo). */
@@ -351,6 +372,20 @@ export type DadosResultado = {
     resolvido: boolean;
     vencedorId?: string;
   }[];
+  /**
+   * Evento com categorias (09/11/2026): a apuração de cada categoria, só com os itens dela (cada uma com o seu ranking e o seu
+   * vencedor), na ordem das categorias. O resto deste objeto é a apuração de todos os itens juntos, que essas telas não mostram.
+   * Ausente em evento sem categorias.
+   */
+  porCategoria?: ResultadoCategoria[];
+};
+
+/** Resultado de uma categoria (09/11/2026): o nome e o prêmio como estavam no congelamento, e a apuração só dos itens dela. */
+export type ResultadoCategoria = {
+  categoriaId: string;
+  nome: string;
+  premio: string | null;
+  dados: DadosResultado;
 };
 
 export type ResultadoOficial = {
@@ -390,6 +425,7 @@ export type Banco = {
   configsPlacar: ConfigPlacar[];
   configsApresentacao: ConfigApresentacao[];
   camposCandidato: CampoCandidato[];
+  categorias: Categoria[];
   candidatos: Candidato[];
   usuarios: Usuario[];
   participacoes: Participacao[];
@@ -413,6 +449,11 @@ export type EstadoUiApresentacao = {
   modoSala: "REAL" | "ENSAIO";
   cenarioEnsaioId: string | null;
   modoAvancoLocal: ModoAvanco | null;
+  /**
+   * Evento com categorias (09/11/2026): a categoria que o telão apresenta (o QR Code do ao vivo e a revelação são dela). null =
+   * a primeira. Sem categorias, ignorado.
+   */
+  categoriaId: string | null;
   revelacao: {
     eventoId: string;
     assinatura: string;

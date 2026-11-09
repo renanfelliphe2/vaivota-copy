@@ -1,6 +1,6 @@
 import "server-only";
 import type { DadosResultado } from "@/dominio/tipos";
-import { comTotal, idsDosVencedores, ordenarVotacoes, type VotacaoEncerrada } from "@/dominio/votacoesEncerradas";
+import { comTotal, idsDosVencedores, idsDosVencedoresPorCategoria, ordenarVotacoes, type VotacaoEncerrada } from "@/dominio/votacoesEncerradas";
 import { db } from "./db";
 
 // Landing da plataforma (07/11/2026): participantes e votos de cada evento com a urna ENCERRADA e, com o evento CONCLUIDO,
@@ -53,11 +53,16 @@ async function carregar(): Promise<VotacaoEncerrada[]> {
   if (eventos.length === 0) return [];
 
   const ids = eventos.map((e) => e.id);
-  // O vencedor só é lido de evento concluído: o do ainda ativo nem sai do banco.
-  const vencedoresDe = new Map(
-    eventos
-      .filter((e) => e.estado === "CONCLUIDO")
-      .map((e) => [e.id, idsDosVencedores((e.resultados[0]?.dados as DadosResultado | null)?.ranking)]),
+  // O vencedor só é lido de evento concluído: o do ainda ativo nem sai do banco. Evento com categorias (09/11/2026): o primeiro
+  // lugar de cada categoria (`vencedores` junta todos, para as imagens).
+  const concluidos = eventos.filter((e) => e.estado === "CONCLUIDO");
+  const dadosDe = (e: (typeof eventos)[number]) => (e.resultados[0]?.dados as DadosResultado | null) ?? null;
+  const porCategoriaDe = new Map(concluidos.map((e) => [e.id, idsDosVencedoresPorCategoria(dadosDe(e))]));
+  const vencedoresDe = new Map<string, string[]>(
+    concluidos.map((e) => {
+      const porCategoria = porCategoriaDe.get(e.id);
+      return [e.id, porCategoria ? [...new Set(porCategoria.flatMap((c) => c.ids))] : idsDosVencedores(dadosDe(e)?.ranking)];
+    }),
   );
   const [participacoes, votos, infantis, candidatos] = await Promise.all([
     db().participacao.groupBy({
@@ -104,6 +109,14 @@ async function carregar(): Promise<VotacaoEncerrada[]> {
             .filter((c) => c !== undefined)
             .map((c) => ({ id: c.id, titulo: c.titulo, imagemUrl: c.imagemUrl }))
         : null,
+      vencedoresPorCategoria:
+        porCategoriaDe.get(e.id)?.map((c) => ({
+          categoria: c.categoria,
+          vencedores: c.ids
+            .map((id) => candidatos.find((x) => x.id === id && x.eventoId === e.id))
+            .filter((x) => x !== undefined)
+            .map((x) => ({ id: x.id, titulo: x.titulo, imagemUrl: x.imagemUrl })),
+        })) ?? null,
     });
   }
   return ordenarVotacoes(votacoes);

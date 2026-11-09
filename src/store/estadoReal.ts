@@ -14,6 +14,7 @@ function bancoVazio(): Banco {
     configsPlacar: [],
     configsApresentacao: [],
     camposCandidato: [],
+    categorias: [],
     candidatos: [],
     usuarios: [],
     participacoes: [],
@@ -54,6 +55,7 @@ export function bancoDoServidor(publico: EstadoPublico): Pick<EstadoApp, "banco"
     banco.configsPlacar.push(e.configPlacar);
     banco.configsApresentacao.push(e.configApresentacao);
     banco.camposCandidato.push(...e.camposCandidato);
+    banco.categorias.push(...e.categorias);
     banco.candidatos.push(...e.candidatos);
     banco.criteriosJuri.push(...e.criteriosJuri);
     banco.parceiros.push(...e.parceiros);

@@ -3,7 +3,8 @@
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
 import { criteriosDoEvento } from "@/dominio/avaliacaoJuri";
-import type { CampoCandidato, Candidato, ConfigApresentacao, ConfigPlacar, CriterioJuri, Evento, Parceiro, Tema } from "@/dominio/tipos";
+import { categoriasDoEvento } from "@/dominio/categorias";
+import type { CampoCandidato, Candidato, Categoria, ConfigApresentacao, ConfigPlacar, CriterioJuri, Evento, Parceiro, Tema } from "@/dominio/tipos";
 import { useStore } from "../AppProvider";
 
 export type EventoAtivo = {
@@ -13,6 +14,8 @@ export type EventoAtivo = {
   configPlacar: ConfigPlacar;
   configApresentacao: ConfigApresentacao;
   camposCandidato: CampoCandidato[];
+  /** Categorias (09/11/2026), ordenadas. Vazio em evento sem categorias (urna única). */
+  categorias: Categoria[];
   candidatos: Candidato[];
   /** Critérios do júri (08/10/2026), ordenados. Configuração pública, como os campos extras. */
   criteriosJuri: CriterioJuri[];
@@ -39,6 +42,7 @@ export function useEventoAtivo(): EventoAtivo | null {
   const configsPlacar = useStore((e) => e.banco.configsPlacar);
   const configsApresentacao = useStore((e) => e.banco.configsApresentacao);
   const camposCandidato = useStore((e) => e.banco.camposCandidato);
+  const categorias = useStore((e) => e.banco.categorias);
   const candidatos = useStore((e) => e.banco.candidatos);
   const criteriosJuri = useStore((e) => e.banco.criteriosJuri);
   const parceiros = useStore((e) => e.banco.parceiros);
@@ -57,11 +61,12 @@ export function useEventoAtivo(): EventoAtivo | null {
       configPlacar,
       configApresentacao,
       camposCandidato: camposCandidato.filter((c) => c.eventoId === evento.id).sort((a, b) => a.ordem - b.ordem),
+      categorias: categoriasDoEvento(categorias, evento.id),
       candidatos: candidatos.filter((c) => c.eventoId === evento.id),
       criteriosJuri: criteriosDoEvento({ criteriosJuri }, evento.id),
       parceiros: parceiros.filter((p) => p.eventoId === evento.id).sort((a, b) => a.ordem - b.ordem),
     };
-  }, [slug, eventos, temas, configsPlacar, configsApresentacao, camposCandidato, candidatos, criteriosJuri, parceiros]);
+  }, [slug, eventos, temas, configsPlacar, configsApresentacao, camposCandidato, categorias, candidatos, criteriosJuri, parceiros]);
 }
 
 /** Temas de todos os eventos (galeria /dev/ui). */

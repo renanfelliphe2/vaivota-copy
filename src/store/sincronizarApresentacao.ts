@@ -27,11 +27,13 @@ const ehObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "obj
 export function lerApresentacao(bruto: unknown): EstadoUiApresentacao | null {
   if (!ehObjeto(bruto)) return null;
   const inicial = criarApresentacaoInicial();
-  const { chave, modoSala, cenarioEnsaioId, modoAvancoLocal, revelacao } = bruto;
+  const { chave, modoSala, cenarioEnsaioId, modoAvancoLocal, categoriaId, revelacao } = bruto;
   if (chave !== null && typeof chave !== "string") return null;
   if (modoSala !== "REAL" && modoSala !== "ENSAIO") return null;
   if (cenarioEnsaioId !== null && typeof cenarioEnsaioId !== "string") return null;
   if (modoAvancoLocal !== null && modoAvancoLocal !== "AUTOMATICO" && modoAvancoLocal !== "MANUAL") return null;
+  // 09/11/2026: a categoria apresentada; o que foi salvo antes dela existir vem sem o campo (vale a primeira categoria).
+  if (categoriaId !== undefined && categoriaId !== null && typeof categoriaId !== "string") return null;
   let revelacaoLida: EstadoUiApresentacao["revelacao"] = inicial.revelacao;
   if (revelacao !== null) {
     if (!ehObjeto(revelacao)) return null;
@@ -48,7 +50,14 @@ export function lerApresentacao(bruto: unknown): EstadoUiApresentacao | null {
     if (!valida) return null;
     revelacaoLida = r as unknown as EstadoUiApresentacao["revelacao"];
   }
-  return { chave: chave as string | null, modoSala, cenarioEnsaioId: cenarioEnsaioId as string | null, modoAvancoLocal: modoAvancoLocal as EstadoUiApresentacao["modoAvancoLocal"], revelacao: revelacaoLida };
+  return {
+    chave: chave as string | null,
+    modoSala,
+    cenarioEnsaioId: cenarioEnsaioId as string | null,
+    modoAvancoLocal: modoAvancoLocal as EstadoUiApresentacao["modoAvancoLocal"],
+    categoriaId: typeof categoriaId === "string" ? categoriaId : null,
+    revelacao: revelacaoLida,
+  };
 }
 
 function lerSalva(): EstadoUiApresentacao | null {

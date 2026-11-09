@@ -33,6 +33,13 @@ function imagemInvalida(eventoId: string, imagemUrl: string | null) {
   return falha("VALIDACAO", { campos: { imagemUrl: "Envie a imagem de novo." }, detalhe: `imagemUrl fora do storage: ${imagemUrl.slice(0, 80)}` });
 }
 
+/** Categoria escolhida no formulário (09/11/2026): precisa ser do mesmo evento (a FK composta também confere). */
+async function categoriaInvalida(eventoId: string, categoriaId: string | null | undefined) {
+  if (!categoriaId) return null;
+  const existe = await db().categoria.findFirst({ where: { id: categoriaId, eventoId }, select: { id: true } });
+  return existe ? null : falha("VALIDACAO", { campos: { categoriaId: "Escolha uma categoria da lista." }, detalhe: `categoria ${categoriaId} fora de ${eventoId}` });
+}
+
 /**
  * Roda a ação com a linha do evento TRAVADA e a trava da fase conferida de novo sobre o estado relido. Sem isso, a fase lida
  * antes (em `exigirAdmin`) pode já ter mudado quando a ação grava: um projeto despublicado enquanto outro admin abria a urna,
@@ -70,6 +77,8 @@ export async function criarCandidato(usuario: UsuarioSessao | null, eventoId: st
   if (Object.keys(erros).length) return falha("VALIDACAO", { campos: erros });
   const recusaImagem = imagemInvalida(eventoId, dados.imagemUrl);
   if (recusaImagem) return recusaImagem;
+  const recusaCategoria = await categoriaInvalida(eventoId, dados.categoriaId);
+  if (recusaCategoria) return recusaCategoria;
 
   const chaves = await chavesDosCampos(eventoId);
   const r = await comEventoTravado(eventoId, "CANDIDATOS_PUBLICACAO", async (tx) => {
@@ -82,6 +91,7 @@ export async function criarCandidato(usuario: UsuarioSessao | null, eventoId: st
         publicado: false, // sempre nasce como rascunho
         ordem: (maior._max.ordem ?? 0) + 1,
         camposExtras: limparCampos(chaves, dados.camposExtras),
+        categoriaId: dados.categoriaId ?? null,
       },
       select: { id: true },
     });
@@ -110,6 +120,16 @@ export async function salvarCandidato(
   if (Object.keys(erros).length) return falha("VALIDACAO", { campos: erros });
   const recusaImagem = imagemInvalida(eventoId, dados.imagemUrl);
   if (recusaImagem) return recusaImagem;
+  // Mudar de categoria (09/11/2026) é estrutura: trava com a urna aberta (o voto de cada pessoa é por categoria).
+  const categoriaId = dados.categoriaId === undefined ? atual.categoriaId : dados.categoriaId;
+  if (categoriaId !== atual.categoriaId) {
+    const travaCategoria = exigirAcao(evento, "CATEGORIAS_ESTRUTURA");
+    if (!travaCategoria.ok) return travaCategoria;
+    const recusaCategoria = await categoriaInvalida(eventoId, categoriaId);
+    if (recusaCategoria) return recusaCategoria;
+    if (categoriaId === null && atual.publicado && (await db().categoria.count({ where: { eventoId } })) > 0)
+      return falha("VALIDACAO", { campos: { categoriaId: "Na votação, o item precisa de uma categoria." } });
+  }
 
   try {
     const chaves = await chavesDosCampos(eventoId);
@@ -119,13 +139,14 @@ export async function salvarCandidato(
     if (titulo !== atual.titulo) alterados.push("titulo");
     if (dados.imagemUrl !== atual.imagemUrl) alterados.push("imagemUrl");
     if (JSON.stringify(camposExtras) !== JSON.stringify(atual.camposExtras ?? {})) alterados.push("camposExtras");
+    if (categoriaId !== atual.categoriaId) alterados.push("categoriaId");
     if (alterados.length === 0) return sucesso(null);
 
     const { fase } = resolverFaseConfig(evento);
     await db().$transaction(async (tx) => {
       await tx.candidato.update({
         where: { id: candidatoId },
-        data: { titulo, imagemUrl: dados.imagemUrl, camposExtras },
+        data: { titulo, imagemUrl: dados.imagemUrl, camposExtras, categoriaId },
       });
       if (fase === "URNA_ABERTA" || fase === "URNA_ENCERRADA") {
         await registrarAuditoria(tx, {
@@ -158,6 +179,12 @@ export async function alterarPublicacao(usuario: UsuarioSessao | null, eventoId:
     return falha("VALIDACAO", {
       mensagem: "Sem imagem: obrigatória para colocar na votação.",
       campos: { imagemUrl: "Sem imagem: obrigatória para colocar na votação." },
+    });
+  // Evento com categorias (09/11/2026): item sem categoria não aparece em página nenhuma.
+  if (publicado && !atual.categoriaId && (await db().categoria.count({ where: { eventoId } })) > 0)
+    return falha("VALIDACAO", {
+      mensagem: "Sem categoria: escolha a categoria antes de colocar na votação.",
+      campos: { categoriaId: "Escolha a categoria antes de colocar na votação." },
     });
   if (atual.publicado === publicado) return sucesso(null);
   const r = await comEventoTravado(eventoId, "CANDIDATOS_PUBLICACAO", async (tx) => {

@@ -132,9 +132,9 @@ describe("estados da urna", () => {
 describe("consultarEstadoVoto", () => {
   it("diz se votou, nunca em quem", async () => {
     const eu = await criarUsuarioDireto(eventoId);
-    expect(await consultarEstadoVoto(eu, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: false, candidatoAtualId: null } });
+    expect(await consultarEstadoVoto(eu, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: false, candidatoAtualId: null, categoriasVotadas: [] } });
     await votarPopular(eu, { eventoId, candidatoId: candidatos[4] }, ctx);
-    expect(await consultarEstadoVoto(eu, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: true, candidatoAtualId: null } });
+    expect(await consultarEstadoVoto(eu, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: true, candidatoAtualId: null, categoriasVotadas: [] } });
   });
 });
 

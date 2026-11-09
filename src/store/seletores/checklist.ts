@@ -23,9 +23,9 @@ export function useEntradaChecklist(): EntradaChecklist | null {
 
 export function useChecklist(): ItemChecklist[] | null {
   const entrada = useEntradaChecklist();
-  // Convites do júri, totem e trailer são do MVP do Festival: na Maratona Tech Tivit não aparecem no checklist.
+  // Categorias, convites do júri, totem e trailer são do MVP do Festival: na Maratona Tech Tivit não aparecem no checklist.
   return useMemo(
-    () => (entrada ? avaliarChecklist(entrada).filter((i) => MODULOS_FESTIVAL || (i.id !== "CONVITES" && i.id !== "TOTEM" && i.id !== "TRAILER")) : null),
+    () => (entrada ? avaliarChecklist(entrada).filter((i) => MODULOS_FESTIVAL || (i.id !== "CATEGORIAS" && i.id !== "CONVITES" && i.id !== "TOTEM" && i.id !== "TRAILER")) : null),
     [entrada],
   );
 }

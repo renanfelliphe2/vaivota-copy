@@ -5,11 +5,12 @@ import type { Resultado } from "./resultado";
 // Telão (sala de controle, palco, ensaio e revelação). Toda regra mora no servidor (src/server/apresentacao.ts): o admin do evento
 // é conferido a cada chamada e o resultado só sai por `carregarRevelacao` (urna encerrada) e `obterDadosEnsaio` (inventado, sem
 // ler voto). A sala só pergunta `obterStatusResultado`, que nunca traz o resultado.
+// Evento com categorias (09/11/2026): status e revelação são da categoria informada (`categoriaId`); sem ela, os do evento.
 
 export type { AcaoApresentacao, EstadoAoVivo, StatusResultado };
 
-export function obterStatusResultado(eventoId: string): Promise<Resultado<StatusResultado>> {
-  return chamar<StatusResultado>("obterStatusResultado", { eventoId });
+export function obterStatusResultado(eventoId: string, categoriaId: string | null = null): Promise<Resultado<StatusResultado>> {
+  return chamar<StatusResultado>("obterStatusResultado", { eventoId, ...(categoriaId ? { categoriaId } : {}) });
 }
 
 export function obterEstadoAoVivo(eventoId: string): Promise<Resultado<EstadoAoVivo>> {
@@ -17,8 +18,8 @@ export function obterEstadoAoVivo(eventoId: string): Promise<Resultado<EstadoAoV
 }
 
 /** Uma vez por cerimônia. Depois de carregado, a cerimônia nunca espera por serviço. */
-export function carregarRevelacao(eventoId: string): Promise<Resultado<DadosRevelacao>> {
-  return chamar<DadosRevelacao>("carregarRevelacao", { eventoId });
+export function carregarRevelacao(eventoId: string, categoriaId: string | null = null): Promise<Resultado<DadosRevelacao>> {
+  return chamar<DadosRevelacao>("carregarRevelacao", { eventoId, ...(categoriaId ? { categoriaId } : {}) });
 }
 
 /** Ensaio: um resultado inventado em cima dos itens e dos módulos do evento; não altera nada do evento real. */

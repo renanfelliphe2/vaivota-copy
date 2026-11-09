@@ -11,6 +11,9 @@ import type { UsuarioSessao } from "./sessao";
 // pessoa na linha da participação, então só uma delas chega ao INSERT. A urna é conferida dentro da transação, com a
 // linha do evento travada em modo compartilhado: o encerramento (que atualiza essa linha) espera os votos em andamento
 // e nenhum voto entra depois dele.
+// Evento com categorias (09/11/2026): um voto por pessoa em CADA categoria. A categoria vem do item (nunca do cliente). Na mesma
+// transação: o UPDATE da participação (trava a linha e liga `votou` no primeiro voto), o INSERT da marca (participação,
+// categoria) com ON CONFLICT DO NOTHING (0 linhas → JA_VOTOU) e o INSERT do voto. A marca não tem horário (sigilo).
 
 /** Voto sem efeito (a transação desfaz tudo): carrega o código de erro para fora do `$transaction`. */
 class VotoRecusado extends Error {
@@ -64,13 +67,25 @@ export async function votarPopular(
     if (!participacao) return falha("NAO_AUTORIZADO", { detalhe: `voto sem participação de ${usuario.id} em ${evento.id}` });
     if (participacao.papel !== "PUBLICO") return falha("PAPEL_INVALIDO", { detalhe: `voto popular com papel ${participacao.papel}` });
     if (recusaEstado) return falha(recusaEstado);
-    if (participacao.votou) return falha("JA_VOTOU", { detalhe: "participação já com votou = true" });
 
-    const candidato = await db().candidato.findFirst({
-      where: { id: entrada.candidatoId, eventoId: evento.id, publicado: true, desqualificado: false },
-      select: { id: true, usuarioVinculadoId: true },
-    });
-    if (!candidato) return falha("CANDIDATO_INDISPONIVEL", { detalhe: `candidato ${entrada.candidatoId} não votável em ${evento.id}` });
+    const [candidato, categorias] = await Promise.all([
+      db().candidato.findFirst({
+        where: { id: entrada.candidatoId, eventoId: evento.id, publicado: true, desqualificado: false },
+        select: { id: true, usuarioVinculadoId: true, categoriaId: true },
+      }),
+      db().categoria.count({ where: { eventoId: evento.id } }),
+    ]);
+    // Com categorias, item sem categoria não é votável (não aparece em página nenhuma).
+    if (!candidato || (categorias > 0 && !candidato.categoriaId))
+      return falha("CANDIDATO_INDISPONIVEL", { detalhe: `candidato ${entrada.candidatoId} não votável em ${evento.id}` });
+    const categoriaId = categorias > 0 ? candidato.categoriaId : null;
+    if (categoriaId) {
+      const jaVotou = await db().participacaoCategoria.findUnique({
+        where: { participacaoId_categoriaId: { participacaoId: participacao.id, categoriaId } },
+        select: { categoriaId: true },
+      });
+      if (jaVotou) return falha("JA_VOTOU", { detalhe: `participação já votou na categoria ${categoriaId}` });
+    } else if (participacao.votou) return falha("JA_VOTOU", { detalhe: "participação já com votou = true" });
     if (evento.bloquearVotoProprio && candidato.usuarioVinculadoId === usuario.id) return falha("VOTO_PROPRIO");
 
     await db().$transaction(async (tx) => {
@@ -81,11 +96,22 @@ export async function votarPopular(
       const recusaAtual = atual ? estadoDaUrna(atual.estado, atual.estado_urna) : "NAO_ENCONTRADO";
       if (recusaAtual) throw new VotoRecusado(recusaAtual);
 
-      const marcada = await tx.participacao.updateMany({
-        where: { id: participacao.id, votou: false, papel: "PUBLICO" },
-        data: { votou: true },
-      });
-      if (marcada.count === 0) throw new VotoRecusado("JA_VOTOU");
+      if (categoriaId) {
+        // Trava a linha da participação (e confere o papel de novo); `votou` liga no primeiro voto do evento.
+        const papel = await tx.participacao.updateMany({ where: { id: participacao.id, papel: "PUBLICO" }, data: { votou: true } });
+        if (papel.count === 0) throw new VotoRecusado("PAPEL_INVALIDO");
+        const marcada = await tx.participacaoCategoria.createMany({
+          data: [{ participacaoId: participacao.id, categoriaId, eventoId: evento.id }],
+          skipDuplicates: true,
+        });
+        if (marcada.count === 0) throw new VotoRecusado("JA_VOTOU");
+      } else {
+        const marcada = await tx.participacao.updateMany({
+          where: { id: participacao.id, votou: false, papel: "PUBLICO" },
+          data: { votou: true },
+        });
+        if (marcada.count === 0) throw new VotoRecusado("JA_VOTOU");
+      }
 
       // C20: recibo aleatório de 32 bytes, nunca derivado de sequência, id ou instante.
       await tx.voto.create({
@@ -99,15 +125,23 @@ export async function votarPopular(
   }
 }
 
+export type EstadoVoto = {
+  votou: boolean;
+  candidatoAtualId: string | null;
+  /** Evento com categorias: as categorias em que a pessoa já votou (nunca em quem). Vazio nos demais. */
+  categoriasVotadas: string[];
+};
+
 /**
- * Estado real do voto (verificação depois de erro de rede). Para o público só diz SE votou, nunca em quem. Para o jurado
- * (voto identificado, alterável) traz também o candidato do voto único atual: `candidatoAtualId`, nulo nos modos por critério.
+ * Estado real do voto (verificação depois de erro de rede). Para o público só diz SE votou (e, com categorias, em quais
+ * categorias), nunca em quem. Para o jurado (voto identificado, alterável) traz também o candidato do voto único atual:
+ * `candidatoAtualId`, nulo nos modos por critério.
  */
 export async function consultarEstadoVoto(
   usuario: UsuarioSessao | null,
   entrada: { eventoId: string },
   ctx: ContextoVoto,
-): Promise<Resultado<{ votou: boolean; candidatoAtualId: string | null }>> {
+): Promise<Resultado<EstadoVoto>> {
   if (!usuario) return falha("NAO_AUTORIZADO", { detalhe: "consulta sem sessão" });
   if (
     !consumirEmMemoria(`consulta-voto:${usuario.id}`, 60, 60_000) ||
@@ -119,9 +153,10 @@ export async function consultarEstadoVoto(
     if (!evento) return falha("NAO_ENCONTRADO", { detalhe: `evento ${entrada.eventoId} não existe` });
     const participacao = await db().participacao.findUnique({
       where: { usuarioId_eventoId: { usuarioId: usuario.id, eventoId: evento.id } },
-      select: { id: true, papel: true, votou: true },
+      select: { id: true, papel: true, votou: true, categoriasVotadas: { select: { categoriaId: true } } },
     });
-    if (!participacao || participacao.papel === "ADMIN") return sucesso({ votou: false, candidatoAtualId: null });
+    if (!participacao || participacao.papel === "ADMIN") return sucesso({ votou: false, candidatoAtualId: null, categoriasVotadas: [] });
+    const categoriasVotadas = participacao.categoriasVotadas.map((c) => c.categoriaId);
     // Só o próprio jurado lê a escolha dele (o voto do júri é identificado, nunca o popular).
     const voto =
       participacao.papel === "JURADO"
@@ -130,7 +165,7 @@ export async function consultarEstadoVoto(
             select: { candidatoId: true },
           })
         : null;
-    return sucesso({ votou: participacao.votou, candidatoAtualId: voto?.candidatoId ?? null });
+    return sucesso({ votou: participacao.votou, candidatoAtualId: voto?.candidatoId ?? null, categoriasVotadas });
   } catch (e) {
     return falhaInterna(e, "consultarEstadoVoto");
   }

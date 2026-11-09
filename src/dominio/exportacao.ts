@@ -1,6 +1,6 @@
 import type { CelulaCsv } from "@/lib/csv";
 import { ROTULO_ESTADO_EVENTO, ROTULO_ESTADO_URNA } from "@/lib/rotulos";
-import type { ResultadoVisao, VotosJuriVisao, OperacaoDados } from "./painel";
+import { visaoDaCategoria, type ResultadoVisao, type VotosJuriVisao, type OperacaoDados } from "./painel";
 import { gruposDoResultado } from "./resultado";
 import { totalDoPonto, type SerieVotos } from "./serie";
 import type { FaseConfig } from "./travas";
@@ -112,6 +112,8 @@ export function planilhaResumoEvento(
         ]
       : []),
     ["candidatos_na_disputa", r.evento.candidatosNaDisputa],
+    // Evento com categorias (09/11/2026): os votos do público em cada categoria (cada pessoa vota uma vez em cada uma).
+    ...(r.dados.porCategoria ?? []).map((c): CelulaCsv[] => [`votos_popular_categoria: ${c.nome}`, c.dados.totais.POPULAR]),
   ];
   return { cabecalho: ["campo", "valor"], linhas };
 }
@@ -124,7 +126,26 @@ export function situacaoDeEmpate(r: Pick<ResultadoVisao, "dados">, candidatoId: 
   return r.dados.empates.some((e) => e.candidatoIds.includes(candidatoId)) ? "Resolvido" : "Nao";
 }
 
+/**
+ * Classificação. Evento com categorias (09/11/2026): uma coluna "categoria" na frente e, por categoria, a classificação dela (na
+ * ordem das categorias); sem categorias, a classificação única de sempre.
+ */
 export function planilhaResultadoCandidatos(r: ResultadoVisao, titulo: (id: string) => string): Planilha {
+  const porCategoria = r.dados.porCategoria ?? [];
+  if (porCategoria.length === 0) return planilhaDeUmaApuracao(r, titulo);
+  let cabecalho: string[] = [];
+  const linhas: CelulaCsv[][] = [];
+  for (const c of porCategoria) {
+    const escopo = visaoDaCategoria(r, c.categoriaId);
+    if (!escopo) continue;
+    const parte = planilhaDeUmaApuracao(escopo, titulo);
+    cabecalho = ["categoria", ...parte.cabecalho];
+    linhas.push(...parte.linhas.map((l) => [c.nome, ...l]));
+  }
+  return { cabecalho, linhas };
+}
+
+function planilhaDeUmaApuracao(r: ResultadoVisao, titulo: (id: string) => string): Planilha {
   const grupos = gruposDoResultado(r.dados);
   const votos = (g: Grupo, id: string) => r.dados.placares[g].find((p) => p.candidatoId === id)?.votos ?? 0;
   const cabecalho = [

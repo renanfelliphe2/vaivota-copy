@@ -3,6 +3,7 @@ import type * as P from "@/generated/prisma/client";
 import type { ConvitePublico, DispositivoPublico } from "@/dominio/estadoPublico";
 import type {
   CampoCandidato,
+  Categoria,
   Candidato,
   ConfigApresentacao,
   ConfigPlacar,
@@ -138,6 +139,10 @@ export function apresentacaoParaDominio(c: P.ConfigApresentacao, fuso: string): 
   };
 }
 
+export function categoriaParaDominio(c: P.Categoria): Categoria {
+  return { id: c.id, eventoId: c.eventoId, slug: c.slug, nome: c.nome, premio: c.premio, ordem: c.ordem };
+}
+
 export function campoParaDominio(c: P.CampoCandidato): CampoCandidato {
   return { id: c.id, eventoId: c.eventoId, chave: c.chave, rotulo: c.rotulo, ordem: c.ordem };
 }
@@ -162,11 +167,13 @@ export function candidatoParaDominio(c: P.Candidato, fuso: string, usuarioId: st
     ordem: c.ordem,
     camposExtras: camposExtrasDe(c.camposExtras),
     usuarioVinculadoId: usuarioId !== null && c.usuarioVinculadoId === usuarioId ? usuarioId : null,
+    categoriaId: c.categoriaId,
     criadoEm: instante(c.criadoEm, fuso),
     atualizadoEm: instante(c.atualizadoEm, fuso),
   };
 }
 
-export function participacaoParaDominio(p: P.Participacao): Participacao {
-  return { id: p.id, usuarioId: p.usuarioId, eventoId: p.eventoId, papel: p.papel, votou: p.votou };
+/** `categoriasVotadas`: ids das categorias em que a pessoa já votou (evento com categorias); nunca em quem. */
+export function participacaoParaDominio(p: P.Participacao, categoriasVotadas: string[] = []): Participacao {
+  return { id: p.id, usuarioId: p.usuarioId, eventoId: p.eventoId, papel: p.papel, votou: p.votou, categoriasVotadas };
 }

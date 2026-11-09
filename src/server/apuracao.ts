@@ -1,6 +1,6 @@
 import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
-import { apurar, arredondar6 } from "@/dominio/apuracao";
+import { apurarComCategorias, arredondar6 } from "@/dominio/apuracao";
 import type { DadosResultado, Grupo, MotivoResultado } from "@/dominio/tipos";
 import type { Banco, Transacao } from "./db";
 
@@ -48,15 +48,17 @@ export async function calcularDadosDoResultado(cliente: Cliente, eventoId: strin
   dados: DadosResultado;
   pesos: Record<Grupo, number>;
 }> {
-  const [evento, placar, candidatos, popular] = await Promise.all([
+  const [evento, placar, candidatos, popular, categorias] = await Promise.all([
     cliente.evento.findUniqueOrThrow({ where: { id: eventoId }, select: { moduloJuri: true, moduloInfantil: true } }),
     cliente.configPlacar.findUniqueOrThrow({ where: { eventoId } }),
     cliente.candidato.findMany({
       where: { eventoId, publicado: true },
-      select: { id: true, ordem: true, desqualificado: true },
+      select: { id: true, ordem: true, desqualificado: true, categoriaId: true },
       orderBy: [{ ordem: "asc" }, { id: "asc" }],
     }),
     contarVotosPopulares(cliente, eventoId),
+    // Evento com categorias (09/11/2026): o resultado leva também a apuração de cada uma.
+    cliente.categoria.findMany({ where: { eventoId }, select: { id: true, nome: true, premio: true }, orderBy: [{ ordem: "asc" }, { id: "asc" }] }),
   ]);
   const gruposAtivos: Grupo[] = ["POPULAR"];
   if (evento.moduloJuri) gruposAtivos.push("JURI");
@@ -64,13 +66,16 @@ export async function calcularDadosDoResultado(cliente: Cliente, eventoId: strin
   const pesos: Record<Grupo, number> = { POPULAR: placar.pesoPopular, JURI: placar.pesoJuri, INFANTIL: placar.pesoInfantil };
   const juri = evento.moduloJuri ? await contarVotosJuri(cliente, eventoId) : {};
   const infantil = evento.moduloInfantil ? await contarVotosInfantis(cliente, eventoId) : {};
-  const dados = apurar({
-    candidatos,
-    votos: { POPULAR: popular, JURI: juri, INFANTIL: infantil },
-    pesos,
-    gruposAtivos,
-    criterio: placar.regraDesempate,
-  });
+  const dados = apurarComCategorias(
+    {
+      candidatos,
+      votos: { POPULAR: popular, JURI: juri, INFANTIL: infantil },
+      pesos,
+      gruposAtivos,
+      criterio: placar.regraDesempate,
+    },
+    categorias,
+  );
   return { dados, pesos };
 }
 

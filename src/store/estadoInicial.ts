@@ -3,7 +3,7 @@ import type { ConfigSimulador, EstadoUi, EstadoUiApresentacao, EstadoUiVotacao }
 // Valores iniciais do estado de tela (`ui`). Ficam fora de `mocks/` para o estado real não puxar os dados do protótipo.
 
 export function criarApresentacaoInicial(): EstadoUiApresentacao {
-  return { chave: null, modoSala: "REAL", cenarioEnsaioId: null, modoAvancoLocal: null, revelacao: null };
+  return { chave: null, modoSala: "REAL", cenarioEnsaioId: null, modoAvancoLocal: null, categoriaId: null, revelacao: null };
 }
 
 export function criarVotacaoInicial(): EstadoUiVotacao {

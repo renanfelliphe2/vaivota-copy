@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import type { CampoCandidato, Candidato } from "@/dominio/tipos";
+import type { CampoCandidato, Candidato, Categoria } from "@/dominio/tipos";
 import { useEventoAtivo } from "./evento";
 
 export type EstadoCandidatoAdmin = "NA_VOTACAO" | "RASCUNHO" | "FORA_DA_DISPUTA";
 
-export type CandidatoAdmin = { candidato: Candidato; estado: EstadoCandidatoAdmin };
+/** `categoria`: a do item (09/11/2026), ou null (sem categoria, ou evento sem categorias). */
+export type CandidatoAdmin = { candidato: Candidato; estado: EstadoCandidatoAdmin; categoria: Categoria | null };
 
 export function estadoCandidatoAdmin(c: Candidato): EstadoCandidatoAdmin {
   if (c.desqualificado) return "FORA_DA_DISPUTA";
@@ -23,7 +24,11 @@ export function useCandidatosAdmin(): { itens: CandidatoAdmin[]; campos: CampoCa
     if (!ativo) return null;
     const itens = [...ativo.candidatos]
       .sort((a, b) => a.ordem - b.ordem || a.id.localeCompare(b.id))
-      .map((candidato) => ({ candidato, estado: estadoCandidatoAdmin(candidato) }));
+      .map((candidato) => ({
+        candidato,
+        estado: estadoCandidatoAdmin(candidato),
+        categoria: ativo.categorias.find((c) => c.id === candidato.categoriaId) ?? null,
+      }));
     return { itens, campos: ativo.camposCandidato, naVotacao: itens.filter((i) => i.estado === "NA_VOTACAO").length };
   }, [ativo]);
 }

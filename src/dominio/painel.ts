@@ -1,6 +1,6 @@
 import type { GrupoAuditoria, ResumoAuditoria } from "./auditoria";
 import type { Participantes } from "./contagens";
-import type { ResumoApuracao } from "./resultado";
+import { resumirApuracao, type ResumoApuracao } from "./resultado";
 import type { SerieVotos } from "./serie";
 import type { SituacaoEvento } from "./situacaoEvento";
 import type { FaseConfig } from "./travas";
@@ -76,3 +76,19 @@ export type VotosJuriVisao = {
     escolhas: Record<string, string>;
   }[];
 };
+
+/**
+ * Evento com categorias (09/11/2026): a visão do resultado restrita a uma categoria, com a apuração dela no lugar da geral
+ * (classificação, empates, vencedores por grupo e fora da disputa). Período, série e participantes seguem os do evento.
+ * null se a versão não tem essa categoria (ex.: congelada antes de ela existir).
+ */
+export function visaoDaCategoria(visao: ResultadoVisao, categoriaId: string): ResultadoVisao | null {
+  const categoria = visao.dados.porCategoria?.find((c) => c.categoriaId === categoriaId);
+  if (!categoria) return null;
+  return {
+    ...visao,
+    dados: categoria.dados,
+    derivados: resumirApuracao(categoria.dados, visao.pesos),
+    evento: { ...visao.evento, candidatosNaDisputa: categoria.dados.ranking.length },
+  };
+}

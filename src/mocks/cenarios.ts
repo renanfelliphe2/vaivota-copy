@@ -71,6 +71,7 @@ function completarCandidatos(atual: EstadoApp, { eventoId }: ContextoCenario): E
       ordem,
       camposExtras: Object.fromEntries(campos.map((c) => [c.chave, `${c.rotulo} ${nn}`])),
       usuarioVinculadoId: null,
+      categoriaId: null,
       criadoEm: evento.criadoEm,
       atualizadoEm: evento.criadoEm,
     });

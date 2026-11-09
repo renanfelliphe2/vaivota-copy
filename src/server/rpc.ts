@@ -3,6 +3,7 @@ import { z } from "zod";
 import * as acesso from "./acesso";
 import * as apresentacao from "./apresentacao";
 import * as candidatos from "./candidatos";
+import * as categorias from "./categorias";
 import * as configuracao from "./configuracao";
 import * as convites from "./convites";
 import * as dashboard from "./dashboard";
@@ -38,6 +39,7 @@ const dadosCandidato = z.object({
   titulo: texto(400),
   imagemUrl: z.string().max(500).nullable(),
   camposExtras: z.record(z.string().max(60), texto(1500)),
+  categoriaId: id.nullable().optional(),
 });
 
 const gruposAuditoria = z.enum(["ESTADO", "CONFIGURACAO", "JURI", "TOTEM", "SEGURANCA", "EXPORTACAO", "APRESENTACAO", "OUTRAS"]);
@@ -228,6 +230,15 @@ const servicos = {
     (ctx, u, a) => parceiros.salvarParceiros(u, a.eventoId, a.lista, { ip: ctx.ip }),
   ),
 
+  // Categorias (admin): a lista inteira, na ordem recebida
+  salvarCategorias: definir(
+    z.object({
+      eventoId: id,
+      lista: z.array(z.object({ id: id.nullable(), nome: texto(100), premio: texto(100), slug: texto(60) })).max(30),
+    }),
+    (ctx, u, a) => categorias.salvarCategorias(u, a.eventoId, a.lista, { ip: ctx.ip }),
+  ),
+
   // Júri: configuração (admin)
   alternarModuloJuri: definir(z.object({ eventoId: id, ligado: z.boolean() }), (ctx, u, a) => juri.alternarModuloJuri(u, a.eventoId, a.ligado, { ip: ctx.ip })),
   salvarAvaliacaoJuri: definir(
@@ -262,9 +273,13 @@ const servicos = {
   ),
 
   // Telão: sala de controle, palco, ensaio e revelação (admin)
-  obterStatusResultado: definir(z.object({ eventoId: id }), (_c, u, a) => apresentacao.obterStatusResultado(u, a.eventoId)),
+  obterStatusResultado: definir(z.object({ eventoId: id, categoriaId: id.optional() }), (_c, u, a) =>
+    apresentacao.obterStatusResultado(u, a.eventoId, a.categoriaId),
+  ),
   obterEstadoAoVivo: definir(z.object({ eventoId: id }), (_c, u, a) => apresentacao.obterEstadoAoVivo(u, a.eventoId)),
-  carregarRevelacao: definir(z.object({ eventoId: id }), (_c, u, a) => apresentacao.carregarRevelacao(u, a.eventoId)),
+  carregarRevelacao: definir(z.object({ eventoId: id, categoriaId: id.optional() }), (_c, u, a) =>
+    apresentacao.carregarRevelacao(u, a.eventoId, a.categoriaId),
+  ),
   obterDadosEnsaio: definir(z.object({ eventoId: id, cenarioId: z.string().min(1).max(64) }), (_c, u, a) =>
     apresentacao.obterDadosEnsaio(u, a.eventoId, a.cenarioId),
   ),

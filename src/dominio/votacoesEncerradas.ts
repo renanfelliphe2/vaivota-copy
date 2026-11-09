@@ -37,6 +37,11 @@ export type VotacaoEncerrada = {
    * Vazio: nenhum voto válido.
    */
   vencedores: VencedorVitrine[] | null;
+  /**
+   * Evento com categorias (09/11/2026): o primeiro lugar de cada categoria, na ordem delas, só com o evento concluído (como
+   * `vencedores`, que aí junta todos, para as imagens). Ausente ou null em evento sem categorias.
+   */
+  vencedoresPorCategoria?: { categoria: string; vencedores: VencedorVitrine[] }[] | null;
 };
 
 /** Votação com o resultado já público (evento concluído). */
@@ -79,4 +84,11 @@ export function totaisDaVitrine(votacoes: readonly Pick<VotacaoEncerrada, "parti
     participantes: votacoes.reduce((s, v) => s + v.participantes, 0),
     votos: votacoes.reduce((s, v) => s + v.votos.total, 0),
   };
+}
+
+/** Evento com categorias (09/11/2026): o primeiro lugar de cada categoria. null sem categorias (ou sem resultado). */
+export function idsDosVencedoresPorCategoria(dados: Pick<DadosResultado, "porCategoria"> | null | undefined): { categoria: string; ids: string[] }[] | null {
+  const porCategoria = dados?.porCategoria;
+  if (!Array.isArray(porCategoria) || porCategoria.length === 0) return null;
+  return porCategoria.map((c) => ({ categoria: c.nome, ids: idsDosVencedores(c.dados?.ranking) }));
 }

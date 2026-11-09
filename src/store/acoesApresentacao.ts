@@ -70,3 +70,8 @@ export function limparApresentacao(): void {
 export function definirPalcoAtivo(palcoAtivo: boolean): void {
   obterAmbiente().store.atualizar((e) => (e.ui.palcoAtivo === palcoAtivo ? e : { ...e, ui: { ...e.ui, palcoAtivo } }));
 }
+
+/** Evento com categorias (09/11/2026): a categoria que o telão apresenta (QR Code do ao vivo e revelação). */
+export function definirCategoriaApresentacao(eventoId: string, categoriaId: string): void {
+  atualizar(eventoId, () => ({ categoriaId }));
+}

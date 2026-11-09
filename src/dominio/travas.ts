@@ -21,6 +21,10 @@ export type AcaoConfig =
   | "CANDIDATOS_ORDEM"
   | "CANDIDATOS_CORRIGIR"
   | "CANDIDATOS_DESQUALIFICAR"
+  /** Categorias (09/11/2026): adicionar, remover, trocar o endereço e mudar um item de categoria. */
+  | "CATEGORIAS_ESTRUTURA"
+  /** Categorias: nome, prêmio e ordem (identidade, como o tema). */
+  | "CATEGORIAS_ROTULO"
   /** Adicionar e remover campos extras. */
   | "CAMPOS_EXTRAS_ESTRUTURA"
   | "CAMPOS_EXTRAS_ROTULO"
@@ -52,6 +56,8 @@ const MATRIZ: Record<Exclude<AcaoConfig, "MODULO_JURI_DESLIGAR">, Linha> = {
   CANDIDATOS_ORDEM: ["LIVRE", "LIVRE", "LIVRE", "LIVRE"],
   CANDIDATOS_CORRIGIR: ["LIVRE", "LIVRE", "AUDITADO", "AUDITADO"],
   CANDIDATOS_DESQUALIFICAR: ["INDISPONIVEL", "INDISPONIVEL", "EXCEPCIONAL", "EXCEPCIONAL"],
+  CATEGORIAS_ESTRUTURA: ["LIVRE", "LIVRE", "TRAVADO", "TRAVADO"],
+  CATEGORIAS_ROTULO: ["LIVRE", "LIVRE", "LIVRE", "LIVRE"],
   CAMPOS_EXTRAS_ESTRUTURA: ["LIVRE", "LIVRE", "TRAVADO", "TRAVADO"],
   CAMPOS_EXTRAS_ROTULO: ["LIVRE", "LIVRE", "AUDITADO", "AUDITADO"],
   CONVITES_GERAR: ["LIVRE", "LIVRE", "LIVRE", "TRAVADO"],

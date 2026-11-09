@@ -73,7 +73,7 @@ describe("assinatura e revelação (D4)", () => {
       emergencia: false,
       iniciadaEm: "2026-10-22T14:00:00-03:00",
     };
-    const ui = { apresentacao: { chave: "u1:e1", modoSala: "REAL" as const, cenarioEnsaioId: null, modoAvancoLocal: null, revelacao } };
+    const ui = { apresentacao: { chave: "u1:e1", modoSala: "REAL" as const, cenarioEnsaioId: null, modoAvancoLocal: null, categoriaId: null, revelacao } };
     expect(lerRevelacao(ui, "u1", "e1", "a").revelacao).toEqual(revelacao);
     expect(lerRevelacao(ui, "u2", "e1", "a").revelacao).toBeNull();
     expect(lerRevelacao(ui, "u1", "e1", "b")).toEqual({ revelacao: null, motivoDescartada: "RESULTADO_MUDOU" });

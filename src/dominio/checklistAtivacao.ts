@@ -7,7 +7,7 @@ import type { EstadoApp } from "./tipos";
 // Etapa 6 (D19, seção 5.7): checklist de ativação. Função pura sobre valores públicos e contagens;
 // o seletor (tela) e o serviço de operação (revalidação) usam a mesma montagem e a mesma avaliação.
 
-export type SecaoConfig = "geral" | "candidatos" | "juri" | "totens" | "placar" | "tema" | "parceiros" | "operacao";
+export type SecaoConfig = "geral" | "categorias" | "candidatos" | "juri" | "totens" | "placar" | "tema" | "parceiros" | "operacao";
 
 export type EntradaChecklist = {
   agoraMs: number;
@@ -22,9 +22,14 @@ export type EntradaChecklist = {
   temaAprovado: boolean;
   dispositivosAtivos: number;
   trailerConfigurado: boolean;
+  /**
+   * Categorias (09/11/2026): quantas existem, quantas ainda não têm item na votação e quantos itens na votação estão sem
+   * categoria (esses não aparecem em página nenhuma). Sem categorias, o item do checklist não se aplica.
+   */
+  categorias: { total: number; semItens: number; itensSemCategoria: number };
 };
 
-export type IdItemChecklist = "ITENS" | "PESOS" | "JANELA" | "CONVITES" | "TEMA" | "TOTEM" | "TRAILER";
+export type IdItemChecklist = "ITENS" | "CATEGORIAS" | "PESOS" | "JANELA" | "CONVITES" | "TEMA" | "TOTEM" | "TRAILER";
 export type EstadoItemChecklist = "OK" | "PENDENTE" | "AVISO" | "NAO_SE_APLICA";
 
 export type ItemChecklist = {
@@ -66,9 +71,23 @@ export function avaliarChecklist(e: EntradaChecklist): ItemChecklist[] {
     e.pesos.POPULAR === 0 || (e.moduloJuri && e.pesos.JURI === 0) || (e.moduloInfantil && e.pesos.INFANTIL === 0);
   const janelaOk =
     e.janelaInicioMs !== null && e.janelaFimMs !== null && e.janelaInicioMs < e.janelaFimMs && e.janelaFimMs > e.agoraMs;
+  const { categorias } = e;
+  const categoriasOk = categorias.semItens === 0 && categorias.itensSemCategoria === 0;
+  const detalheCategorias =
+    categorias.total === 0
+      ? "Evento sem categorias (votação única)."
+      : categoriasOk
+        ? `${categorias.total} categoria(s), todas com itens na votação.`
+        : [
+            categorias.semItens > 0 && `${categorias.semItens} categoria(s) sem item na votação`,
+            categorias.itensSemCategoria > 0 && `${categorias.itensSemCategoria} item(ns) na votação sem categoria`,
+          ]
+            .filter(Boolean)
+            .join("; ") + ".";
 
   return [
     item("ITENS", "Itens na votação", e.qtdVotaveis >= 2, `${e.qtdVotaveis} na votação (mínimo 2).`, "candidatos"),
+    item("CATEGORIAS", "Categorias", categorias.total > 0 ? categoriasOk : null, detalheCategorias, categorias.semItens > 0 ? "categorias" : "candidatos"),
     item(
       "PESOS",
       "Pesos do placar",
@@ -133,5 +152,20 @@ export function montarEntradaChecklist(estado: Pick<EstadoApp, "banco">, eventoI
     temaAprovado: avaliarContrasteTema(tema).aprovado,
     dispositivosAtivos: banco.dispositivos.filter((d) => d.eventoId === eventoId && d.estado === "ATIVO").length,
     trailerConfigurado: Boolean(apresentacao && (trailerValido(apresentacao.trailerUrl) || apresentacao.usarTrailerGerado)),
+    categorias: contarCategorias(
+      banco.categorias.filter((c) => c.eventoId === eventoId).map((c) => c.id),
+      votaveis(banco.candidatos.filter((c) => c.eventoId === eventoId)).map((c) => c.categoriaId),
+    ),
+  };
+}
+
+/** Item do checklist das categorias: `categoriasDosVotaveis` = a categoria de cada item na votação (null = sem categoria). */
+export function contarCategorias(categoriaIds: readonly string[], categoriasDosVotaveis: readonly (string | null)[]): EntradaChecklist["categorias"] {
+  if (categoriaIds.length === 0) return { total: 0, semItens: 0, itensSemCategoria: 0 };
+  const comItens = new Set(categoriasDosVotaveis.filter((c): c is string => c !== null));
+  return {
+    total: categoriaIds.length,
+    semItens: categoriaIds.filter((id) => !comItens.has(id)).length,
+    itensSemCategoria: categoriasDosVotaveis.filter((c) => c === null || !categoriaIds.includes(c)).length,
   };
 }
