@@ -18,6 +18,7 @@
     "db:seed": "tsx --conditions=react-server scripts/semear.ts",
     "db:seed:festival": "tsx --conditions=react-server scripts/semear.ts --evento festival",
     "db:promover-admin": "tsx --conditions=react-server scripts/promover-admin.ts",
+    "db:admin-local": "tsx --conditions=react-server scripts/admin-local.ts",
     "db:limpar-ensaio": "tsx --conditions=react-server scripts/limpar-ensaio.ts",
     "db:anonimizar": "tsx --conditions=react-server scripts/anonimizar.ts",
     "db:backup": "tsx --conditions=react-server scripts/backup.ts",

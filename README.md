@@ -215,10 +215,11 @@ O seed do Festival liga júri e infantil, aplica o tema do festival, os quatro c
 | `pnpm lint` · `pnpm typecheck` | ESLint e `next typegen` + `tsc --noEmit` |
 | `pnpm test` | Testes unitários (domínio, lib, estado real, cliente do servidor) |
 | `pnpm test:integracao` | Servidor contra um PostgreSQL **real** embutido: voto único com concorrência, encerramento durante rajada, login, operação, painel, júri, totem, telão, seed, anonimização e segurança |
-| `pnpm db:local` | PostgreSQL embutido com migrações e seed (`--resetar` recomeça do zero) |
+| `pnpm db:local` | PostgreSQL embutido com migrações, seed da Maratona e do Festival e a conta `admin@admin.com.br` / `123` (`--resetar` recomeça do zero). O `next dev` o usa pelo `.env.development.local`, sem tocar o Supabase |
+| `pnpm db:admin-local` | Recria a conta `admin@admin.com.br` / `123`, admin de todos os eventos. Recusa rodar fora de um banco local |
 | `pnpm db:migrar` | Aplica as migrações (`prisma migrate deploy`) |
 | `pnpm db:seed` · `pnpm db:seed:festival` | Cria a Maratona ou o Festival (idempotente) |
-| `pnpm db:promover-admin <e-mail> [--slug <evento>]` | Torna admin quem já tem conta, ou cria um convite de admin |
+| `pnpm db:promover-admin <e-mail> [--slug <evento> | --todos]` | Torna admin quem já tem conta, ou cria um convite de admin (`--todos`: em todos os eventos do banco; rode de novo depois de semear um evento novo) |
 | `pnpm db:backup --rotulo antes-da-urna` | Backup com `pg_dump` |
 | `pnpm db:limpar-ensaio --confirmar` | Limpa os dados do ensaio antes do evento |
 | `pnpm db:anonimizar [--executar]` | Anonimização dos eventos vencidos (sem `--executar`, só simula) |

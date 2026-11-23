@@ -301,3 +301,17 @@ export async function promoverAdmin(slug: string, emailBruto: string): Promise<R
   });
   return { acao: "convite_criado", email };
 }
+
+/** Promove o e-mail a admin de TODOS os eventos do banco (um resultado por evento, na ordem do slug). */
+export async function promoverAdminEmTodos(emailBruto: string): Promise<{ slug: string; resultado: ResultadoPromocao | { erro: string } }[]> {
+  const eventos = await db().evento.findMany({ select: { slug: true }, orderBy: { slug: "asc" } });
+  const saida: { slug: string; resultado: ResultadoPromocao | { erro: string } }[] = [];
+  for (const { slug } of eventos) {
+    try {
+      saida.push({ slug, resultado: await promoverAdmin(slug, emailBruto) });
+    } catch (erro) {
+      saida.push({ slug, resultado: { erro: erro instanceof Error ? erro.message : String(erro) } });
+    }
+  }
+  return saida;
+}

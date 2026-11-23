@@ -5,9 +5,11 @@ import { temFlag } from "./_ambiente";
 
 // Desenvolvimento sem Supabase: sobe um PostgreSQL de verdade (embedded-postgres), com os dados em .pgdata/, aplica as
 // migrações e o seed e fica rodando até Ctrl+C. `pnpm db:local` (use `--resetar` para recomeçar do zero).
-// Depois, no .env.local:
+// O `next dev` passa a usar este banco pelo .env.development.local (que vence o .env.local e não vai para o git):
 //   DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/vaivota
 //   DIRECT_URL=postgres://postgres:postgres@127.0.0.1:54329/vaivota
+//   APP_URL=http://localhost:3000, EMAIL_PROVIDER=console, STORAGE_PROVIDER=local e sem Google
+// Assim o desenvolvimento nunca toca o Supabase de produção e a conta admin@admin.com.br (senha 123) fica só aqui.
 
 const PORTA = 54329;
 const DIR = ".pgdata";
@@ -35,8 +37,16 @@ async function main() {
   if (migrar.status !== 0) throw new Error("A migração falhou.");
   const semear = executar(["db:seed"]);
   if (semear.status !== 0) throw new Error("O seed falhou.");
+  const semearFestival = executar(["db:seed:festival"]);
+  if (semearFestival.status !== 0) throw new Error("O seed do Festival falhou.");
+  // Conta de desenvolvimento: admin@admin.com.br / 123, admin de todos os eventos (recusa rodar fora de banco local).
+  const admin = executar(["db:admin-local"]);
+  if (admin.status !== 0) throw new Error("A criação da conta admin local falhou.");
 
-  console.info(`\nBanco local no ar em ${URL}\nColoque no .env.local:\n  DATABASE_URL=${URL}\n  DIRECT_URL=${URL}\nCtrl+C para parar.`);
+  console.info(
+    `\nBanco local no ar em ${URL}\nEntre com admin@admin.com.br / 123 (admin de todos os eventos).\n` +
+      `O \`next dev\` usa este banco pelo .env.development.local (não mexe no .env.local, que aponta para o Supabase).\nCtrl+C para parar.`,
+  );
   const parar = async () => {
     await pg.stop();
     process.exit(0);
