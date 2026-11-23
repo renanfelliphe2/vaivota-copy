@@ -170,6 +170,211 @@ dialog::backdrop {
   );
 }
 
+/*
+ * Holofotes do hero (23/11/2026): um feixe em cada ponta do topo, girando em torno da lente. Suaves de propósito: a luz some em
+ * degradê, fica borrada e não passa de ~24% no ponto mais forte, então o texto branco segue com contraste alto. Os dois têm
+ * duração e fase diferentes, e a opacidade respira à parte; por isso os movimentos nunca se repetem juntos. Sem movimento
+ * (prefers-reduced-motion), a animação termina e o feixe fica na pose-base do meio.
+ */
+.cine-holofote-pivo {
+  position: absolute;
+  top: -0.75rem;
+  width: 0;
+  height: 0;
+}
+
+.cine-holofote-lente {
+  position: absolute;
+  left: -1.75rem;
+  top: -0.4rem;
+  width: 3.5rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--cor-holofote) 80%, transparent);
+  filter: blur(9px);
+}
+
+.cine-holofote {
+  --cor-holofote: var(--cine-luz);
+  position: absolute;
+  left: -13rem;
+  top: 0;
+  width: 26rem;
+  height: 48rem;
+  transform-origin: 50% 0;
+  transform: rotate(var(--ang-base));
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--cor-holofote) 24%, transparent),
+    color-mix(in srgb, var(--cor-holofote) 8%, transparent) 55%,
+    transparent 92%
+  );
+  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+  filter: blur(12px);
+  mix-blend-mode: screen;
+  animation:
+    cine-holofote-varrer var(--dur) ease-in-out var(--atraso) infinite alternate,
+    cine-holofote-respirar calc(var(--dur) * 0.6) ease-in-out var(--atraso) infinite alternate;
+}
+
+/* O feixe da esquerda varre para dentro (ângulos negativos giram para a direita da tela) e o da direita faz o espelho. */
+.cine-holofote-esq {
+  --ang-base: -14deg;
+  --ang-a: -38deg;
+  --ang-b: 6deg;
+  --dur: 15s;
+  --atraso: -4s;
+}
+
+.cine-holofote-dir {
+  --ang-base: 14deg;
+  --ang-a: 34deg;
+  --ang-b: -9deg;
+  --dur: 19s;
+  --atraso: -11s;
+  --cor-holofote: color-mix(in srgb, var(--cine-secundaria-clara) 55%, var(--cine-luz));
+}
+
+@keyframes cine-holofote-varrer {
+  from {
+    transform: rotate(var(--ang-a));
+  }
+  to {
+    transform: rotate(var(--ang-b));
+  }
+}
+
+@keyframes cine-holofote-respirar {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+ * Troca de cartaz na película (23/11/2026): o quadro velho é puxado para fora da fita, o novo entra pelo outro lado com o
+ * brilho do projetor, um clarão cobre a emenda e os furos da fita correm um passo de quadro (6 furos). -v: fita de pé
+ * (celular não usa); -h: fita deitada. A duração é --cine-troca = DURACAO_TROCA_MS (useRotacaoCartazes.ts).
+ */
+.marca-evento {
+  --cine-troca: 1000ms;
+}
+
+@keyframes cine-quadro-entra-v {
+  from {
+    transform: translateY(104%);
+    filter: brightness(1.9) sepia(0.6) contrast(0.8);
+  }
+  60% {
+    filter: brightness(1.2) sepia(0.2);
+  }
+  to {
+    transform: translateY(0);
+    filter: none;
+  }
+}
+
+@keyframes cine-quadro-sai-v {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-104%);
+    filter: brightness(0.45) blur(1px);
+  }
+}
+
+@keyframes cine-quadro-entra-h {
+  from {
+    transform: translateX(104%);
+    filter: brightness(1.9) sepia(0.6) contrast(0.8);
+  }
+  60% {
+    filter: brightness(1.2) sepia(0.2);
+  }
+  to {
+    transform: translateX(0);
+    filter: none;
+  }
+}
+
+@keyframes cine-quadro-sai-h {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-104%);
+    filter: brightness(0.45) blur(1px);
+  }
+}
+
+@keyframes cine-quadro-clarao {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes cine-furos-correm-v {
+  from {
+    background-position: center 0;
+  }
+  to {
+    background-position: center -132px;
+  }
+}
+
+@keyframes cine-furos-correm-h {
+  from {
+    background-position: 0 center;
+  }
+  to {
+    background-position: -132px center;
+  }
+}
+
+.cine-quadro-entra-v,
+.cine-quadro-sai-v,
+.cine-quadro-entra-h,
+.cine-quadro-sai-h {
+  animation-duration: var(--cine-troca);
+  animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1);
+  animation-fill-mode: both;
+}
+
+.cine-quadro-entra-v {
+  animation-name: cine-quadro-entra-v;
+}
+.cine-quadro-sai-v {
+  animation-name: cine-quadro-sai-v;
+}
+.cine-quadro-entra-h {
+  animation-name: cine-quadro-entra-h;
+}
+.cine-quadro-sai-h {
+  animation-name: cine-quadro-sai-h;
+}
+
+.cine-quadro-clarao {
+  animation: cine-quadro-clarao var(--cine-troca) ease-out both;
+  mix-blend-mode: overlay;
+}
+
+.cine-furos-correm-v {
+  animation: cine-furos-correm-v var(--cine-troca) cubic-bezier(0.6, 0, 0.2, 1) both;
+}
+
+.cine-furos-correm-h {
+  animation: cine-furos-correm-h var(--cine-troca) cubic-bezier(0.6, 0, 0.2, 1) both;
+}
+
 /* Granulação de filme (ruído em SVG), bem fraca: não mexe no contraste do texto. */
 .cine-grao {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");

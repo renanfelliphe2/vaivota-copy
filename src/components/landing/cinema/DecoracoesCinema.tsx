@@ -28,6 +28,26 @@ export function Rosacea({ className }: { className?: string }) {
 }
 
 /**
+ * Dois holofotes, um em cada extremo do topo da sala (23/11/2026). Cada um é um feixe suave que varre devagar de um lado ao
+ * outro, em tempos diferentes (nunca sincronizam), com a lente acesa na ponta. Só CSS (globals.css, `.cine-holofote`); sem
+ * movimento (prefers-reduced-motion), ficam parados na pose do meio. Decorativos e atrás de todo o conteúdo.
+ */
+export function Holofotes() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <div className="cine-holofote-pivo left-[3%]">
+        <span className="cine-holofote-lente" />
+        <span className="cine-holofote cine-holofote-esq" />
+      </div>
+      <div className="cine-holofote-pivo right-[3%]">
+        <span className="cine-holofote-lente" />
+        <span className="cine-holofote cine-holofote-dir" />
+      </div>
+    </div>
+  );
+}
+
+/**
  * Quadro da contagem regressiva do começo de um filme (o "leader": círculos, mira e o número). Ocupa as casas da
  * película enquanto não há cartaz. Proporção 5:7, como o cartaz.
  */

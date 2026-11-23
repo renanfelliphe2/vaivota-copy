@@ -16,8 +16,9 @@ import { useEventoAtivo } from "@/store/seletores/evento";
 import { useSituacaoEvento } from "@/store/seletores/situacao";
 import { AcoesDoHero } from "../AcoesDoHero";
 import { useDestaqueCandidato } from "../DestaqueCandidato";
-import { Rosacea } from "./DecoracoesCinema";
-import { PeliculaDeitada, PeliculaDupla } from "./PeliculaDosCandidatos";
+import { Holofotes, Rosacea } from "./DecoracoesCinema";
+import { montarCasas, PeliculaDeitada, PeliculaTripla } from "./PeliculaDosCandidatos";
+import { useRotacaoCartazes } from "./useRotacaoCartazes";
 
 const atraso = (ms: number) => ({ "--atraso": `${ms}ms` }) as CSSProperties;
 
@@ -34,9 +35,10 @@ export function HeroCinema() {
   const { organizador } = useIdentidadePagina();
   const { destacar } = useDestaqueCandidato();
   const router = useRouter();
+  const candidatos = lista?.itens.map((i) => i.candidato) ?? [];
+  const rotacao = useRotacaoCartazes(candidatos.map((c) => c.id));
   if (!ativo || !situacao) return null;
   const { evento, tema } = ativo;
-  const candidatos = lista?.itens.map((i) => i.candidato) ?? [];
   const n = candidatos.length;
   const { chamada, principal } = dividirTitulo(tema.nomeExibicao ?? evento.nome);
   // Evento com categorias (09/11/2026): o cartaz leva à página da categoria do filme (não há lista na página inicial).
@@ -46,6 +48,8 @@ export function HeroCinema() {
     if (categoria) router.push(rotaCategoria(ativo.slug, categoria.slug));
     else destacar(candidatoId);
   };
+  // As mesmas seis casas (e a mesma rotação) servem às duas películas: a de pé no desktop e a deitada no celular.
+  const pelicula = { casas: montarCasas(candidatos, rotacao.ids), trocas: rotacao.trocas, decorativa: n === 0, rotacao, aoEscolher };
   const periodo =
     evento.janelaInicio && evento.janelaFim
       ? descreverPeriodo(paraMs(evento.janelaInicio), paraMs(evento.janelaFim), evento.fusoHorario)
@@ -67,11 +71,11 @@ export function HeroCinema() {
         // eslint-disable-next-line @next/next/no-img-element -- capa decorativa, pode ser blob: na prévia
         <img src={tema.capaUrl} alt="" aria-hidden className="absolute inset-0 -z-10 size-full object-cover opacity-15 mix-blend-luminosity" />
       )}
-      <div aria-hidden className="cine-feixe absolute inset-0 -z-10" />
+      <Holofotes />
       <div aria-hidden className="cine-grao absolute inset-0 -z-10" />
       <Rosacea className="absolute -left-52 -top-28 -z-10 size-[34rem] text-cine-secundaria-clara opacity-[0.08] sm:-left-36" />
 
-      <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 pb-10 pt-10 sm:px-6 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12 lg:pb-20 lg:pt-16">
+      <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 pb-10 pt-10 sm:px-6 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-12 lg:pb-20 xl:grid-cols-[minmax(0,1fr)_29rem] lg:pt-16">
         <div className="flex min-w-0 flex-col items-start">
           {organizador && (
             <div className="marca-subir mb-8" style={atraso(0)}>
@@ -124,12 +128,12 @@ export function HeroCinema() {
         </div>
 
         <div className="marca-subir hidden lg:block" style={atraso(200)}>
-          <PeliculaDupla candidatos={candidatos} aoEscolher={aoEscolher} />
+          <PeliculaTripla {...pelicula} />
         </div>
       </div>
 
       <div className="marca-subir pb-10 lg:hidden" style={atraso(380)}>
-        <PeliculaDeitada candidatos={candidatos} aoEscolher={aoEscolher} />
+        <PeliculaDeitada {...pelicula} />
       </div>
 
       <span aria-hidden className="cine-furos-h block h-[1.125rem] w-full bg-cine-pelicula" />
