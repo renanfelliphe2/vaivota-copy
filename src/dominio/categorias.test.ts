@@ -55,13 +55,19 @@ describe("validarCategorias", () => {
     expect(validarCategorias([ok, { ...ok, nome: "Outra", slug: "mostra-infantil" }])).toHaveProperty("slug-1");
   });
 
+  it("descrição é opcional, com limite de tamanho", () => {
+    expect(validarCategorias([{ ...ok, descricao: "" }])).toEqual({});
+    expect(validarCategorias([{ ...ok, descricao: "x".repeat(500) }])).toEqual({});
+    expect(validarCategorias([{ ...ok, descricao: "x".repeat(501) }])).toHaveProperty("descricao-0");
+  });
+
   it("prêmio é opcional, com limite de tamanho", () => {
     expect(validarCategorias([{ ...ok, premio: "" }])).toEqual({});
     expect(validarCategorias([{ ...ok, premio: "x".repeat(61) }])).toHaveProperty("premio-0");
   });
 });
 
-const cat = (id: string, ordem: number, eventoId = "e1"): Categoria => ({ id, eventoId, slug: id, nome: `Categoria ${id}`, premio: null, ordem });
+const cat = (id: string, ordem: number, eventoId = "e1"): Categoria => ({ id, eventoId, slug: id, nome: `Categoria ${id}`, premio: null, descricao: null, ordem });
 
 describe("auxiliares", () => {
   it("categoriasDoEvento ordena e filtra pelo evento", () => {

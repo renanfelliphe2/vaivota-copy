@@ -328,6 +328,8 @@ model Categoria {
   nome         String   @db.VarChar(80)
   // Nome do prêmio, opcional (ex.: "Melhor filme Júri Popular").
   premio       String?  @db.VarChar(80)
+  // Descrição opcional (23/11/2026): aparece no topo da página da categoria.
+  descricao    String?  @db.VarChar(600)
   ordem        Int      @default(0)
   criadoEm     DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
   atualizadoEm DateTime @updatedAt @map("atualizado_em") @db.Timestamptz(3)

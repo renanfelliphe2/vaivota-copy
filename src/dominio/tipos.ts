@@ -211,6 +211,8 @@ export type Categoria = {
   nome: string;
   /** Nome do prêmio, opcional (ex.: "Melhor filme Júri Popular"). */
   premio: string | null;
+  /** Descrição opcional (23/11/2026), no topo da página da categoria. */
+  descricao: string | null;
   ordem: number;
 };
 

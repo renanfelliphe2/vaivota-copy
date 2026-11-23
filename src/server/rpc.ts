@@ -234,7 +234,7 @@ const servicos = {
   salvarCategorias: definir(
     z.object({
       eventoId: id,
-      lista: z.array(z.object({ id: id.nullable(), nome: texto(100), premio: texto(100), slug: texto(60) })).max(30),
+      lista: z.array(z.object({ id: id.nullable(), nome: texto(100), premio: texto(100), descricao: texto(1000).optional(), slug: texto(60) })).max(30),
     }),
     (ctx, u, a) => categorias.salvarCategorias(u, a.eventoId, a.lista, { ip: ctx.ip }),
   ),

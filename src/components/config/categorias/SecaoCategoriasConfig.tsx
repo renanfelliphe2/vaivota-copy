@@ -8,7 +8,7 @@ import type { Candidato, Categoria } from "@/dominio/tipos";
 import type { Travas } from "@/dominio/travas";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
-import { Campo, Input } from "@/components/ui/Campo";
+import { Campo, Input, Textarea } from "@/components/ui/Campo";
 import { useToast } from "@/components/ui/Toast";
 import { useOrigem } from "@/lib/useOrigem";
 import { salvarCategorias, type CategoriaEditada } from "@/servicos/categorias";
@@ -41,7 +41,7 @@ export function SecaoCategoriasConfig({ travas }: { travas: Travas }) {
       <BannerTrava travas={travas} acoes={["CATEGORIAS_ESTRUTURA"]} />
       <FormCategorias
         // Remonta quando o salvo muda.
-        key={ativo.categorias.map((c) => `${c.id}=${c.nome}:${c.premio ?? ""}:${c.slug}`).join("|")}
+        key={ativo.categorias.map((c) => `${c.id}=${c.nome}:${c.premio ?? ""}:${c.descricao ?? ""}:${c.slug}`).join("|")}
         eventoId={ativo.evento.id}
         slugEvento={ativo.slug}
         salvas={ativo.categorias}
@@ -69,7 +69,7 @@ function FormCategorias({
   candidatos: readonly Candidato[];
   travas: Travas;
 }) {
-  const inicial = (): Linha[] => salvas.map((c) => ({ id: c.id, nome: c.nome, premio: c.premio ?? "", slug: c.slug, chave: c.id, slugManual: true }));
+  const inicial = (): Linha[] => salvas.map((c) => ({ id: c.id, nome: c.nome, premio: c.premio ?? "", descricao: c.descricao ?? "", slug: c.slug, chave: c.id, slugManual: true }));
   const [linhas, setLinhas] = useState<Linha[]>(inicial);
   const [proximaChave, setProximaChave] = useState(1);
   const [tentou, setTentou] = useState(false);
@@ -81,8 +81,8 @@ function FormCategorias({
   const erros = { ...validarCategorias(linhas), ...(servico.erro?.campos ?? {}) };
   const temErro = Object.keys(validarCategorias(linhas)).length > 0;
   const alterado =
-    JSON.stringify(linhas.map((l) => [l.id, l.nome.trim(), l.premio.trim(), l.slug.trim()])) !==
-    JSON.stringify(salvas.map((c) => [c.id, c.nome, c.premio ?? "", c.slug]));
+    JSON.stringify(linhas.map((l) => [l.id, l.nome.trim(), l.premio.trim(), l.descricao.trim(), l.slug.trim()])) !==
+    JSON.stringify(salvas.map((c) => [c.id, c.nome, c.premio ?? "", c.descricao ?? "", c.slug]));
   const itensDa = (id: string | null) => (id ? candidatos.filter((c) => c.categoriaId === id) : []);
 
   function mudarLinhas(novas: Linha[]) {
@@ -112,14 +112,14 @@ function FormCategorias({
   }
 
   function adicionar() {
-    mudarLinhas([...linhas, { id: null, nome: "", premio: "", slug: "", chave: `nova-${proximaChave}`, slugManual: false }]);
+    mudarLinhas([...linhas, { id: null, nome: "", premio: "", descricao: "", slug: "", chave: `nova-${proximaChave}`, slugManual: false }]);
     setProximaChave((n) => n + 1);
   }
 
   async function salvar() {
     setTentou(true);
     if (temErro) return;
-    const r = await servico.executar(() => salvarCategorias(eventoId, linhas.map(({ id, nome, premio, slug }) => ({ id, nome, premio, slug }))));
+    const r = await servico.executar(() => salvarCategorias(eventoId, linhas.map(({ id, nome, premio, descricao, slug }) => ({ id, nome, premio, descricao, slug }))));
     if (r.ok) marcarSujo(false);
   }
 
@@ -181,6 +181,20 @@ function FormCategorias({
                     />
                   </Campo>
                 </div>
+                <Campo
+                  id={`categoria-descricao-${l.chave}`}
+                  rotulo="Descrição"
+                  erro={mostrar(`descricao-${i}`)}
+                  dica={`Opcional, até ${LIMITES_CATEGORIA.descricao} caracteres. Aparece no topo da página da categoria.`}
+                >
+                  <Textarea
+                    value={l.descricao}
+                    rows={3}
+                    maxLength={LIMITES_CATEGORIA.descricao}
+                    placeholder="Ex.: Filmes feitos por crianças de 8 a 12 anos nas oficinas do festival."
+                    onChange={(e) => mudar(l.chave, { descricao: e.target.value })}
+                  />
+                </Campo>
                 <Campo
                   id={`categoria-slug-${l.chave}`}
                   rotulo="Endereço"

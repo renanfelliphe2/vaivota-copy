@@ -249,6 +249,11 @@ function CabecaCategoria({ dados }: { dados: CategoriaComItens }) {
               {categoria.premio}
             </p>
           )}
+          {categoria.descricao && (
+            <p className="marca-subir mt-1 max-w-2xl whitespace-pre-line text-base leading-relaxed text-white/85 sm:text-lg" style={atraso(160)}>
+              {categoria.descricao}
+            </p>
+          )}
         </div>
         <span aria-hidden className="marca-subir flex h-1.5 w-28 overflow-hidden rounded-full" style={atraso(180)}>
           <span className="flex-1 bg-tema-primaria" />

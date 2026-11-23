@@ -13,8 +13,8 @@ import { exigirAdmin, type UsuarioSessao } from "./sessao";
 // Estrutura (criar, remover, trocar o endereço) trava com a urna aberta: o voto de cada pessoa é por categoria e o QR Code
 // aponta para o endereço. Nome, prêmio e ordem são livres até concluir. Categoria com item ou voto não é removida.
 
-/** `id` null: categoria nova. `premio` vazio: sem prêmio. */
-export type CategoriaEditadaServidor = { id: string | null; nome: string; premio: string; slug: string };
+/** `id` null: categoria nova. `premio`/`descricao` vazios: sem prêmio/descrição. `descricao` ausente: mantém a salva. */
+export type CategoriaEditadaServidor = { id: string | null; nome: string; premio: string; descricao?: string; slug: string };
 
 export async function salvarCategorias(
   usuario: UsuarioSessao | null,
@@ -27,7 +27,7 @@ export async function salvarCategorias(
   const { usuarioId } = admin.dados;
   const trava = exigirAcao(admin.dados.evento, "CATEGORIAS_ROTULO");
   if (!trava.ok) return trava;
-  const limpa = lista.map((c) => ({ id: c.id, nome: c.nome.trim(), premio: c.premio.trim(), slug: c.slug.trim() }));
+  const limpa = lista.map((c) => ({ id: c.id, nome: c.nome.trim(), premio: c.premio.trim(), descricao: c.descricao?.trim(), slug: c.slug.trim() }));
   const campos = validarCategorias(limpa);
   if (Object.keys(campos).length > 0) return falha("VALIDACAO", { campos });
   const ids = limpa.flatMap((c) => (c.id ? [c.id] : []));
@@ -65,7 +65,7 @@ export async function salvarCategorias(
     // Troca de endereço em duas etapas: dois endereços trocados entre si não colidem no índice único (evento, endereço).
     for (const c of enderecoTrocado) await tx.categoria.update({ where: { id: c.id! }, data: { slug: `x${randomBytes(8).toString("hex")}` } });
     for (const [i, c] of limpa.entries()) {
-      const dados = { nome: c.nome, premio: c.premio || null, slug: c.slug, ordem: i + 1 };
+      const dados = { nome: c.nome, premio: c.premio || null, ...(c.descricao !== undefined && { descricao: c.descricao || null }), slug: c.slug, ordem: i + 1 };
       if (c.id) await tx.categoria.update({ where: { id: c.id }, data: dados });
       else await tx.categoria.create({ data: { eventoId, ...dados } });
     }

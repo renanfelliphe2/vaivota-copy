@@ -99,6 +99,25 @@ describe("salvarCategorias", () => {
     expect(depois.map((c) => c.slug)).toEqual(["mostra-infantil", "video-escola", "usina-criativa"]);
   });
 
+  it("descrição é opcional: salva, mantém quando não vem, limpa quando vem vazia e recusa a longa", async () => {
+    const atuais = await db().categoria.findMany({ where: { eventoId }, orderBy: { ordem: "asc" } });
+    const base = atuais.map((c) => ({ id: c.id, nome: c.nome, premio: c.premio ?? "", slug: c.slug }));
+    const descricao = () => db().categoria.findUniqueOrThrow({ where: { id: atuais[0].id }, select: { descricao: true } }).then((c) => c.descricao);
+    const comDescricao = (d: string) => base.map((c, i) => (i === 0 ? { ...c, descricao: d } : c));
+
+    expect((await salvarCategorias(admin, eventoId, comDescricao("  Filmes feitos por crianças.  "), ctx)).ok).toBe(true);
+    expect(await descricao()).toBe("Filmes feitos por crianças.");
+    // Sem o campo (tela antiga): mantém a salva.
+    expect((await salvarCategorias(admin, eventoId, base, ctx)).ok).toBe(true);
+    expect(await descricao()).toBe("Filmes feitos por crianças.");
+    expect(await salvarCategorias(admin, eventoId, comDescricao("x".repeat(501)), ctx)).toMatchObject({
+      ok: false,
+      erro: { codigo: "VALIDACAO", campos: { "descricao-0": expect.any(String) } },
+    });
+    expect((await salvarCategorias(admin, eventoId, comDescricao("   "), ctx)).ok).toBe(true);
+    expect(await descricao()).toBeNull();
+  });
+
   it("não remove categoria com itens (CONFLITO); sem itens, remove", async () => {
     const atuais = await db().categoria.findMany({ where: { eventoId }, orderBy: { ordem: "asc" } });
     const base = atuais.map((c) => ({ id: c.id, nome: c.nome, premio: c.premio ?? "", slug: c.slug }));

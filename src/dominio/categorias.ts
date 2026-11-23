@@ -7,6 +7,7 @@ import type { Candidato, Categoria, Participacao } from "./tipos";
 export const LIMITES_CATEGORIA = {
   nome: [2, 60],
   premio: 60,
+  descricao: 500,
   slug: [2, 40],
   maximo: 12,
 } as const;
@@ -30,9 +31,10 @@ export function gerarSlugCategoria(nome: string, existentes: readonly string[]):
   return `${base}-${n}`;
 }
 
-export type CategoriaEditada = { nome: string; premio: string; slug: string };
+/** `descricao` ausente conta como vazia (opcional). */
+export type CategoriaEditada = { nome: string; premio: string; descricao?: string; slug: string };
 
-/** Erros por posição (`nome-<i>`, `premio-<i>`, `slug-<i>`) e o geral (`categorias`). */
+/** Erros por posição (`nome-<i>`, `premio-<i>`, `descricao-<i>`, `slug-<i>`) e o geral (`categorias`). */
 export function validarCategorias(lista: readonly CategoriaEditada[]): Record<string, string> {
   const erros: Record<string, string> = {};
   if (lista.length > LIMITES_CATEGORIA.maximo) erros.categorias = `Use até ${LIMITES_CATEGORIA.maximo} categorias.`;
@@ -46,6 +48,7 @@ export function validarCategorias(lista: readonly CategoriaEditada[]): Record<st
     else if (nomes.has(chave)) erros[`nome-${i}`] = "Já existe uma categoria com este nome.";
     nomes.add(chave);
     if (c.premio.trim().length > LIMITES_CATEGORIA.premio) erros[`premio-${i}`] = "Use até 60 caracteres.";
+    if ((c.descricao ?? "").trim().length > LIMITES_CATEGORIA.descricao) erros[`descricao-${i}`] = `Use até ${LIMITES_CATEGORIA.descricao} caracteres.`;
     const slug = c.slug.trim();
     if (!slug) erros[`slug-${i}`] = "Informe o endereço.";
     else if (slug.length < LIMITES_CATEGORIA.slug[0] || slug.length > LIMITES_CATEGORIA.slug[1]) erros[`slug-${i}`] = "Use de 2 a 40 caracteres.";
