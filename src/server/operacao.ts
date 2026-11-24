@@ -3,11 +3,13 @@ import type { Evento as EventoLinha } from "@/generated/prisma/client";
 import { avaliarChecklist, checklistTemBloqueio, contarCategorias, contarCategoriasTotem, type EntradaChecklist } from "@/dominio/checklistAtivacao";
 import { avaliarContrasteTema } from "@/dominio/contrasteTema";
 import type { OrigemEncerramento } from "@/dominio/tipos";
+import { normalizarOpcoesReset, type OpcoesReset } from "@/dominio/resetEvento";
 import { resolverFaseConfig } from "@/dominio/travas";
 import { registrarAuditoria } from "./auditoria";
 import { congelarResultado } from "./apuracao";
 import { db, type Banco, type Transacao } from "./db";
 import { invalidarEstadoPublico } from "./estadoPublico";
+import { invalidarVotacoesEncerradas } from "./votacoesEncerradas";
 import { eventoParaDominio, temaParaDominio } from "./mapeadores";
 import { falha, falhaInterna, sucesso, type Resultado } from "./resultado";
 import { exigirAdmin, type UsuarioSessao } from "./sessao";
@@ -182,6 +184,103 @@ export function encerrarUrna(usuario: UsuarioSessao | null, eventoId: string) {
   return executar(usuario, eventoId, "ENCERRAR", async (tx, evento, usuarioId, agora) => {
     await encerrarNaTransacao(tx, evento, usuarioId, agora, "MANUAL");
   });
+}
+
+/** Quantas linhas cada parte do reset apagou (vai na auditoria; nunca quem votou em quem). */
+export type ContagemReset = {
+  votosPublico: number;
+  votosJuri: number;
+  notasJuri: number;
+  escolhasJuri: number;
+  votosTotem: number;
+  resultados: number;
+  participacoesPublico: number;
+  participacoesJurado: number;
+  convitesJurado: number;
+  totens: number;
+  codigosPareamento: number;
+};
+
+/**
+ * Demanda E1 (25/11/2026): volta o evento para rascunho com a urna não iniciada, em qualquer estado (inclusive concluído). A
+ * configuração fica; só sai o que o admin marcou (com a dependência de `normalizarOpcoesReset`). Exige digitar o nome do evento.
+ * Tudo numa transação com a linha do evento travada: um voto em andamento termina antes, e nenhum entra no meio do reset.
+ */
+export async function resetarEvento(
+  usuario: UsuarioSessao | null,
+  eventoId: string,
+  confirmacaoNome: string,
+  opcoesBrutas: OpcoesReset,
+): Promise<Resultado<ContagemReset>> {
+  const admin = await exigirAdmin(usuario, eventoId);
+  if (!admin.ok) return admin;
+  const { usuarioId } = admin.dados;
+  if (confirmacaoNome.trim() !== admin.dados.evento.nome) return falha("VALIDACAO", { mensagem: "O nome digitado não confere." });
+  const opcoes = normalizarOpcoesReset(opcoesBrutas);
+
+  try {
+    const contagem = await db().$transaction(
+      async (tx) => {
+        const evento = await travarEvento(tx, eventoId);
+        const c: ContagemReset = {
+          votosPublico: 0,
+          votosJuri: 0,
+          notasJuri: 0,
+          escolhasJuri: 0,
+          votosTotem: 0,
+          resultados: 0,
+          participacoesPublico: 0,
+          participacoesJurado: 0,
+          convitesJurado: 0,
+          totens: 0,
+          codigosPareamento: 0,
+        };
+        if (opcoes.votos) {
+          // Ordem das chaves estrangeiras (todas RESTRICT): histórico antes do voto do júri, marcas antes das participações.
+          await tx.historicoVotoJuri.deleteMany({ where: { votoJuri: { eventoId } } });
+          c.votosJuri = (await tx.votoJuri.deleteMany({ where: { eventoId } })).count;
+          c.notasJuri = (await tx.notaJuri.deleteMany({ where: { eventoId } })).count;
+          c.escolhasJuri = (await tx.escolhaCriterioJuri.deleteMany({ where: { eventoId } })).count;
+          await tx.participacaoCategoria.deleteMany({ where: { eventoId } });
+          c.votosPublico = (await tx.voto.deleteMany({ where: { eventoId } })).count;
+          c.votosTotem = (await tx.votoInfantil.deleteMany({ where: { eventoId } })).count;
+          c.resultados = (await tx.resultadoOficial.deleteMany({ where: { eventoId } })).count;
+          await tx.participacao.updateMany({ where: { eventoId, votou: true }, data: { votou: false } });
+        }
+        if (opcoes.totens) {
+          c.codigosPareamento = (await tx.codigoPareamento.deleteMany({ where: { eventoId } })).count;
+          // As categorias do totem saem em cascata; a auditoria fica (o ator do aparelho vira nulo).
+          c.totens = (await tx.dispositivo.deleteMany({ where: { eventoId } })).count;
+        }
+        if (opcoes.jurados) {
+          c.convitesJurado = (await tx.conviteJurado.deleteMany({ where: { eventoId } })).count;
+          c.participacoesJurado = (await tx.participacao.deleteMany({ where: { eventoId, papel: "JURADO" } })).count;
+        }
+        if (opcoes.contasPublico) {
+          c.participacoesPublico = (await tx.participacao.deleteMany({ where: { eventoId, papel: "PUBLICO" } })).count;
+        }
+        await tx.evento.update({
+          where: { id: eventoId },
+          data: { estado: "RASCUNHO", estadoUrna: "NAO_INICIADA", urnaAbertaEm: null, urnaEncerradaEm: null, concluidoEm: null },
+        });
+        await registrarAuditoria(tx, {
+          eventoId,
+          usuarioId,
+          acao: "EVENTO_RESETADO",
+          entidade: "evento",
+          entidadeId: evento.id,
+          detalhes: { faseAnterior: resolverFaseConfig(evento).fase, zerado: opcoes, quantidades: c },
+        });
+        return c;
+      },
+      { timeout: 30_000 },
+    );
+    invalidarEstadoPublico();
+    invalidarVotacoesEncerradas();
+    return sucesso(contagem);
+  } catch (e) {
+    return falhaInterna(e, "operacao RESETAR");
+  }
 }
 
 /** Exige digitar o nome do evento. */

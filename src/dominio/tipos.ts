@@ -40,6 +40,8 @@ export type AcaoAuditoria =
   | "URNA_ABERTA"
   | "URNA_ENCERRADA"
   | "EVENTO_CONCLUIDO"
+  // Demanda E1 (25/11/2026): volta para rascunho; `detalhes` leva o que foi zerado e quantas linhas saíram
+  | "EVENTO_RESETADO"
   | "CONVITE_RESGATADO"
   | "TENTATIVA_CODIGO_INVALIDA"
   | "BLOQUEIO_RATE_LIMIT"

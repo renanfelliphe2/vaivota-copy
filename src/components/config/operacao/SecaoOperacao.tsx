@@ -16,6 +16,7 @@ import { useAgora } from "@/store/seletores/relogio";
 import { ChecklistAtivacao } from "../ChecklistAtivacao";
 import { useServico } from "../useServico";
 import { LinhaDoTempoEstado } from "./LinhaDoTempoEstado";
+import { ResetEvento } from "./ResetEvento";
 
 type AcaoOperacao = {
   rotulo: string;
@@ -185,6 +186,8 @@ export function SecaoOperacao({ travas, checklist }: { travas: Travas; checklist
           confirmarDigitando={acao.confirmarDigitando ? evento.nome : undefined}
         />
       )}
+
+      <ResetEvento eventoId={evento.id} nomeEvento={evento.nome} />
     </section>
   );
 }

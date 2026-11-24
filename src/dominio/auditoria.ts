@@ -1,3 +1,4 @@
+import { descreverReset, type OpcoesReset } from "./resetEvento";
 import type { AcaoAuditoria, Auditoria, Instante } from "./tipos";
 
 // Etapa 7 (D15, seção 5.9): catálogo de exibição da auditoria de todas as ações das Etapas 0 a 8.
@@ -77,6 +78,11 @@ export const CATALOGO_AUDITORIA: Record<AcaoAuditoria, ItemCatalogo> = {
     },
   },
   EVENTO_CONCLUIDO: { rotulo: "Evento concluído", grupo: "ESTADO", descrever: () => "Evento concluído" },
+  EVENTO_RESETADO: {
+    rotulo: "Evento resetado",
+    grupo: "ESTADO",
+    descrever: (d) => descreverReset((d?.zerado as Partial<OpcoesReset> | undefined) ?? null),
+  },
   CONFIG_ALTERADA: {
     rotulo: "Configuração alterada",
     grupo: "CONFIGURACAO",

@@ -104,7 +104,7 @@ commits `261bd71` e `8732676` aos dois remotos (o push depende da migração).
 
 ## Fase E — resetar o evento
 
-### [ ] E1. Resetar o evento (demanda 3)
+### [x] E1. Resetar o evento (demanda 3)
 - Volta o evento para **rascunho** com a **urna não iniciada**. A configuração fica (itens, categorias, campos, tema, parceiros,
   apresentação, pesos, janela).
 - Vale para qualquer estado, **inclusive evento concluído**.
@@ -117,6 +117,11 @@ commits `261bd71` e `8732676` aos dois remotos (o push depende da migração).
   - [ ] **Totens pareados**: os totens e os códigos de pareamento (precisam ser pareados de novo).
 - A confirmação pede para digitar o nome do evento, e o reset fica na auditoria (a auditoria nunca é apagada).
 - A lista exata de opções pode ser revista na implementação; qualquer opção nova entra neste mesmo modal.
+- Decidido na implementação: **Contas do público**, **Jurados** e **Totens pareados** marcam **Votos** junto (a caixa de Votos
+  fica marcada e travada, com o motivo). Sem isso, o voto do júri e o do totem ficariam presos à participação e ao aparelho, e o
+  público poderia votar de novo com o voto antigo contando. O servidor aplica a mesma regra.
+- Onde: Configuração > Operação, cartão "Resetar o evento", disponível em qualquer estado. Na auditoria: "Evento resetado", com o
+  que foi zerado e quantas linhas saíram. Os totens apagados deixam a auditoria deles sem o aparelho (o registro fica).
 
 ---
 

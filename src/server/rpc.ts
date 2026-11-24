@@ -149,6 +149,14 @@ const servicos = {
   concluirEvento: definir(z.object({ eventoId: id, confirmacaoNome: texto(200) }), (_c, u, a) =>
     operacao.concluirEvento(u, a.eventoId, a.confirmacaoNome),
   ),
+  resetarEvento: definir(
+    z.object({
+      eventoId: id,
+      confirmacaoNome: texto(200),
+      opcoes: z.object({ votos: z.boolean(), contasPublico: z.boolean(), jurados: z.boolean(), totens: z.boolean() }).strict(),
+    }),
+    (_c, u, a) => operacao.resetarEvento(u, a.eventoId, a.confirmacaoNome, a.opcoes),
+  ),
 
   // Candidatos
   criarCandidato: definir(z.object({ eventoId: id, dados: dadosCandidato }), (_c, u, a) => candidatos.criarCandidato(u, a.eventoId, a.dados)),

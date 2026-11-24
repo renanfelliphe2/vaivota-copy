@@ -1,3 +1,4 @@
+import type { OpcoesReset } from "@/dominio/resetEvento";
 import { recarregarEstado } from "@/store/servidor";
 import { chamar } from "./rpc";
 import type { Resultado } from "./resultado";
@@ -26,4 +27,9 @@ export function encerrarUrna(eventoId: string) {
 /** Exige digitar o nome do evento. */
 export function concluirEvento(eventoId: string, confirmacaoNome: string) {
   return executar("concluirEvento", { eventoId, confirmacaoNome });
+}
+
+/** Demanda E1: volta para rascunho e zera o que foi marcado. Exige digitar o nome do evento. */
+export function resetarEvento(eventoId: string, confirmacaoNome: string, opcoes: OpcoesReset) {
+  return executar("resetarEvento", { eventoId, confirmacaoNome, opcoes });
 }
