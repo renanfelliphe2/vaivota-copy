@@ -28,6 +28,11 @@
   --qr-escuro: #000000;
 }
 
+/* Respeita a área segura inferior (notch/barra de gestos). Classe própria para evitar valor arbitrário no Tailwind. */
+.pb-area-segura {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 @theme inline {
   --color-tema-primaria: var(--tema-primaria);
   --color-tema-secundaria: var(--tema-secundaria);

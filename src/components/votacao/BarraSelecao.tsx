@@ -17,7 +17,7 @@ export function BarraSelecao({ titulo, alteracao, aoLimpar, aoRevisar }: BarraSe
     <div
       role="region"
       aria-label="Sua escolha"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-tema-borda bg-tema-fundo/95 pb-[env(safe-area-inset-bottom)] shadow-lg backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-tema-borda bg-tema-fundo/95 pb-area-segura shadow-lg backdrop-blur"
     >
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:px-6">
         <p className="min-w-0 flex-1 truncate text-sm">
