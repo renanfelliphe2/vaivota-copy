@@ -1258,3 +1258,11 @@ dialog::backdrop {
     display: none;
   }
 }
+
+/* Carrossel das categorias (B1, 25/11/2026): rola à mão e pelas setas, sem a barra de rolagem. */
+.carrossel-sem-barra {
+  scrollbar-width: none;
+}
+.carrossel-sem-barra::-webkit-scrollbar {
+  display: none;
+}

@@ -1,12 +1,10 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, CalendarDays, CircleCheck, Film, Heart, Info, MapPin, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, CircleCheck, Film, Info, MapPin, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useAnunciar } from "@/components/a11y/LiveRegion";
-import { AvisoVotoProprio } from "@/components/candidato/AvisoVotoProprio";
-import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
 import { UrnaStatusCard } from "@/components/evento/UrnaStatusCard";
 import { useIdentidadePagina } from "@/components/evento/identidadePagina";
 import { Alerta } from "@/components/ui/Alerta";
@@ -15,6 +13,8 @@ import { DialogoRevisao } from "@/components/votacao/DialogoRevisao";
 import { useEnviarVoto } from "@/components/votacao/useEnviarVoto";
 import { rotaCategoria } from "@/dominio/categorias";
 import { rotaVerificarEmail } from "@/dominio/destinoAcesso";
+import { modoVotoCategoria } from "@/dominio/modoVotoCategoria";
+import { filtrarPorTitulo } from "@/dominio/busca";
 import { cx } from "@/lib/classes";
 import { tokensCinema } from "@/lib/tema";
 import { textoContador } from "@/lib/textosEstado";
@@ -28,18 +28,11 @@ import { useSessao } from "@/store/seletores/sessao";
 import { useSelecaoVoto } from "@/store/seletores/votacao";
 import { useVisaoEvento } from "@/store/seletores/visao";
 import { DialogoCoracao } from "./DialogoCoracao";
-import { ID_SECAO_CATEGORIAS, SeloSeuVoto } from "./SecaoCategorias";
+import { BotaoFilme } from "./BotaoFilme";
+import { BarraPesquisa, BotaoPesquisar } from "./BuscaItens";
+import { ID_SECAO_CATEGORIAS } from "./SecaoCategorias";
 import { useMeusVotos } from "@/store/meusVotos";
 
-/**
- * O que a página da categoria deixa fazer:
- * - VISITANTE (sem sessão ou sem e-mail verificado), com a urna aberta: o toque no filme pede o acesso e volta com `?votar=`;
- * - AGUARDANDO: logado, a participação ainda está sendo criada (GarantiaParticipacao);
- * - ESCOLHA: público que ainda não votou nesta categoria; o toque abre a confirmação;
- * - JA_VOTOU: público que já votou nesta categoria (só o SE; nunca em quem);
- * - LEITURA: urna fechada, admin ou jurado: só a lista.
- */
-type Modo = "VISITANTE" | "AGUARDANDO" | "ESCOLHA" | "JA_VOTOU" | "LEITURA";
 
 /**
  * Página de uma categoria (09/11/2026, organograma do Festival Ver e Fazer Filmes): /e/[slug]/[categoria], também o
@@ -65,20 +58,19 @@ export function PaginaCategoria() {
   const cinema = useIdentidadePagina().estilo === "cinema";
   // Em quem a pessoa votou, se este navegador sabe (24/11/2026; o servidor só sabe que votou).
   const meusVotos = useMeusVotos(sessao.usuario?.id ?? null, eventoId || null);
+  // Busca pelo título (B1, 25/11/2026).
+  const [buscaAberta, setBuscaAberta] = useState(false);
+  const [termo, setTermo] = useState("");
 
-  const visitante = !sessao.logado || !sessao.emailVerificado;
   const aberta = visao?.variante === "ABERTA";
-  const modo: Modo = !aberta
-    ? "LEITURA"
-    : visitante
-      ? "VISITANTE"
-      : sessao.papel === null
-        ? "AGUARDANDO"
-        : sessao.papel !== "PUBLICO"
-          ? "LEITURA"
-          : atual?.votou
-            ? "JA_VOTOU"
-            : "ESCOLHA";
+  const modo = modoVotoCategoria({
+    urnaAberta: aberta,
+    logado: sessao.logado,
+    emailVerificado: sessao.emailVerificado,
+    papel: sessao.papel,
+    soTotem: false,
+    votou: atual?.votou ?? false,
+  });
 
   // Volta do acesso com `?votar=`: na escolha, abre a confirmação; noutro estado definitivo, só limpa a URL.
   const votarUrl = busca.get("votar");
@@ -131,6 +123,11 @@ export function PaginaCategoria() {
   }
 
   const clicavel = modo === "ESCOLHA" || modo === "VISITANTE";
+  const visiveis = filtrarPorTitulo(itens, termo, (i) => i.candidato.titulo);
+  const fecharBusca = () => {
+    setBuscaAberta(false);
+    setTermo("");
+  };
   const instrucao =
     modo === "ESCOLHA" || modo === "VISITANTE"
       ? `Toque no seu ${tema.rotuloCandidato.toLocaleLowerCase("pt-BR")} favorito para votar. Você confirma antes de o voto contar.`
@@ -143,11 +140,27 @@ export function PaginaCategoria() {
       <section aria-labelledby="titulo-filmes" className={cx("w-full", cinema ? "bg-cine-papel" : "bg-tema-superficie")}>
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-16 pt-10 sm:px-6 sm:pb-20 sm:pt-12">
           <div className="flex flex-col gap-2">
-            <h2 id="titulo-filmes" tabIndex={-1} className={cx("text-2xl tracking-tight sm:text-3xl", cinema ? "font-cine font-bold" : "font-display font-extrabold")}>
-              {tema.rotuloCandidatos}
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 id="titulo-filmes" tabIndex={-1} className={cx("text-2xl tracking-tight sm:text-3xl", cinema ? "font-cine font-bold" : "font-display font-extrabold")}>
+                {tema.rotuloCandidatos}
+              </h2>
+              {itens.length > 1 && (
+                <BotaoPesquisar aberta={buscaAberta} idBarra="busca-categoria" nome={categoria.nome} aoAlternar={() => (buscaAberta ? fecharBusca() : setBuscaAberta(true))} />
+              )}
+            </div>
             {instrucao && <p className="max-w-2xl text-tema-texto-suave">{instrucao}</p>}
           </div>
+          {buscaAberta && (
+            <BarraPesquisa
+              id="busca-categoria"
+              termo={termo}
+              aoMudar={setTermo}
+              aoFechar={fecharBusca}
+              rotulo={`Pesquisar ${tema.rotuloCandidatos.toLocaleLowerCase("pt-BR")} de ${categoria.nome}`}
+              encontrados={visiveis.length}
+              total={itens.length}
+            />
+          )}
 
           <AvisoVotacao aviso={aviso} />
           {modo === "JA_VOTOU" && (
@@ -169,7 +182,7 @@ export function PaginaCategoria() {
             </p>
           ) : (
             <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
-              {itens.map((item) => (
+              {visiveis.map((item) => (
                 <li key={item.candidato.id} className="flex">
                   <BotaoFilme
                     item={item}
@@ -280,83 +293,6 @@ function CabecaCategoria({ dados }: { dados: CategoriaComItens }) {
       </div>
       <span aria-hidden className="cine-furos-h block h-[1.125rem] w-full bg-cine-pelicula" />
     </section>
-  );
-}
-
-/**
- * O botão do filme (organograma: imagem + título). Clicável, o cartão inteiro é o botão ("Votar em <título>"); na leitura,
- * o mesmo cartão sem ação. Nunca mostra número de votos.
- */
-function BotaoFilme({
-  item,
-  clicavel,
-  meuVoto = false,
-  cinema,
-  aoTocar,
-}: {
-  item: ItemLista;
-  clicavel: boolean;
-  /** O item em que a pessoa votou (24/11/2026): selo "Seu voto" e moldura na cor do tema. */
-  meuVoto?: boolean;
-  cinema: boolean;
-  aoTocar: () => void;
-}) {
-  const { candidato, bloqueadoVotoProprio } = item;
-  const dicaId = `dica-voto-proprio-${candidato.id}`;
-  const conteudo = (
-    <>
-      <div className="relative overflow-hidden">
-        <ImagemCandidato
-          titulo={candidato.titulo}
-          imagemUrl={candidato.imagemUrl}
-          proporcao="5/7"
-          className={cx("transition-transform duration-500", clicavel && "group-hover:scale-105")}
-          sizes="(min-width: 1152px) 17rem, (min-width: 1024px) 24vw, (min-width: 640px) 32vw, 48vw"
-        />
-        {clicavel && (
-          <span
-            aria-hidden
-            className="absolute right-2 top-2 inline-flex size-10 items-center justify-center rounded-full bg-tema-fundo/90 text-tema-primaria shadow-md ring-1 ring-tema-borda transition group-hover:scale-110 sm:right-3 sm:top-3"
-          >
-            <Heart className="size-5" />
-          </span>
-        )}
-        {meuVoto && <SeloSeuVoto />}
-      </div>
-      <div aria-hidden className="h-1 w-full bg-linear-to-r from-tema-primaria to-tema-secundaria" />
-      <div className="flex flex-1 flex-col gap-2 p-3 text-left sm:p-4">
-        <h3 className={cx("line-clamp-3 text-base leading-snug tracking-tight wrap-anywhere sm:text-lg", cinema ? "font-cine font-bold" : "font-display font-extrabold")}>
-          {candidato.titulo}
-        </h3>
-        {bloqueadoVotoProprio && <AvisoVotoProprio dicaId={dicaId} />}
-        {clicavel && (
-          <span aria-hidden className="mt-auto inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-tema-primaria px-4 text-sm font-semibold text-tema-sobre-primaria">
-            <Heart className="size-4" />
-            Votar
-          </span>
-        )}
-      </div>
-    </>
-  );
-  const classes = cx(
-    "group relative isolate flex w-full flex-col overflow-hidden rounded-2xl bg-tema-fundo sm:rounded-3xl",
-    meuVoto ? "shadow-lg shadow-tema-primaria/25 ring-4 ring-tema-primaria" : "shadow-sm ring-1 ring-tema-borda/80",
-  );
-  if (!clicavel)
-    return (
-      <article aria-label={meuVoto ? `${candidato.titulo} (seu voto)` : candidato.titulo} aria-describedby={bloqueadoVotoProprio ? dicaId : undefined} className={classes}>
-        {conteudo}
-      </article>
-    );
-  return (
-    <button
-      type="button"
-      onClick={aoTocar}
-      aria-label={`Votar em ${candidato.titulo}`}
-      className={cx(classes, "cursor-pointer transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/15 active:scale-[0.98]")}
-    >
-      {conteudo}
-    </button>
   );
 }
 
