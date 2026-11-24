@@ -81,6 +81,7 @@ export const CATALOGO_AUDITORIA: Record<AcaoAuditoria, ItemCatalogo> = {
       if (entidade === "config_placar") return "Pesos ou critério de desempate alterados";
       if (entidade === "config_juri") return "Forma de votação ou critérios do júri alterados";
       if (entidade === "campo_candidato") return "Campos extras alterados";
+      if (entidade === "config_apresentacao") return "Telão da votação alterado";
       if (d?.janela) return "Janela alterada";
       const campos = listaDeCampos(d);
       return campos ? `Alterado: ${campos}` : "Configuração alterada";

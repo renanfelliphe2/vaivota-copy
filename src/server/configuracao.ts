@@ -1,6 +1,7 @@
 import "server-only";
 import { avaliarContrasteTema } from "@/dominio/contrasteTema";
-import type { Evento, RegraDesempate } from "@/dominio/tipos";
+import { validarConfigTelao } from "@/dominio/telao";
+import type { Evento, OpcoesTelao, RegraDesempate } from "@/dominio/tipos";
 import { exigirAcao, resolverFaseConfig, type AcaoConfig } from "@/dominio/travas";
 import {
   validarDescricaoEvento,
@@ -175,6 +176,52 @@ export async function salvarPlacar(usuario: UsuarioSessao | null, eventoId: stri
     return sucesso(null);
   } catch (e) {
     return falhaInterna(e, "salvarPlacar");
+  }
+}
+
+export type DadosTelao = { intervaloSegundos: number; mostrar: OpcoesTelao };
+
+/** Telão da votação (demanda B2, 25/11/2026): intervalo da troca de categoria e o que a cena mostra. Livre em toda fase. */
+export async function salvarApresentacao(usuario: UsuarioSessao | null, eventoId: string, dados: DadosTelao): Promise<Resultado<null>> {
+  const admin = await exigirAdmin(usuario, eventoId);
+  if (!admin.ok) return admin;
+  const { evento, usuarioId } = admin.dados;
+  const trava = exigirAcao(evento, "APRESENTACAO");
+  if (!trava.ok) return trava;
+  const erros = validarConfigTelao(dados);
+  if (Object.keys(erros).length) return falha("VALIDACAO", { campos: erros });
+  const atual = await db().configApresentacao.findUnique({ where: { eventoId } });
+  if (!atual) return falha("NAO_ENCONTRADO");
+  const de: DadosTelao = {
+    intervaloSegundos: atual.telaoIntervaloSegundos,
+    mostrar: { candidatos: atual.telaoMostrarCandidatos, tempo: atual.telaoMostrarTempo, qr: atual.telaoMostrarQr, link: atual.telaoMostrarLink },
+  };
+  if (JSON.stringify(de) === JSON.stringify(dados)) return sucesso(null);
+  try {
+    await db().$transaction(async (tx) => {
+      await tx.configApresentacao.update({
+        where: { eventoId },
+        data: {
+          telaoIntervaloSegundos: dados.intervaloSegundos,
+          telaoMostrarCandidatos: dados.mostrar.candidatos,
+          telaoMostrarTempo: dados.mostrar.tempo,
+          telaoMostrarQr: dados.mostrar.qr,
+          telaoMostrarLink: dados.mostrar.link,
+        },
+      });
+      await registrarAuditoria(tx, {
+        eventoId,
+        usuarioId,
+        acao: "CONFIG_ALTERADA",
+        entidade: "config_apresentacao",
+        entidadeId: eventoId,
+        detalhes: { de, para: dados },
+      });
+    });
+    invalidarEstadoPublico();
+    return sucesso(null);
+  } catch (e) {
+    return falhaInterna(e, "salvarApresentacao");
   }
 }
 

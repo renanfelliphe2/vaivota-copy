@@ -136,6 +136,8 @@ export function apresentacaoParaDominio(c: P.ConfigApresentacao, fuso: string): 
     // Sem parcial por projeto durante a votação: a flag nunca chega ligada ao cliente (P4 das decisões pendentes).
     parcialAoVivo: false,
     limiarRetaFinalSegundos: c.limiarRetaFinalSegundos,
+    telaoIntervaloSegundos: c.telaoIntervaloSegundos,
+    telaoMostrar: { candidatos: c.telaoMostrarCandidatos, tempo: c.telaoMostrarTempo, qr: c.telaoMostrarQr, link: c.telaoMostrarLink },
     atualizadoEm: instante(c.atualizadoEm, fuso),
   };
 }

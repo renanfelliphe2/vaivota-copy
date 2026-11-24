@@ -18,6 +18,7 @@ import { SecaoJuri } from "./juri/SecaoJuri";
 import { SecaoOperacao } from "./operacao/SecaoOperacao";
 import { SecaoPlacar } from "./placar/SecaoPlacar";
 import { SecaoTema } from "./tema/SecaoTema";
+import { SecaoApresentacao } from "./apresentacao/SecaoApresentacao";
 import { SecaoTotens } from "./totens/SecaoTotens";
 import { TituloPainel } from "@/components/nav/TituloPainel";
 
@@ -70,6 +71,7 @@ export function TelaConfiguracao() {
   else if (secao === "totens") conteudo = <SecaoTotens travas={travas} />;
   else if (secao === "placar") conteudo = <SecaoPlacar travas={travas} />;
   else if (secao === "tema") conteudo = <SecaoTema travas={travas} />;
+  else if (secao === "apresentacao") conteudo = <SecaoApresentacao travas={travas} />;
   else conteudo = <SecaoOperacao travas={travas} checklist={checklist} />;
 
   const painelChecklist = <ChecklistAtivacao itens={checklist} base={base} />;

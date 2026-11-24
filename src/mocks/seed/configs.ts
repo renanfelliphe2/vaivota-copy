@@ -26,6 +26,8 @@ export const seedConfigsApresentacao = [
     rotuloCategoriaJuri: "Escolha dos jurados",
     parcialAoVivo: false,
     limiarRetaFinalSegundos: 300,
+    telaoIntervaloSegundos: 15,
+    telaoMostrar: { candidatos: true, tempo: true, qr: true, link: true },
     atualizadoEm: "2026-10-01T09:00:00-03:00",
   },
 ] satisfies ConfigApresentacao[];

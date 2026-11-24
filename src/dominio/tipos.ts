@@ -190,8 +190,14 @@ export type ConfigApresentacao = {
   rotuloCategoriaJuri: string;
   parcialAoVivo: boolean;
   limiarRetaFinalSegundos: number;
+  /** Telão durante a votação (demanda B2, 25/11/2026): troca de categoria a cada n segundos. */
+  telaoIntervaloSegundos: number;
+  /** O que a cena da votação ao vivo mostra (ao menos um). */
+  telaoMostrar: OpcoesTelao;
   atualizadoEm: Instante;
 };
+
+export type OpcoesTelao = { candidatos: boolean; tempo: boolean; qr: boolean; link: boolean };
 
 export type CampoCandidato = {
   id: string;

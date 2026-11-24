@@ -206,6 +206,16 @@ const servicos = {
     }),
     (_c, u, a) => configuracao.salvarPlacar(u, a.eventoId, a.dados),
   ),
+  salvarApresentacao: definir(
+    z.object({
+      eventoId: id,
+      dados: z.object({
+        intervaloSegundos: z.number().int(),
+        mostrar: z.object({ candidatos: z.boolean(), tempo: z.boolean(), qr: z.boolean(), link: z.boolean() }),
+      }),
+    }),
+    (_c, u, a) => configuracao.salvarApresentacao(u, a.eventoId, a.dados),
+  ),
   salvarTema: definir(
     z.object({
       eventoId: id,

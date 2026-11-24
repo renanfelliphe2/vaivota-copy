@@ -14,6 +14,7 @@ import {
 } from "@/server/apresentacao";
 import { zerarMemoria } from "@/server/limites";
 import { abrirUrna, ativarEvento, encerrarUrna } from "@/server/operacao";
+import { salvarApresentacao } from "@/server/configuracao";
 import { salvarParceiros } from "@/server/parceiros";
 import { executarServico, type ContextoRpc } from "@/server/rpc";
 import { prefixoPublico } from "@/server/storage";
@@ -490,5 +491,35 @@ describe("telão: ensaio", () => {
     const r = await obterDadosEnsaio(admin, e, "SEM_EMPATE");
     expect(r.ok && r.dados.candidatos.map((x) => x.id)).toEqual([c[0], c[2], c[3]]);
     expect(r.ok && r.dados.candidatos.some((x) => x.id === extra)).toBe(false);
+  });
+});
+
+describe("telão da votação (B2)", () => {
+  it("salva intervalo e opções, audita, chega ao estado público; recusa inválido e quem não é admin", async () => {
+    const e = await semearEvento("teste-telao-config", { ativo: true });
+    const admin = await criarAdminDireto(e);
+    const publico = await criarUsuarioDireto(e);
+    const dados = { intervaloSegundos: 20, mostrar: { candidatos: false, tempo: true, qr: true, link: false } };
+
+    expect(await salvarApresentacao(publico, e, dados)).toMatchObject({ ok: false });
+    expect(await salvarApresentacao(admin, e, { ...dados, intervaloSegundos: 2 })).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
+    expect(
+      await salvarApresentacao(admin, e, { intervaloSegundos: 15, mostrar: { candidatos: false, tempo: false, qr: false, link: false } }),
+    ).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
+
+    expect((await salvarApresentacao(admin, e, dados)).ok).toBe(true);
+    const salvo = await db().configApresentacao.findUniqueOrThrow({ where: { eventoId: e } });
+    expect(salvo).toMatchObject({ telaoIntervaloSegundos: 20, telaoMostrarCandidatos: false, telaoMostrarTempo: true, telaoMostrarQr: true, telaoMostrarLink: false });
+    expect(await db().auditoria.count({ where: { eventoId: e, entidade: "config_apresentacao" } })).toBe(1);
+
+    // Livre com a urna aberta.
+    await criarCandidatos(e, 2);
+    expect((await abrirUrna(admin, e)).ok).toBe(true);
+    expect((await salvarApresentacao(admin, e, { ...dados, intervaloSegundos: 30 })).ok).toBe(true);
+
+    invalidarEstadoPublico();
+    const estado = await montarEstadoPublico(null);
+    const config = estado.eventos.find((x) => x.evento.id === e)?.configApresentacao;
+    expect(config).toMatchObject({ telaoIntervaloSegundos: 30, telaoMostrar: dados.mostrar });
   });
 });

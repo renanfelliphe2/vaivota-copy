@@ -303,6 +303,13 @@ model ConfigApresentacao {
   rotuloCategoriaJuri      String     @default("Escolha dos jurados") @map("rotulo_categoria_juri") @db.VarChar(80)
   parcialAoVivo            Boolean    @default(false) @map("parcial_ao_vivo")
   limiarRetaFinalSegundos  Int        @default(300) @map("limiar_reta_final_segundos")
+  // Telão durante a votação (demanda B2, 25/11/2026): uma categoria por vez, trocando a cada `telaoIntervaloSegundos`; o que
+  // aparece na tela, marcado pelo admin (ao menos um). CHECKs na migração: intervalo de 5 a 300 s.
+  telaoIntervaloSegundos   Int        @default(15) @map("telao_intervalo_segundos")
+  telaoMostrarCandidatos   Boolean    @default(true) @map("telao_mostrar_candidatos")
+  telaoMostrarTempo        Boolean    @default(true) @map("telao_mostrar_tempo")
+  telaoMostrarQr           Boolean    @default(true) @map("telao_mostrar_qr")
+  telaoMostrarLink         Boolean    @default(true) @map("telao_mostrar_link")
   atualizadoEm             DateTime   @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
   evento Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)

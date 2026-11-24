@@ -32,6 +32,7 @@ const ESPERADO: Record<Exclude<AcaoConfig, "MODULO_JURI_DESLIGAR">, NivelTrava[]
   PLACAR: [L, L, T, T, LE],
   JURI_AVALIACAO: [L, L, T, T, LE],
   TEMA: [L, L, L, L, LE],
+  APRESENTACAO: [L, L, L, L, LE],
   OPERACAO: [L, L, L, L, LE],
 };
 

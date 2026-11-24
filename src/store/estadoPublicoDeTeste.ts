@@ -95,6 +95,8 @@ export function publico(sobrescrever: Partial<EstadoPublico> = {}): EstadoPublic
           rotuloCategoriaJuri: "Escolha dos jurados",
           parcialAoVivo: false,
           limiarRetaFinalSegundos: 300,
+          telaoIntervaloSegundos: 15,
+          telaoMostrar: { candidatos: true, tempo: true, qr: true, link: true },
           atualizadoEm: AGORA,
         },
         camposCandidato: [{ id: "c1", eventoId: "evt-1", chave: "equipe", rotulo: "Equipe", ordem: 1 }],

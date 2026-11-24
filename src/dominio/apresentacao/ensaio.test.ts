@@ -17,6 +17,8 @@ const CONFIG: ConfigApresentacao = {
   rotuloCategoriaJuri: "Jurados",
   parcialAoVivo: false,
   limiarRetaFinalSegundos: 300,
+  telaoIntervaloSegundos: 15,
+  telaoMostrar: { candidatos: true, tempo: true, qr: true, link: true },
   atualizadoEm: "2026-11-02T10:00:00-03:00",
 };
 

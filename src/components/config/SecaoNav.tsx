@@ -1,6 +1,6 @@
 "use client";
 
-import { Gavel, Layers, ListChecks, Palette, Power, Scale, Settings2, Tablet } from "lucide-react";
+import { Gavel, Layers, ListChecks, Monitor, Palette, Power, Scale, Settings2, Tablet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SecaoConfig } from "@/dominio/checklistAtivacao";
@@ -15,6 +15,7 @@ const TODAS_AS_SECOES: { id: SecaoConfig; rotulo: string; icone: typeof Gavel }[
   { id: "totens", rotulo: "Totens", icone: Tablet },
   { id: "placar", rotulo: "Placar", icone: Scale },
   { id: "tema", rotulo: "Tema", icone: Palette },
+  { id: "apresentacao", rotulo: "Apresentação", icone: Monitor },
   { id: "operacao", rotulo: "Operação", icone: Power },
 ];
 

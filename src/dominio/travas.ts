@@ -41,6 +41,8 @@ export type AcaoConfig =
   /** D24 (rev. 3, E32): o nível depende do dado (convite USADO), não da fase. */
   | "MODULO_JURI_DESLIGAR"
   | "TEMA"
+  /** Telão da votação (B2, 25/11/2026): intervalo e o que mostrar. Livre: só muda a tela, nunca o voto. */
+  | "APRESENTACAO"
   | "OPERACAO";
 
 type Linha = [rascunho: NivelTrava, ativoNaoIniciada: NivelTrava, urnaAberta: NivelTrava, urnaEncerrada: NivelTrava];
@@ -68,6 +70,7 @@ const MATRIZ: Record<Exclude<AcaoConfig, "MODULO_JURI_DESLIGAR">, Linha> = {
   PLACAR: ["LIVRE", "LIVRE", "TRAVADO", "TRAVADO"],
   JURI_AVALIACAO: ["LIVRE", "LIVRE", "TRAVADO", "TRAVADO"],
   TEMA: ["LIVRE", "LIVRE", "LIVRE", "LIVRE"],
+  APRESENTACAO: ["LIVRE", "LIVRE", "LIVRE", "LIVRE"],
   OPERACAO: ["LIVRE", "LIVRE", "LIVRE", "LIVRE"],
 };
 
