@@ -24,7 +24,8 @@
     "db:backup": "tsx --conditions=react-server scripts/backup.ts",
     "db:local": "tsx --conditions=react-server scripts/banco-local.ts",
     "db:carga-preparar": "tsx --conditions=react-server scripts/carga-preparar.ts",
-    "db:carga-conferir": "tsx --conditions=react-server scripts/carga-conferir.ts"
+    "db:carga-conferir": "tsx --conditions=react-server scripts/carga-conferir.ts",
+    "db:corrigir-enderecos-categorias": "tsx --conditions=react-server scripts/corrigir-enderecos-categorias.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",

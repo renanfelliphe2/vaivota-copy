@@ -71,9 +71,10 @@ export function ListaCandidatosAdmin({
       {visiveis.length === 0 ? (
         <p className="rounded-xl border border-dashed border-tema-borda p-6 text-center text-tema-texto-suave">Nenhum item neste filtro.</p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3">
+          {/* 24/11/2026: grade flexível, quantas colunas couberem (cartões de no mínimo 15rem). */}
           {visiveis.map((item) => (
-            <li key={item.candidato.id}>
+            <li key={item.candidato.id} className="flex">
               <CartaoCandidatoAdmin item={item} travas={travas} ocupado={ocupado} acoes={acoes} />
             </li>
           ))}

@@ -1,12 +1,10 @@
 import { notFound } from "next/navigation";
 import { GaleriaUi } from "@/components/dev/GaleriaUi";
-import { MODULOS_FESTIVAL } from "@/lib/modulos";
 
 export const metadata = { title: "Galeria de componentes | VaiVota" };
 
-/** Só existe com a flag da toolbar ligada. */
+/** Galeria de componentes: ferramenta de desenvolvimento, fora do ar em produção. */
 export default function PaginaGaleria() {
-  // Fora do MVP da Maratona Tech Tivit (ver src/lib/modulos.ts).
-  if (!MODULOS_FESTIVAL) notFound();
+  if (process.env.NODE_ENV === "production") notFound();
   return <GaleriaUi />;
 }

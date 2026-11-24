@@ -13,9 +13,20 @@ const ESTADOS: Record<EstadoItemChecklist, { rotulo: string; icone: typeof Circl
 };
 
 /** Etapa 6 (seção 5.7): ícone e texto por item; pendência leva à seção que resolve. */
-export function ChecklistAtivacao({ itens, base, completo = false }: { itens: ItemChecklist[]; base: string; completo?: boolean }) {
+export function ChecklistAtivacao({
+  itens,
+  base,
+  completo = false,
+  className,
+}: {
+  itens: ItemChecklist[];
+  base: string;
+  completo?: boolean;
+  /** Layout da lista (ex.: duas colunas na Operação). */
+  className?: string;
+}) {
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className={cx("flex flex-col gap-2", className)}>
       {itens.map((item) => {
         const { rotulo, icone: Icone, cor } = ESTADOS[item.estado];
         const precisaAgir = item.estado === "PENDENTE" || item.estado === "AVISO";

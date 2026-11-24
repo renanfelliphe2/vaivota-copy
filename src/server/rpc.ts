@@ -225,7 +225,7 @@ const servicos = {
   salvarParceiros: definir(
     z.object({
       eventoId: id,
-      lista: z.array(z.object({ id: id.nullable(), nome: texto(100), logoUrl: z.string().max(500).nullable() })).max(50),
+      lista: z.array(z.object({ id: id.nullable(), nome: texto(100), logoUrl: z.string().max(500).nullable(), linkUrl: z.string().max(300).nullable().optional() })).max(50),
     }),
     (ctx, u, a) => parceiros.salvarParceiros(u, a.eventoId, a.lista, { ip: ctx.ip }),
   ),
@@ -234,9 +234,14 @@ const servicos = {
   salvarCategorias: definir(
     z.object({
       eventoId: id,
-      lista: z.array(z.object({ id: id.nullable(), nome: texto(100), premio: texto(100), descricao: texto(1000).optional(), slug: texto(60) })).max(30),
+      lista: z.array(z.object({ id: id.nullable(), nome: texto(100), premio: texto(100), descricao: texto(1000).optional() })).max(30),
     }),
     (ctx, u, a) => categorias.salvarCategorias(u, a.eventoId, a.lista, { ip: ctx.ip }),
+  ),
+  // Curtas de uma categoria (admin, 24/11/2026): a lista inteira de itens da categoria
+  vincularCandidatosCategoria: definir(
+    z.object({ eventoId: id, categoriaId: id, candidatoIds: z.array(id).max(500) }),
+    (ctx, u, a) => categorias.vincularCandidatosCategoria(u, a.eventoId, a.categoriaId, a.candidatoIds, { ip: ctx.ip }),
   ),
 
   // Júri: configuração (admin)

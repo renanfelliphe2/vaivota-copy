@@ -4,7 +4,7 @@ O que a trilha de produção (Prisma + Supabase) precisa trocar. O protótipo gu
 
 ## Situação: trilha de produção implementada (MVP Maratona Tech Tivit, 15/10/2026)
 
-A troca descrita abaixo foi feita para o que a Maratona Tech Tivit usa. Júri e convites ficaram reais em 02/11/2026, o voto infantil com o totem em 02/11/2026 e os parceiros e o telão em 03/11/2026 (linhas abaixo); as rotas do Festival continuam fechadas por `NEXT_PUBLIC_MODULOS_FESTIVAL`. Só `entrarComo` segue como protótipo (ferramenta da toolbar).
+A troca descrita abaixo foi feita para o que a Maratona Tech Tivit usa. Júri e convites ficaram reais em 02/11/2026, o voto infantil com o totem em 02/11/2026 e os parceiros e o telão em 03/11/2026 (linhas abaixo); desde 24/11/2026 as rotas do Festival ficam sempre no ar (a flag `NEXT_PUBLIC_MODULOS_FESTIVAL` saiu). Só `entrarComo` segue como protótipo (ferramenta da toolbar).
 
 - **Fronteira real:** cada serviço de `src/servicos/` mantém a assinatura e chama `POST /api/servico/<nome>` (`src/servicos/rpc.ts` → `src/app/api/servico/[nome]/route.ts` → `src/server/rpc.ts`). O servidor valida os argumentos (zod), resolve a sessão do cookie (nunca de um campo enviado) e revalida papel e fase a cada chamada.
 - **Leitura pública:** `src/server/estadoPublico.ts` monta o estado já filtrado (eventos, tema, candidatos publicados, a própria pessoa e participação); o layout raiz o entrega ao `AppProvider` e o polling o renova (`obterEstado`: a cada 10 s para quem espera a urna, 30 s para quem já votou, 60 s com a urna encerrada; cache de 3 s por instância, sem cache para o admin). `src/store/estadoReal.ts` o transforma no mesmo `EstadoApp` do protótipo, então **seletores e telas não mudaram**.
@@ -75,7 +75,7 @@ Reaproveitável sem mudança: `src/dominio/**` (regras puras: apuração, travas
 | `salvarParceiros` | `parceiros.ts` | ação | sim | `TRAVADO`, `VALIDACAO`, `CONFLITO` | Configuração · Parceiros |
 | `alternarModuloJuri` | `configJuri.ts` | ação | sim | `TRAVADO`, `CONFLITO` | Configuração · Júri |
 
-Apresentação entre abas (03/11/2026): a sala de controle e o telão são abas diferentes e a revelação (cena, passo, pausa) mora no navegador (`ui.apresentacao`). `store/sincronizarApresentacao.ts` espelha só essa fatia entre as abas (BroadcastChannel) e no `localStorage`, então o telão recarregado retoma de onde parou. O controle remoto (`ControleRemoto`, montado no layout raiz atrás de `NEXT_PUBLIC_MODULOS_FESTIVAL`) fala com o palco por outro canal (`canalTelao`), fora do estado.
+Apresentação entre abas (03/11/2026): a sala de controle e o telão são abas diferentes e a revelação (cena, passo, pausa) mora no navegador (`ui.apresentacao`). `store/sincronizarApresentacao.ts` espelha só essa fatia entre as abas (BroadcastChannel) e no `localStorage`, então o telão recarregado retoma de onde parou. O controle remoto (`ControleRemoto`, montado no layout raiz) fala com o palco por outro canal (`canalTelao`), fora do estado.
 
 Escritas fora de `servicos/` (só estado de tela ou ferramenta do protótipo): `store/acoesVotacao.ts` (`ui.votacao`), `store/acoesDashboard.ts` (`ui.dashboard` e controles da toolbar), `store/acoesApresentacao.ts` (`ui.apresentacao`, `ui.palcoAtivo`), `store/acoes.ts` (toolbar), `store/transicoes.ts` (transições puras usadas por `operacao.ts`, pelo relógio e pela toolbar).
 

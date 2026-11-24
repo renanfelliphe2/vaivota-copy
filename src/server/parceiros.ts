@@ -1,6 +1,6 @@
 import "server-only";
 import { exigirAcao } from "@/dominio/travas";
-import { validarParceiros } from "@/dominio/validacoesConfig";
+import { normalizarLinkSite, validarParceiros } from "@/dominio/validacoesConfig";
 import { registrarAuditoria } from "./auditoria";
 import { invalidarEstadoPublico } from "./estadoPublico";
 import { comEventoTravado } from "./eventoTravado";
@@ -14,7 +14,7 @@ import { urlDeImagemValida } from "./storage";
 // (upload em /api/candidatos/imagem) ou se já era o logo salvo do parceiro: nada de endereço externo digitado.
 
 /** `id` null: parceiro novo. */
-export type ParceiroEditado = { id: string | null; nome: string; logoUrl: string | null };
+export type ParceiroEditado = { id: string | null; nome: string; logoUrl: string | null; linkUrl?: string | null };
 
 export async function salvarParceiros(
   usuario: UsuarioSessao | null,
@@ -27,8 +27,13 @@ export async function salvarParceiros(
   const { usuarioId } = admin.dados;
   const trava = exigirAcao(admin.dados.evento, "TEMA");
   if (!trava.ok) return trava;
-  const campos = validarParceiros(lista.map((p) => p.nome));
+  const campos = validarParceiros(lista.map((p) => p.nome), lista.map((p) => p.linkUrl));
   if (Object.keys(campos).length > 0) return falha("VALIDACAO", { campos });
+  // Já validado acima: aqui só se grava o endereço normalizado (https:// incluído); vazio vira null.
+  const links = lista.map((p) => {
+    const l = normalizarLinkSite(p.linkUrl ?? "");
+    return l.ok ? l.url : null;
+  });
 
   const r = await comEventoTravado(eventoId, "TEMA", async (tx) => {
     const atuais = await tx.parceiro.findMany({ where: { eventoId } });
@@ -49,7 +54,7 @@ export async function salvarParceiros(
     const removidos = atuais.filter((p) => !mantidos.has(p.id)).map((p) => p.id);
     if (removidos.length) await tx.parceiro.deleteMany({ where: { id: { in: removidos } } });
     for (const [i, p] of lista.entries()) {
-      const dados = { nome: p.nome.trim(), logoUrl: p.logoUrl, ordem: i + 1 };
+      const dados = { nome: p.nome.trim(), logoUrl: p.logoUrl, linkUrl: links[i], ordem: i + 1 };
       if (p.id) await tx.parceiro.update({ where: { id: p.id }, data: dados });
       else await tx.parceiro.create({ data: { eventoId, ...dados } });
     }

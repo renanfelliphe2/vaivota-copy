@@ -1,6 +1,6 @@
 import type { Candidato, Categoria, Participacao } from "./tipos";
 
-// Categorias do evento (Festival, 09/11/2026): cada uma tem os seus itens, a sua página (/e/[slug]/categoria/[slug]), o seu QR
+// Categorias do evento (Festival, 09/11/2026): cada uma tem os seus itens, a sua página (/e/[slug]/[categoria]), o seu QR
 // Code e o seu voto popular (uma pessoa vota uma vez em CADA categoria). Evento sem categorias segue com a urna única de sempre.
 // Funções puras: a tela e o servidor usam as mesmas regras.
 
@@ -12,9 +12,16 @@ export const LIMITES_CATEGORIA = {
   maximo: 12,
 } as const;
 
-const RE_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+/**
+ * Endereços que já são páginas do evento (/e/[slug]/votar, /e/[slug]/admin...): uma categoria não pode ocupá-los, senão a
+ * página dela nunca abriria. Manter em dia com as pastas de src/app/e/[slug]. "categoria" é o endereço antigo, que redireciona.
+ */
+export const ENDERECOS_RESERVADOS = ["admin", "avaliar", "categoria", "continuar", "convite", "qr", "recuperar-senha", "totem", "verificar-email", "votar"] as const;
 
-/** "Vídeo-escola" → "video-escola"; sufixo numérico em caso de colisão ("mostra-2"). */
+/**
+ * "Vídeo-escola" → "video-escola"; sufixo numérico em caso de colisão ("mostra-2"), inclusive com os endereços reservados
+ * ("Votar" → "votar-2").
+ */
 export function gerarSlugCategoria(nome: string, existentes: readonly string[]): string {
   const base =
     nome
@@ -25,21 +32,37 @@ export function gerarSlugCategoria(nome: string, existentes: readonly string[]):
       .replace(/^-+|-+$/g, "")
       .slice(0, LIMITES_CATEGORIA.slug[1] - 3)
       .replace(/-+$/g, "") || "categoria";
-  if (!existentes.includes(base)) return base;
+  const ocupados = [...existentes, ...ENDERECOS_RESERVADOS];
+  if (!ocupados.includes(base)) return base;
   let n = 2;
-  while (existentes.includes(`${base}-${n}`)) n++;
+  while (ocupados.includes(`${base}-${n}`)) n++;
   return `${base}-${n}`;
 }
 
-/** `descricao` ausente conta como vazia (opcional). */
-export type CategoriaEditada = { nome: string; premio: string; descricao?: string; slug: string };
+/** `descricao` ausente conta como vazia (opcional). O endereço não vem de quem edita: é gerado do nome (enderecosDasCategorias). */
+export type CategoriaEditada = { nome: string; premio: string; descricao?: string };
 
-/** Erros por posição (`nome-<i>`, `premio-<i>`, `descricao-<i>`, `slug-<i>`) e o geral (`categorias`). */
+/**
+ * Endereço de cada categoria (24/11/2026): sempre gerado do nome, nunca digitado. As que estão em `manter` (índice → endereço
+ * atual) ficam com o endereço que têm: é o caso com a urna aberta, quando o QR Code já está em uso. As outras, na ordem da
+ * lista, recebem o endereço do nome sem colidir com nenhuma.
+ */
+export function enderecosDasCategorias(nomes: readonly string[], manter: ReadonlyMap<number, string> = new Map()): string[] {
+  const usados = [...manter.values()];
+  return nomes.map((nome, i) => {
+    const fixo = manter.get(i);
+    if (fixo !== undefined) return fixo;
+    const slug = gerarSlugCategoria(nome, usados);
+    usados.push(slug);
+    return slug;
+  });
+}
+
+/** Erros por posição (`nome-<i>`, `premio-<i>`, `descricao-<i>`) e o geral (`categorias`). */
 export function validarCategorias(lista: readonly CategoriaEditada[]): Record<string, string> {
   const erros: Record<string, string> = {};
   if (lista.length > LIMITES_CATEGORIA.maximo) erros.categorias = `Use até ${LIMITES_CATEGORIA.maximo} categorias.`;
   const nomes = new Set<string>();
-  const slugs = new Set<string>();
   lista.forEach((c, i) => {
     const nome = c.nome.trim();
     const chave = nome.toLocaleLowerCase("pt-BR");
@@ -49,12 +72,6 @@ export function validarCategorias(lista: readonly CategoriaEditada[]): Record<st
     nomes.add(chave);
     if (c.premio.trim().length > LIMITES_CATEGORIA.premio) erros[`premio-${i}`] = "Use até 60 caracteres.";
     if ((c.descricao ?? "").trim().length > LIMITES_CATEGORIA.descricao) erros[`descricao-${i}`] = `Use até ${LIMITES_CATEGORIA.descricao} caracteres.`;
-    const slug = c.slug.trim();
-    if (!slug) erros[`slug-${i}`] = "Informe o endereço.";
-    else if (slug.length < LIMITES_CATEGORIA.slug[0] || slug.length > LIMITES_CATEGORIA.slug[1]) erros[`slug-${i}`] = "Use de 2 a 40 caracteres.";
-    else if (!RE_SLUG.test(slug)) erros[`slug-${i}`] = "Use só letras minúsculas, números e hífen (sem hífen no começo ou no fim).";
-    else if (slugs.has(slug)) erros[`slug-${i}`] = "Este endereço já está em uso por outra categoria.";
-    slugs.add(slug);
   });
   return erros;
 }
@@ -69,9 +86,9 @@ export function itensDaCategoria<T extends Pick<Candidato, "categoriaId">>(candi
   return candidatos.filter((c) => c.categoriaId === categoriaId);
 }
 
-/** Página da categoria (também o destino do QR Code). */
+/** Página da categoria (também o destino do QR Code): o endereço do evento seguido do da categoria (24/11/2026). */
 export function rotaCategoria(slugEvento: string, slugCategoria: string): string {
-  return `/e/${slugEvento}/categoria/${slugCategoria}`;
+  return `/e/${slugEvento}/${slugCategoria}`;
 }
 
 /** "Mostra Infantil · Melhor filme" (ou só o nome, sem prêmio). */

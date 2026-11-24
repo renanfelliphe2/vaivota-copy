@@ -138,7 +138,7 @@ O que passa por onde, serviço a serviço, está em [`docs/FRONTEIRA-DADOS.md`](
 - **Voto único no banco:** `UPDATE ... WHERE votou = false` e `INSERT` do voto na mesma transação, com a linha do evento travada (`FOR SHARE`): o encerramento espera os votos em andamento e nenhum voto entra depois dele. Júri e totem seguem a mesma trava.
 - **Totem sem login:** a identidade do aparelho é um token no cookie `vaivota_totem` (HttpOnly); só o SHA-256 vai ao banco e o cliente nunca envia o id do aparelho. Cada tentativa de voto leva uma chave (`idEnvio`), então o "tentar de novo" não conta o voto duas vezes.
 - **Telão no navegador do admin:** o servidor entrega o resultado oficial, o ao vivo e o ensaio; a revelação (cena, passo, pausa) fica no navegador, espelhada entre as abas do mesmo navegador (BroadcastChannel e `localStorage`). O controle remoto não funciona entre aparelhos diferentes.
-- **Módulos do Festival por flag:** júri, totem, parceiros, telão e a galeria `/dev/ui` só existem com `NEXT_PUBLIC_MODULOS_FESTIVAL=true` (embutida no build); desligada, essas rotas dão 404 e os atalhos somem.
+- **Todas as funções em todo evento:** categorias, júri, totem, patrocinadores e telão estão sempre disponíveis (a flag `NEXT_PUBLIC_MODULOS_FESTIVAL` saiu em 24/11/2026). A galeria `/dev/ui` só existe fora de produção.
 
 ## Rotas
 
@@ -199,7 +199,6 @@ Com `EMAIL_PROVIDER=console`, os códigos de e-mail saem no log do servidor. Sem
 ### Festival
 
 ```bash
-# em .env.local: NEXT_PUBLIC_MODULOS_FESTIVAL=true
 pnpm db:seed:festival                                        # cria ver-e-fazer-filmes em rascunho (--trailer <link> opcional)
 pnpm db:promover-admin seu@email.com --slug ver-e-fazer-filmes
 pnpm dev                                                     # http://localhost:3000/e/ver-e-fazer-filmes
@@ -237,7 +236,6 @@ Todas estão comentadas em [`.env.example`](.env.example). Segredos nunca vão e
 | Imagens | `SUPABASE_URL` (também no build), `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`, `STORAGE_PROVIDER` |
 | Seed | `SEED_SLUG`, `SEED_NOME`, `SEED_JANELA_INICIO`, `SEED_JANELA_FIM`, `SEED_TRAILER_URL`, `IP_HASH_SALT` |
 | Monitoramento | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` |
-| Festival | `NEXT_PUBLIC_MODULOS_FESTIVAL` (embutida no build) |
 
 ## Implantação e operação
 

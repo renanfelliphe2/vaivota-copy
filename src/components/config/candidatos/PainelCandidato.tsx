@@ -1,6 +1,6 @@
 "use client";
 
-import type { CampoCandidato, Candidato, Categoria } from "@/dominio/tipos";
+import type { CampoCandidato, Candidato } from "@/dominio/tipos";
 import type { Travas } from "@/dominio/travas";
 import { Dialogo } from "@/components/ui/Dialogo";
 import { useFormularioSujo } from "../FormularioSujoProvider";
@@ -12,14 +12,13 @@ export type PainelCandidatoProps = {
   eventoId: string;
   candidato: Candidato | null;
   campos: CampoCandidato[];
-  categorias: Categoria[];
   rotuloCandidato: string;
   travas: Travas;
   aoFechar: () => void;
 };
 
 /** Etapa 6 (CP4): Dialogo controlado por ?editar=<id|novo>; fechar com alteração pendente pergunta antes. */
-export function PainelCandidato({ editar, eventoId, candidato, campos, categorias, rotuloCandidato, travas, aoFechar }: PainelCandidatoProps) {
+export function PainelCandidato({ editar, eventoId, candidato, campos, rotuloCandidato, travas, aoFechar }: PainelCandidatoProps) {
   const { confirmarSaida, marcarSujo } = useFormularioSujo();
   const aberto = editar === "novo" || (editar !== null && candidato !== null);
   const fechar = () => confirmarSaida(aoFechar);
@@ -37,7 +36,6 @@ export function PainelCandidato({ editar, eventoId, candidato, campos, categoria
           eventoId={eventoId}
           candidato={editar === "novo" ? null : candidato}
           campos={campos}
-          categorias={categorias}
           travas={travas}
           aoSalvar={aoFechar}
           aoCancelar={() => {

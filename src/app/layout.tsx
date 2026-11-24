@@ -7,7 +7,6 @@ import { TemaEvento } from "@/components/evento/TemaEvento";
 import { ToastProvider } from "@/components/ui/Toast";
 import type { EstadoPublico } from "@/dominio/estadoPublico";
 import { classesFontes } from "@/lib/fontes";
-import { MODULOS_FESTIVAL } from "@/lib/modulos";
 import { montarEstadoPublico } from "@/server/estadoPublico";
 import { usuarioDaSessao } from "@/server/sessao";
 import { AppProvider } from "@/store/AppProvider";
@@ -65,7 +64,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                 </ToastProvider>
               </TemaEvento>
               {/* Comanda o telão de qualquer página do admin; só aparece para o admin, com um telão aberto (ver ControleRemoto). */}
-              {MODULOS_FESTIVAL && <ControleRemoto />}
+              <ControleRemoto />
             </LiveRegionProvider>
           </AppProvider>
         ) : (

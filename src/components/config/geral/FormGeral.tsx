@@ -17,7 +17,6 @@ import { useAnunciar } from "@/components/a11y/LiveRegion";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Campo, Checkbox, Input, Select, Textarea } from "@/components/ui/Campo";
-import { MODULOS_FESTIVAL } from "@/lib/modulos";
 import { descreverDeslocamento, FUSOS_SUPORTADOS, instanteParaLocal, localParaInstante } from "@/lib/fusoHorario";
 import { paraMs } from "@/lib/tempo";
 import { salvarGeral, type PatchGeral } from "@/servicos/configGeral";
@@ -28,6 +27,9 @@ import { DialogoMotivo } from "../DialogoMotivo";
 import { DicaTrava } from "../DicaTrava";
 import { useFormularioSujo } from "../FormularioSujoProvider";
 import { useServico } from "../useServico";
+
+/** 24/11/2026: os campos em dois blocos (identificação e janela de votação), lado a lado onde a largura deixa. */
+const BLOCO = "flex flex-col gap-5 rounded-2xl border border-tema-borda bg-tema-superficie p-5";
 
 /** Seção Geral (Etapa 6, CP2): define o padrão de formulário (D5). Remonta por `key` quando o salvo muda. */
 export function FormGeral({ travas }: { travas: Travas }) {
@@ -165,60 +167,68 @@ function FormGeralInterno({ evento, travas }: { evento: Evento; travas: Travas }
       )}
       <form onSubmit={enviar} noValidate aria-busy={servico.carregando || undefined}>
         <fieldset disabled={leitura} className="flex flex-col gap-5">
-          <Campo id="geral-nome" rotulo="Nome do evento" obrigatorio erro={mostrar("nome")}>
-            <Input value={r.nome} onChange={(e) => mudar("nome", e.target.value)} maxLength={80} />
-          </Campo>
-          <Campo
-            id="geral-slug"
-            rotulo="Endereço"
-            obrigatorio
-            erro={mostrar("slug")}
-            dica={
-              <>
-                Prévia: <code>/e/{r.slug || "…"}</code>
-                {dicaSlug && <DicaTrava motivo={dicaSlug} className="mt-1" />}
-              </>
-            }
-          >
-            <Input
-              value={r.slug}
-              onChange={(e) => mudar("slug", e.target.value.toLowerCase())}
-              disabled={!pode("GERAL_SLUG")}
-              maxLength={40}
-              autoComplete="off"
-            />
-          </Campo>
-          <Campo id="geral-descricao" rotulo="Descrição" erro={mostrar("descricao")} dica={`${r.descricao.length}/600`}>
-            <Textarea value={r.descricao} onChange={(e) => mudar("descricao", e.target.value)} maxLength={600} />
-          </Campo>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Campo id="geral-inicio" rotulo="Início da votação" obrigatorio erro={mostrar("inicio")} dica={<DicaTrava motivo={dicaInicio} />}>
-              <Input type="datetime-local" value={r.inicio} onChange={(e) => mudar("inicio", e.target.value)} disabled={!pode("GERAL_FUSO_INICIO")} />
-            </Campo>
-            <Campo id="geral-fim" rotulo="Fim da votação" obrigatorio erro={mostrar("fim")} dica={<DicaTrava motivo={dicaFim} />}>
-              <Input type="datetime-local" value={r.fim} onChange={(e) => mudar("fim", e.target.value)} disabled={!pode("GERAL_FIM_JANELA")} />
+          <div className={BLOCO}>
+            <h3 className="text-lg font-bold">Identificação</h3>
+            <div className="grid gap-5 md:grid-cols-2">
+              <Campo id="geral-nome" rotulo="Nome do evento" obrigatorio erro={mostrar("nome")}>
+                <Input value={r.nome} onChange={(e) => mudar("nome", e.target.value)} maxLength={80} />
+              </Campo>
+              <Campo
+                id="geral-slug"
+                rotulo="Endereço"
+                obrigatorio
+                erro={mostrar("slug")}
+                dica={
+                  <>
+                    Prévia: <code>/e/{r.slug || "…"}</code>
+                    {dicaSlug && <DicaTrava motivo={dicaSlug} className="mt-1" />}
+                  </>
+                }
+              >
+                <Input
+                  value={r.slug}
+                  onChange={(e) => mudar("slug", e.target.value.toLowerCase())}
+                  disabled={!pode("GERAL_SLUG")}
+                  maxLength={40}
+                  autoComplete="off"
+                />
+              </Campo>
+            </div>
+            <Campo id="geral-descricao" rotulo="Descrição" erro={mostrar("descricao")} dica={`${r.descricao.length}/600`}>
+              <Textarea value={r.descricao} onChange={(e) => mudar("descricao", e.target.value)} maxLength={600} />
             </Campo>
           </div>
-          <Campo
-            id="geral-fuso"
-            rotulo="Fuso horário"
-            dica={
-              <>
-                As datas acima são lidas neste fuso ({descreverDeslocamento(agora, r.fusoHorario)}).
-                <DicaTrava motivo={dicaInicio} className="mt-1" />
-              </>
-            }
-          >
-            <Select value={r.fusoHorario} onChange={(e) => mudar("fusoHorario", e.target.value)} disabled={!pode("GERAL_FUSO_INICIO")}>
-              {FUSOS_SUPORTADOS.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.rotulo}
-                </option>
-              ))}
-            </Select>
-          </Campo>
-          {MODULOS_FESTIVAL ? (
-            <div className="flex flex-col gap-1">
+
+          <div className={BLOCO}>
+            <h3 className="text-lg font-bold">Janela de votação</h3>
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              <Campo id="geral-inicio" rotulo="Início da votação" obrigatorio erro={mostrar("inicio")} dica={<DicaTrava motivo={dicaInicio} />}>
+                <Input type="datetime-local" value={r.inicio} onChange={(e) => mudar("inicio", e.target.value)} disabled={!pode("GERAL_FUSO_INICIO")} />
+              </Campo>
+              <Campo id="geral-fim" rotulo="Fim da votação" obrigatorio erro={mostrar("fim")} dica={<DicaTrava motivo={dicaFim} />}>
+                <Input type="datetime-local" value={r.fim} onChange={(e) => mudar("fim", e.target.value)} disabled={!pode("GERAL_FIM_JANELA")} />
+              </Campo>
+              <Campo
+                id="geral-fuso"
+                rotulo="Fuso horário"
+                className="md:col-span-2 xl:col-span-1"
+                dica={
+                  <>
+                    As datas ao lado são lidas neste fuso ({descreverDeslocamento(agora, r.fusoHorario)}).
+                    <DicaTrava motivo={dicaInicio} className="mt-1" />
+                  </>
+                }
+              >
+                <Select value={r.fusoHorario} onChange={(e) => mudar("fusoHorario", e.target.value)} disabled={!pode("GERAL_FUSO_INICIO")}>
+                  {FUSOS_SUPORTADOS.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.rotulo}
+                    </option>
+                  ))}
+                </Select>
+              </Campo>
+            </div>
+            <div className="flex flex-col gap-1 border-t border-tema-borda pt-4">
               <Checkbox
                 id="geral-auto"
                 rotulo="Encerrar automaticamente ao fim da janela"
@@ -232,12 +242,7 @@ function FormGeralInterno({ evento, travas }: { evento: Evento; travas: Travas }
               </p>
               <DicaTrava motivo={dicaAuto} />
             </div>
-          ) : (
-            <p className="text-sm text-tema-texto-suave">
-              A urna só é aberta e encerrada pela organização, na seção Operação. O horário da janela é só informativo: passando
-              do fim, as telas mostram &quot;Tempo esgotado&quot; até a organização encerrar.
-            </p>
-          )}
+          </div>
           {!leitura && (
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Botao variante="contorno" onClick={descartar} disabled={!alterado || servico.carregando} icone={<Undo2 aria-hidden className="size-4" />}>

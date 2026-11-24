@@ -11,7 +11,6 @@ import { atalhoAtual, atalhosDoPapel, type IdAtalho } from "@/dominio/navegacao"
 import { votacaoAberta } from "@/dominio/situacaoEvento";
 import { MenuUsuario } from "@/components/evento/MenuUsuario";
 import { cx } from "@/lib/classes";
-import { MODULOS_FESTIVAL } from "@/lib/modulos";
 import { dividirNome } from "@/lib/rotulos";
 import { useUi } from "@/store/seletores/dev";
 import { useEventoAtivo } from "@/store/seletores/evento";
@@ -43,7 +42,7 @@ export function CabecalhoEvento() {
   if (pathname === `/e/${slug}/totem` || pathname.startsWith(`/e/${slug}/qr/`) || ui.palcoAtivo) return null;
 
   // A apresentação (telão) é do MVP do Festival.
-  const atalhos = sessao.logado ? atalhosDoPapel(slug, sessao.papel, votacaoAberta(evento)).filter((a) => MODULOS_FESTIVAL || a.id !== "APRESENTACAO") : [];
+  const atalhos = sessao.logado ? atalhosDoPapel(slug, sessao.papel, votacaoAberta(evento)) : [];
   // Evento indisponível: a casca mínima já mostra o estado.
   // 09/11/2026: também nas páginas das categorias (Festival).
   const naPaginaDeVoto = pathname === `/e/${slug}` || pathname.startsWith(`/e/${slug}/categoria/`);

@@ -10,7 +10,6 @@ import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Campo, Input, Select } from "@/components/ui/Campo";
 import { FONTES_APROVADAS } from "@/lib/fontes";
-import { MODULOS_FESTIVAL } from "@/lib/modulos";
 import { useConsulta } from "@/lib/useConsulta";
 import { listarPresetsTema, salvarTema } from "@/servicos/temaConfig";
 import { useFormularioSujo } from "../FormularioSujoProvider";
@@ -72,7 +71,7 @@ export function TemaForm({ evento, tema, travas }: { evento: Evento; tema: Tema;
   }
 
   return (
-    <div className="grid gap-6 2xl:grid-cols-2">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] xl:items-start">
       <form onSubmit={enviar} noValidate aria-busy={servico.carregando || undefined} className="flex flex-col gap-5">
         <fieldset disabled={!pode} className="flex flex-col gap-5">
           {presets.dados && (
@@ -88,20 +87,17 @@ export function TemaForm({ evento, tema, travas }: { evento: Evento; tema: Tema;
           <Campo id="tema-nome" rotulo="Nome de exibição" obrigatorio erro={mostrar("nomeExibicao")}>
             <Input value={r.nomeExibicao} onChange={(e) => mudar({ nomeExibicao: e.target.value })} maxLength={60} />
           </Campo>
-          {/* Envio de logo é do MVP do Festival (a Maratona Tech Tivit usa o nome em texto). */}
-          {MODULOS_FESTIVAL && (
-            <SeletorLogo
-              nome={r.nomeExibicao}
-              valor={r.logoUrl}
-              salvo={salvo.logoUrl}
-              disabled={!pode}
-              aoMudar={(url) => {
-                revogarSeDescartado(r.logoUrl);
-                mudar({ logoUrl: url });
-              }}
-            />
-          )}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <SeletorLogo
+            nome={r.nomeExibicao}
+            valor={r.logoUrl}
+            salvo={salvo.logoUrl}
+            disabled={!pode}
+            aoMudar={(url) => {
+              revogarSeDescartado(r.logoUrl);
+              mudar({ logoUrl: url });
+            }}
+          />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
             {CORES.map(([campo, rotulo]) => (
               <Campo key={campo} id={`tema-${campo}`} rotulo={rotulo} erro={mostrar(campo)}>
                 <div className="flex items-center gap-2">
@@ -173,7 +169,7 @@ export function TemaForm({ evento, tema, travas }: { evento: Evento; tema: Tema;
           </div>
         )}
       </form>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 xl:sticky xl:top-6">
         <h3 className="font-bold">Pré-visualização</h3>
         <p className="text-sm text-tema-texto-suave">Mostra o rascunho; o evento só muda depois de salvar.</p>
         <PreviaTema

@@ -93,70 +93,77 @@ function FormPlacar({ evento, placar, travas }: { evento: Evento; placar: Config
       </h2>
       <BannerTrava travas={travas} acoes={["PLACAR"]} />
       <DicaTrava motivo={pode ? null : travas.motivo("PLACAR")} />
-      <fieldset disabled={!pode} className="flex flex-col gap-5">
-        <legend className="sr-only">Pesos e desempate</legend>
-        <BarraPesos pesos={pesos} />
-        <p role="status" className={erro ? "font-semibold text-tema-erro" : "font-semibold text-tema-sucesso"}>
-          {erro ?? `Soma ${soma}%`}
-        </p>
-        <EditorPesos
-          pesos={pesos}
-          ligados={ligados}
-          disabled={!pode}
-          motivoDesligado={{ JURI: motivoJuri, INFANTIL: "Módulo infantil desligado neste evento: peso 0." }}
-          aoMudar={(g, v) => aplicar({ ...pesos, [g]: v })}
-        />
-        {evento.moduloJuri && travas.nivel("MODULO_JURI_DESLIGAR") === "TRAVADO" && (
-          <DicaTrava motivo={`Módulo júri não pode ser desligado. ${travas.motivo("MODULO_JURI_DESLIGAR")}`} />
-        )}
-        {pode && (
-          <div className="flex flex-wrap gap-2">
-            <Botao variante="contorno" tamanho="pequeno" onClick={distribuir}>
-              Distribuir igualmente
-            </Botao>
-            {(PRESETS[ativos.length] ?? []).map((p) => (
-              <Botao key={`${p.POPULAR}/${p.JURI}/${p.INFANTIL}`} variante="contorno" tamanho="pequeno" onClick={() => aplicar(p)}>
-                {ativos.map((g) => p[g]).join(" / ")}
+      {/* 24/11/2026: no desktop largo, os pesos à esquerda e o exemplo ao lado, à vista enquanto se mexe nos pesos. */}
+      <div className="grid gap-5 xl:grid-cols-2 xl:items-start">
+        <div className="flex flex-col gap-5">
+          <fieldset disabled={!pode} className="flex flex-col gap-5 rounded-2xl border border-tema-borda bg-tema-superficie p-5">
+            <legend className="sr-only">Pesos e desempate</legend>
+            <BarraPesos pesos={pesos} />
+            <p role="status" className={erro ? "font-semibold text-tema-erro" : "font-semibold text-tema-sucesso"}>
+              {erro ?? `Soma ${soma}%`}
+            </p>
+            <EditorPesos
+              pesos={pesos}
+              ligados={ligados}
+              disabled={!pode}
+              motivoDesligado={{ JURI: motivoJuri, INFANTIL: "Módulo infantil desligado neste evento: peso 0." }}
+              aoMudar={(g, v) => aplicar({ ...pesos, [g]: v })}
+            />
+            {evento.moduloJuri && travas.nivel("MODULO_JURI_DESLIGAR") === "TRAVADO" && (
+              <DicaTrava motivo={`Módulo júri não pode ser desligado. ${travas.motivo("MODULO_JURI_DESLIGAR")}`} />
+            )}
+            {pode && (
+              <div className="flex flex-wrap gap-2">
+                <Botao variante="contorno" tamanho="pequeno" onClick={distribuir}>
+                  Distribuir igualmente
+                </Botao>
+                {(PRESETS[ativos.length] ?? []).map((p) => (
+                  <Botao key={`${p.POPULAR}/${p.JURI}/${p.INFANTIL}`} variante="contorno" tamanho="pequeno" onClick={() => aplicar(p)}>
+                    {ativos.map((g) => p[g]).join(" / ")}
+                  </Botao>
+                ))}
+              </div>
+            )}
+            <Campo id="placar-desempate" rotulo="Desempate" dica="Critério usado quando dois itens têm a mesma pontuação final.">
+              <Select
+                value={regra}
+                onChange={(e) => {
+                  setRegra(e.target.value as RegraDesempate);
+                  marcarSujo(true);
+                }}
+              >
+                <option value="JURI">Maior votação do júri</option>
+                <option value="PUBLICO">Maior votação do público</option>
+              </Select>
+            </Campo>
+            {regra === "JURI" && !evento.moduloJuri && (
+              <Alerta variante="aviso">O júri está desligado. Esse critério não terá efeito; a regra de apuração decide o desempate.</Alerta>
+            )}
+          </fieldset>
+          {!leitura && pode && (
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Botao
+                variante="contorno"
+                disabled={!alterado}
+                onClick={() => {
+                  setPesos(salvo);
+                  setRegra(placar.regraDesempate);
+                  marcarSujo(false);
+                }}
+                icone={<Undo2 aria-hidden className="size-4" />}
+              >
+                Descartar
               </Botao>
-            ))}
-          </div>
-        )}
-        <Campo id="placar-desempate" rotulo="Desempate" dica="Critério usado quando dois itens têm a mesma pontuação final.">
-          <Select
-            value={regra}
-            onChange={(e) => {
-              setRegra(e.target.value as RegraDesempate);
-              marcarSujo(true);
-            }}
-          >
-            <option value="JURI">Maior votação do júri</option>
-            <option value="PUBLICO">Maior votação do público</option>
-          </Select>
-        </Campo>
-        {regra === "JURI" && !evento.moduloJuri && (
-          <Alerta variante="aviso">O júri está desligado. Esse critério não terá efeito; a regra de apuração decide o desempate.</Alerta>
-        )}
-      </fieldset>
-      {!leitura && pode && (
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Botao
-            variante="contorno"
-            disabled={!alterado}
-            onClick={() => {
-              setPesos(salvo);
-              setRegra(placar.regraDesempate);
-              marcarSujo(false);
-            }}
-            icone={<Undo2 aria-hidden className="size-4" />}
-          >
-            Descartar
-          </Botao>
-          <Botao onClick={() => void salvar()} disabled={!alterado || erro !== null} carregando={servico.carregando} icone={<Save aria-hidden className="size-4" />}>
-            Salvar
-          </Botao>
+              <Botao onClick={() => void salvar()} disabled={!alterado || erro !== null} carregando={servico.carregando} icone={<Save aria-hidden className="size-4" />}>
+                Salvar
+              </Botao>
+            </div>
+          )}
         </div>
-      )}
-      <ExemploPlacar pesos={pesos} />
+        <div className="xl:sticky xl:top-6">
+          <ExemploPlacar pesos={pesos} />
+        </div>
+      </div>
     </section>
   );
 }

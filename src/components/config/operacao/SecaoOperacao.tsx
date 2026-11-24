@@ -147,7 +147,7 @@ export function SecaoOperacao({ travas, checklist }: { travas: Travas; checklist
       {(travas.fase === "RASCUNHO" || travas.fase === "ATIVO_NAO_INICIADA") && (
         <div className="flex flex-col gap-3 rounded-2xl border border-tema-borda p-4">
           <h3 className="text-lg font-bold">Checklist de ativação</h3>
-          <ChecklistAtivacao itens={checklist} base={base} completo />
+          <ChecklistAtivacao itens={checklist} base={base} completo className="md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-3" />
         </div>
       )}
 

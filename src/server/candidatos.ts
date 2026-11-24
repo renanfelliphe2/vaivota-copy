@@ -183,8 +183,8 @@ export async function alterarPublicacao(usuario: UsuarioSessao | null, eventoId:
   // Evento com categorias (09/11/2026): item sem categoria não aparece em página nenhuma.
   if (publicado && !atual.categoriaId && (await db().categoria.count({ where: { eventoId } })) > 0)
     return falha("VALIDACAO", {
-      mensagem: "Sem categoria: escolha a categoria antes de colocar na votação.",
-      campos: { categoriaId: "Escolha a categoria antes de colocar na votação." },
+      mensagem: "Sem categoria: vincule o item a uma categoria (seção Categorias) antes de colocar na votação.",
+      campos: { categoriaId: "Vincule o item a uma categoria (seção Categorias) antes de colocar na votação." },
     });
   if (atual.publicado === publicado) return sucesso(null);
   const r = await comEventoTravado(eventoId, "CANDIDATOS_PUBLICACAO", async (tx) => {

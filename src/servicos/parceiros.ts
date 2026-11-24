@@ -7,7 +7,7 @@ import type { Resultado } from "./resultado";
 // (src/server/parceiros.ts). O logo é enviado antes por `enviarImagemCandidato` (candidatosAdmin) e aqui entra só a URL devolvida.
 
 /** `id` null: parceiro novo. */
-export type ParceiroEditado = { id: string | null; nome: string; logoUrl: string | null };
+export type ParceiroEditado = { id: string | null; nome: string; logoUrl: string | null; linkUrl?: string | null };
 
 export async function salvarParceiros(eventoId: string, lista: readonly ParceiroEditado[]): Promise<Resultado<null>> {
   const r = await chamar<null>("salvarParceiros", { eventoId, lista });

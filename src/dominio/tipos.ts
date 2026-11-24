@@ -282,6 +282,8 @@ export type Parceiro = {
   eventoId: string;
   nome: string;
   logoUrl: string | null;
+  /** Site do patrocinador (24/11/2026), sempre http(s); a logo na página do evento leva a ele. */
+  linkUrl?: string | null;
   ordem: number;
 };
 

@@ -1,11 +1,10 @@
 "use client";
 
-import { Gavel, Handshake, Layers, ListChecks, Palette, Power, Scale, Settings2, Tablet } from "lucide-react";
+import { Gavel, Layers, ListChecks, Palette, Power, Scale, Settings2, Tablet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { SecaoConfig } from "@/dominio/checklistAtivacao";
 import { cx } from "@/lib/classes";
-import { MODULOS_FESTIVAL } from "@/lib/modulos";
 import { useFormularioSujo } from "./FormularioSujoProvider";
 
 const TODAS_AS_SECOES: { id: SecaoConfig; rotulo: string; icone: typeof Gavel }[] = [
@@ -16,13 +15,11 @@ const TODAS_AS_SECOES: { id: SecaoConfig; rotulo: string; icone: typeof Gavel }[
   { id: "totens", rotulo: "Totens", icone: Tablet },
   { id: "placar", rotulo: "Placar", icone: Scale },
   { id: "tema", rotulo: "Tema", icone: Palette },
-  { id: "parceiros", rotulo: "Parceiros", icone: Handshake },
   { id: "operacao", rotulo: "Operação", icone: Power },
 ];
 
-/** Categorias, Júri, Totens e Parceiros são do MVP do Festival (ver src/lib/modulos.ts). */
-const SO_DO_FESTIVAL: SecaoConfig[] = ["categorias", "juri", "totens", "parceiros"];
-export const SECOES = TODAS_AS_SECOES.filter((s) => MODULOS_FESTIVAL || !SO_DO_FESTIVAL.includes(s.id));
+/** 24/11/2026: todas as seções em todo evento (antes Categorias, Júri e Totens dependiam de NEXT_PUBLIC_MODULOS_FESTIVAL). */
+export const SECOES = TODAS_AS_SECOES;
 
 /**
  * Etapa 6 (D2): <nav> com Link e aria-current (não é tablist). Sidebar no desktop, faixa rolável no

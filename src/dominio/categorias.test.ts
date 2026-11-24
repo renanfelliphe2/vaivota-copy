@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { apurarComCategorias } from "./apuracao";
-import { categoriaApresentada, categoriasDoEvento, gerarSlugCategoria, rotaCategoria, validarCategorias, votouNaCategoria } from "./categorias";
+import { categoriaApresentada, categoriasDoEvento, enderecosDasCategorias, gerarSlugCategoria, rotaCategoria, validarCategorias, votouNaCategoria } from "./categorias";
 import { avaliarChecklist, contarCategorias, type EntradaChecklist } from "./checklistAtivacao";
 import { visaoDaCategoria, type ResultadoVisao } from "./painel";
 import { planilhaResultadoCandidatos } from "./exportacao";
@@ -14,7 +14,13 @@ describe("gerarSlugCategoria", () => {
     expect(gerarSlugCategoria("Mostra Infantil", [])).toBe("mostra-infantil");
     expect(gerarSlugCategoria("Vídeo-escola", [])).toBe("video-escola");
     expect(gerarSlugCategoria("  Usina Criativa de Cinema!  ", [])).toBe("usina-criativa-de-cinema");
-    expect(gerarSlugCategoria("???", [])).toBe("categoria");
+    expect(gerarSlugCategoria("???", [])).toBe("categoria-2");
+  });
+
+  it("não usa os endereços que já são páginas do evento", () => {
+    expect(gerarSlugCategoria("Votar", [])).toBe("votar-2");
+    expect(gerarSlugCategoria("Admin", [])).toBe("admin-2");
+    expect(gerarSlugCategoria("Totem", ["totem-2"])).toBe("totem-3");
   });
 
   it("acrescenta um número quando o endereço já existe", () => {
@@ -29,15 +35,31 @@ describe("gerarSlugCategoria", () => {
   });
 });
 
+describe("enderecosDasCategorias", () => {
+  it("gera do nome, na ordem, sem colidir", () => {
+    expect(enderecosDasCategorias(["Mostra Infantil", "Vídeo-escola", "Usina Criativa de Cinema"])).toEqual([
+      "mostra-infantil",
+      "video-escola",
+      "usina-criativa-de-cinema",
+    ]);
+    expect(enderecosDasCategorias(["Mostra", "Mostra!"])).toEqual(["mostra", "mostra-2"]);
+  });
+
+  it("mantém o endereço das que estão em `manter` (urna aberta) e desvia delas", () => {
+    const manter = new Map([[0, "usina-criativa"], [1, "mostra"]]);
+    expect(enderecosDasCategorias(["Usina Criativa de Cinema", "Outro nome", "Mostra"], manter)).toEqual(["usina-criativa", "mostra", "mostra-2"]);
+  });
+});
+
 describe("validarCategorias", () => {
-  const ok = { nome: "Mostra Infantil", premio: "Melhor filme", slug: "mostra-infantil" };
+  const ok = { nome: "Mostra Infantil", premio: "Melhor filme" };
 
   it("aceita a lista do Festival", () => {
     expect(
       validarCategorias([
         ok,
-        { nome: "Vídeo-escola", premio: "Melhor filme Júri Popular", slug: "video-escola" },
-        { nome: "Usina Criativa de Cinema", premio: "", slug: "usina-criativa" },
+        { nome: "Vídeo-escola", premio: "Melhor filme Júri Popular" },
+        { nome: "Usina Criativa de Cinema", premio: "" },
       ]),
     ).toEqual({});
   });
@@ -45,14 +67,7 @@ describe("validarCategorias", () => {
   it("aponta nome vazio, curto ou repetido (sem diferenciar maiúsculas)", () => {
     expect(validarCategorias([{ ...ok, nome: " " }])).toHaveProperty("nome-0");
     expect(validarCategorias([{ ...ok, nome: "A" }])).toHaveProperty("nome-0");
-    expect(validarCategorias([ok, { ...ok, nome: "MOSTRA INFANTIL", slug: "outra" }])).toHaveProperty("nome-1");
-  });
-
-  it("aponta endereço vazio, com espaço ou maiúscula, e repetido", () => {
-    expect(validarCategorias([{ ...ok, slug: "" }])).toHaveProperty("slug-0");
-    expect(validarCategorias([{ ...ok, slug: "Mostra Infantil" }])).toHaveProperty("slug-0");
-    expect(validarCategorias([{ ...ok, slug: "-mostra" }])).toHaveProperty("slug-0");
-    expect(validarCategorias([ok, { ...ok, nome: "Outra", slug: "mostra-infantil" }])).toHaveProperty("slug-1");
+    expect(validarCategorias([ok, { ...ok, nome: "MOSTRA INFANTIL" }])).toHaveProperty("nome-1");
   });
 
   it("descrição é opcional, com limite de tamanho", () => {
@@ -75,7 +90,7 @@ describe("auxiliares", () => {
   });
 
   it("rotaCategoria e votouNaCategoria", () => {
-    expect(rotaCategoria("ver-e-fazer-filmes", "mostra-infantil")).toBe("/e/ver-e-fazer-filmes/categoria/mostra-infantil");
+    expect(rotaCategoria("ver-e-fazer-filmes", "mostra-infantil")).toBe("/e/ver-e-fazer-filmes/mostra-infantil");
     expect(votouNaCategoria({ categoriasVotadas: ["a"] }, "a")).toBe(true);
     expect(votouNaCategoria({ categoriasVotadas: ["a"] }, "b")).toBe(false);
     expect(votouNaCategoria({}, "a")).toBe(false);

@@ -41,7 +41,7 @@ import { ID_SECAO_CATEGORIAS } from "./SecaoCategorias";
 type Modo = "VISITANTE" | "AGUARDANDO" | "ESCOLHA" | "JA_VOTOU" | "LEITURA";
 
 /**
- * Página de uma categoria (09/11/2026, organograma do Festival Ver e Fazer Filmes): /e/[slug]/categoria/[categoria], também o
+ * Página de uma categoria (09/11/2026, organograma do Festival Ver e Fazer Filmes): /e/[slug]/[categoria], também o
  * destino do QR Code dela. Um botão por filme (cartaz + título). Tocar abre "Revise seu voto" (decisão do dono do produto:
  * toque + confirmar, contra o voto sem querer); confirmado, o coração animado. Uma vez em cada categoria. O voto e as regras são
  * os de sempre (servidor: src/server/votacao.ts); a categoria vem do filme.

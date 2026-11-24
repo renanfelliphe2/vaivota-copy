@@ -10,6 +10,7 @@ import {
   validarCandidato,
   validarExtensaoFim,
   validarGeracaoConvites,
+  normalizarLinkSite,
   validarParceiros,
   validarJanela,
   validarMotivo,
@@ -171,6 +172,21 @@ describe("parceiros", () => {
     });
     const muitos = Array.from({ length: LIMITES.maxParceiros + 1 }, (_, i) => `Parceiro ${i + 1}`);
     expect(validarParceiros(muitos)).toEqual({ parceiros: `Use até ${LIMITES.maxParceiros} parceiros.` });
+  });
+
+  it("normalizarLinkSite: aceita com ou sem https, recusa esquemas perigosos e endereços sem domínio", () => {
+    expect(normalizarLinkSite("")).toEqual({ ok: true, url: null });
+    expect(normalizarLinkSite("   ")).toEqual({ ok: true, url: null });
+    expect(normalizarLinkSite("energisa.com.br")).toEqual({ ok: true, url: "https://energisa.com.br/" });
+    expect(normalizarLinkSite(" https://www.energisa.com.br/patrocinio?a=1 ")).toEqual({ ok: true, url: "https://www.energisa.com.br/patrocinio?a=1" });
+    expect(normalizarLinkSite("http://site.com.br")).toEqual({ ok: true, url: "http://site.com.br/" });
+    for (const ruim of ["javascript:alert(1)", "data:text/html,x", "mailto:a@b.com", "ftp://site.com.br", "https://", "localhost", "a b.com", "https://u:p@site.com.br", `https://site.com.br/${"a".repeat(300)}`])
+      expect(normalizarLinkSite(ruim), ruim).toEqual({ ok: false });
+  });
+
+  it("validarParceiros: o link é opcional, mas se vier tem de ser válido", () => {
+    expect(validarParceiros(["A1", "B2"], ["energisa.com.br", ""])).toEqual({});
+    expect(validarParceiros(["A1", "B2"], [null, "javascript:alert(1)"])).toEqual({ "parceiro-link-1": "Informe um endereço válido, como https://site.com.br." });
   });
 
   it("seed: os parceiros do Festival passam na validação e estão em ordem", () => {

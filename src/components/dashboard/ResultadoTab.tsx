@@ -14,7 +14,6 @@ import type { FaseConfig } from "@/dominio/travas";
 import type { ConfigApresentacao, Grupo } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 import { formatarDecimal, formatarNumero } from "@/lib/formatar";
-import { MODULOS_FESTIVAL } from "@/lib/modulos";
 import { formatarDataHora, paraMs } from "@/lib/tempo";
 import { mostrarResultado } from "@/store/acoesDashboard";
 import { useUi } from "@/store/seletores/dev";
@@ -40,11 +39,9 @@ export function chaveResultado(eventoId: string, versao: number): string {
 function Atalhos({ base }: { base: string }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {MODULOS_FESTIVAL && (
-        <Botao href={`${base}/apresentar`} variante="contorno" tamanho="pequeno" icone={<Monitor aria-hidden className="size-4" />}>
-          Abrir apresentação
-        </Botao>
-      )}
+      <Botao href={`${base}/apresentar`} variante="contorno" tamanho="pequeno" icone={<Monitor aria-hidden className="size-4" />}>
+        Abrir apresentação
+      </Botao>
       <Botao href={`${base}/relatorio`} variante="contorno" tamanho="pequeno" icone={<FileText aria-hidden className="size-4" />}>
         Ver relatório
       </Botao>

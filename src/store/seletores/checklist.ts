@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import { avaliarChecklist, montarEntradaChecklist, type EntradaChecklist, type ItemChecklist } from "@/dominio/checklistAtivacao";
 import { resolverTravas, type Travas } from "@/dominio/travas";
-import { MODULOS_FESTIVAL } from "@/lib/modulos";
 import { useAgora, useStore } from "../AppProvider";
 import { useEventoAtivo } from "./evento";
 
@@ -25,7 +24,7 @@ export function useChecklist(): ItemChecklist[] | null {
   const entrada = useEntradaChecklist();
   // Categorias, convites do júri, totem e trailer são do MVP do Festival: na Maratona Tech Tivit não aparecem no checklist.
   return useMemo(
-    () => (entrada ? avaliarChecklist(entrada).filter((i) => MODULOS_FESTIVAL || (i.id !== "CATEGORIAS" && i.id !== "CONVITES" && i.id !== "TOTEM" && i.id !== "TRAILER")) : null),
+    () => (entrada ? avaliarChecklist(entrada) : null),
     [entrada],
   );
 }

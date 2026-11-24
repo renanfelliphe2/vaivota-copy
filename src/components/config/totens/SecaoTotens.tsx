@@ -23,6 +23,7 @@ import {
   renomearDispositivo,
   revogarDispositivo,
 } from "@/servicos/dispositivos";
+import { cx } from "@/lib/classes";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { BannerTrava } from "../BannerTrava";
 import { DialogoMotivo } from "../DialogoMotivo";
@@ -90,70 +91,73 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
       </h2>
       <BannerTrava travas={travas} acoes={["PLACAR", "DISPOSITIVOS_PAREAR", "DISPOSITIVOS_GERIR"]} />
 
-      <div className="flex flex-col gap-3 rounded-xl border border-tema-borda bg-tema-superficie p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-lg font-bold">Votação infantil</h3>
-            <p className="text-sm text-tema-texto-suave">
-              Crianças votam em totens ou tablets dedicados, sem login e sem dados pessoais. O placar &quot;Escolha das Crianças&quot; é separado e entra
-              na fórmula final com o peso infantil.
-            </p>
+      {/* 24/11/2026: o módulo e o pareamento lado a lado no desktop largo. */}
+      <div className={cx("grid gap-5 xl:items-start", ligado && travas.fase !== "CONCLUIDO" && "xl:grid-cols-2")}>
+        <div className="flex flex-col gap-3 rounded-2xl border border-tema-borda bg-tema-superficie p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col gap-1">
+              <h3 className="text-lg font-bold">Votação infantil</h3>
+              <p className="text-sm text-tema-texto-suave">
+                Crianças votam em totens ou tablets dedicados, sem login e sem dados pessoais. O placar &quot;Escolha das Crianças&quot; é separado e entra
+                na fórmula final com o peso infantil.
+              </p>
+            </div>
+            <Selo variante={ligado ? "sucesso" : "neutro"}>{ligado ? "Ligada" : "Desligada"}</Selo>
           </div>
-          <Selo variante={ligado ? "sucesso" : "neutro"}>{ligado ? "Ligada" : "Desligada"}</Selo>
+          {travas.fase !== "CONCLUIDO" && (
+            <div className="flex flex-col items-start gap-2">
+              <DicaTrava motivo={podeModulo ? null : travas.motivo("PLACAR")} />
+              {ligado ? (
+                <Botao variante="contorno" disabled={!podeModulo} onClick={() => setDesligando(true)}>
+                  Desligar votação infantil
+                </Botao>
+              ) : (
+                <Botao disabled={!podeModulo} carregando={servico.carregando} onClick={() => void servico.executar(() => alternarModuloInfantil(eventoId, true), "Votação infantil ligada")}>
+                  Ligar votação infantil
+                </Botao>
+              )}
+            </div>
+          )}
+          {ligado && configPlacar.pesoInfantil === 0 && (
+            <Alerta variante="aviso">
+              O peso infantil está em 0%: os votos das crianças não contam na fórmula final. Defina o peso na seção{" "}
+              <Link href="?secao=placar" scroll={false} className="font-semibold underline underline-offset-4">
+                Placar
+              </Link>
+              .
+            </Alerta>
+          )}
         </div>
-        {travas.fase !== "CONCLUIDO" && (
-          <div className="flex flex-col items-start gap-2">
-            <DicaTrava motivo={podeModulo ? null : travas.motivo("PLACAR")} />
-            {ligado ? (
-              <Botao variante="contorno" disabled={!podeModulo} onClick={() => setDesligando(true)}>
-                Desligar votação infantil
-              </Botao>
-            ) : (
-              <Botao disabled={!podeModulo} carregando={servico.carregando} onClick={() => void servico.executar(() => alternarModuloInfantil(eventoId, true), "Votação infantil ligada")}>
-                Ligar votação infantil
-              </Botao>
-            )}
-          </div>
-        )}
-        {ligado && configPlacar.pesoInfantil === 0 && (
-          <Alerta variante="aviso">
-            O peso infantil está em 0%: os votos das crianças não contam na fórmula final. Defina o peso na seção{" "}
-            <Link href="?secao=placar" scroll={false} className="font-semibold underline underline-offset-4">
-              Placar
-            </Link>
-            .
-          </Alerta>
+
+        {ligado && travas.fase !== "CONCLUIDO" && (
+          <form onSubmit={(e) => void gerar(e)} noValidate className="flex flex-col gap-4 rounded-2xl border border-tema-borda p-5">
+            <h3 className="text-lg font-bold">Parear um novo totem</h3>
+            <p className="text-sm text-tema-texto-suave">
+              Defina o nome e o PIN de saída do modo totem e gere o código. No tablet, abra a página de pareamento e digite o código uma vez.
+            </p>
+            <DicaTrava motivo={podeParear ? null : travas.motivo("DISPOSITIVOS_PAREAR")} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Campo id={`${idForm}-nome`} rotulo="Nome do totem" erro={servico.erro?.campos?.nome ?? (tentou ? erroNome : null)} dica="Ex.: Totem Hall.">
+                <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={40} autoComplete="off" disabled={!podeParear} />
+              </Campo>
+              <Campo id={`${idForm}-pin`} rotulo="PIN de saída" erro={servico.erro?.campos?.pin ?? (tentou ? erroPin : null)} dica="De 4 a 8 números. Só a organização deve saber.">
+                <Input
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={8}
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                  disabled={!podeParear}
+                />
+              </Campo>
+            </div>
+            <Botao type="submit" disabled={!podeParear} carregando={servico.carregando} icone={<Plus aria-hidden className="size-4" />} className="self-start">
+              Gerar código de pareamento
+            </Botao>
+          </form>
         )}
       </div>
-
-      {ligado && travas.fase !== "CONCLUIDO" && (
-        <form onSubmit={(e) => void gerar(e)} noValidate className="flex flex-col gap-4 rounded-xl border border-tema-borda p-4">
-          <h3 className="text-lg font-bold">Parear um novo totem</h3>
-          <p className="text-sm text-tema-texto-suave">
-            Defina o nome e o PIN de saída do modo totem e gere o código. No tablet, abra a página de pareamento e digite o código uma vez.
-          </p>
-          <DicaTrava motivo={podeParear ? null : travas.motivo("DISPOSITIVOS_PAREAR")} />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Campo id={`${idForm}-nome`} rotulo="Nome do totem" erro={servico.erro?.campos?.nome ?? (tentou ? erroNome : null)} dica="Ex.: Totem Hall.">
-              <Input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={40} autoComplete="off" disabled={!podeParear} />
-            </Campo>
-            <Campo id={`${idForm}-pin`} rotulo="PIN de saída" erro={servico.erro?.campos?.pin ?? (tentou ? erroPin : null)} dica="De 4 a 8 números. Só a organização deve saber.">
-              <Input
-                type="password"
-                inputMode="numeric"
-                autoComplete="off"
-                maxLength={8}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-                disabled={!podeParear}
-              />
-            </Campo>
-          </div>
-          <Botao type="submit" disabled={!podeParear} carregando={servico.carregando} icone={<Plus aria-hidden className="size-4" />} className="self-start">
-            Gerar código de pareamento
-          </Botao>
-        </form>
-      )}
 
       <h3 className="text-lg font-bold">Totens pareados</h3>
       {consulta.carregando && !consulta.dados ? (

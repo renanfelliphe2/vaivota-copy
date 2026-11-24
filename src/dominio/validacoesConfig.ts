@@ -18,6 +18,7 @@ export const LIMITES = {
   nomeCriterio: [2, 30],
   maxCriterios: 8,
   nomeParceiro: [2, 60],
+  linkParceiro: 300,
   maxParceiros: 20,
   motivoExcepcional: 10,
   convitesPorLote: 50,
@@ -236,8 +237,30 @@ export function validarCriteriosJuri(nomes: readonly string[], porCriterio: bool
   return erros;
 }
 
-/** Parceiros (08/10/2026): nome obrigatório e único; o logo é opcional. */
-export function validarParceiros(nomes: readonly string[]): Erros {
+/**
+ * Link do site do patrocinador (24/11/2026): opcional. Aceita com ou sem https:// ("energisa.com.br" vira
+ * "https://energisa.com.br/") e só http(s) com um domínio de verdade; javascript:, data: e afins são recusados.
+ * Vazio: { ok: true, url: null }.
+ */
+export function normalizarLinkSite(texto: string): { ok: true; url: string | null } | { ok: false } {
+  const t = texto.trim();
+  if (!t) return { ok: true, url: null };
+  if (t.length > LIMITES.linkParceiro || /\s/.test(t)) return { ok: false };
+  // Sem "://", entra como https://. Esquemas sem barras (javascript:, data:, mailto:) viram host com porta ou usuário inválidos e caem fora.
+  let u: URL;
+  try {
+    u = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(t) ? t : `https://${t}`);
+  } catch {
+    return { ok: false };
+  }
+  if ((u.protocol !== "https:" && u.protocol !== "http:") || u.username || u.password) return { ok: false };
+  if (!u.hostname.includes(".") || u.hostname.startsWith(".") || u.hostname.endsWith(".")) return { ok: false };
+  const url = u.toString();
+  return url.length > LIMITES.linkParceiro ? { ok: false } : { ok: true, url };
+}
+
+/** Parceiros (08/10/2026): nome obrigatório e único; o logo é opcional. 24/11/2026: `links` opcionais (site do patrocinador). */
+export function validarParceiros(nomes: readonly string[], links: readonly (string | null | undefined)[] = []): Erros {
   const erros: Erros = {};
   if (nomes.length > LIMITES.maxParceiros) erros.parceiros = `Use até ${LIMITES.maxParceiros} parceiros.`;
   const vistos = new Set<string>();
@@ -248,6 +271,9 @@ export function validarParceiros(nomes: readonly string[]): Erros {
     else if (!entre(t, LIMITES.nomeParceiro)) erros[`parceiro-${i}`] = "Use de 2 a 60 caracteres.";
     else if (vistos.has(chave)) erros[`parceiro-${i}`] = "Já existe um parceiro com este nome.";
     vistos.add(chave);
+  });
+  links.forEach((link, i) => {
+    if (link && !normalizarLinkSite(link).ok) erros[`parceiro-link-${i}`] = "Informe um endereço válido, como https://site.com.br.";
   });
   return erros;
 }

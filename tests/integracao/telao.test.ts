@@ -34,6 +34,28 @@ afterAll(async () => {
 const logoDoEvento = (eventoId: string) => `${prefixoPublico()}${eventoId}/${randomUUID()}.png`;
 
 describe("parceiros", () => {
+  it("link do site (24/11/2026): normaliza, aceita vazio, troca e remove; endereço perigoso é recusado sem gravar nada", async () => {
+    const e = await semearEvento("teste-parceiros-link", { ativo: true });
+    const admin = await criarAdminDireto(e);
+    const r1 = await salvarParceiros(admin, e, [{ id: null, nome: "Alfa", logoUrl: null, linkUrl: "alfa.com.br" }, { id: null, nome: "Beta", logoUrl: null, linkUrl: "  " }, { id: null, nome: "Gama", logoUrl: null }], ctx);
+    expect(r1.ok).toBe(true);
+    const [alfa, beta, gama] = await db().parceiro.findMany({ where: { eventoId: e }, orderBy: { ordem: "asc" } });
+    expect([alfa.linkUrl, beta.linkUrl, gama.linkUrl]).toEqual(["https://alfa.com.br/", null, null]);
+
+    invalidarEstadoPublico();
+    const publico = await montarEstadoPublico(admin);
+    expect(publico.eventos.find((x) => x.evento.id === e)!.parceiros.map((p) => p.linkUrl)).toEqual(["https://alfa.com.br/", null, null]);
+
+    const ruim = await salvarParceiros(admin, e, [{ id: alfa.id, nome: "Alfa", logoUrl: null, linkUrl: "javascript:alert(1)" }], ctx);
+    expect(ruim.ok).toBe(false);
+    expect((await db().parceiro.findMany({ where: { eventoId: e } })).length).toBe(3);
+
+    const r2 = await salvarParceiros(admin, e, [{ id: alfa.id, nome: "Alfa", logoUrl: null, linkUrl: null }, { id: beta.id, nome: "Beta", logoUrl: null, linkUrl: "https://beta.org/x" }], ctx);
+    expect(r2.ok).toBe(true);
+    const depois = await db().parceiro.findMany({ where: { eventoId: e }, orderBy: { ordem: "asc" } });
+    expect(depois.map((p) => [p.nome, p.linkUrl])).toEqual([["Alfa", null], ["Beta", "https://beta.org/x"]]);
+  });
+
   it("salva a lista na ordem recebida, com e sem logo, e o estado público a entrega ordenada", async () => {
     const e = await semearEvento("teste-parceiros-salvar", { ativo: true });
     const admin = await criarAdminDireto(e);

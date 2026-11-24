@@ -9,13 +9,13 @@ import { useChecklist, useTravas } from "@/store/seletores/checklist";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { ChecklistAtivacao } from "./ChecklistAtivacao";
 import { FormularioSujoProvider } from "./FormularioSujoProvider";
+import { PainelPatrocinadores } from "./PainelPatrocinadores";
 import { SECOES, SecaoNav } from "./SecaoNav";
 import { SecaoCandidatos } from "./candidatos/SecaoCandidatos";
 import { SecaoCategoriasConfig } from "./categorias/SecaoCategoriasConfig";
 import { FormGeral } from "./geral/FormGeral";
 import { SecaoJuri } from "./juri/SecaoJuri";
 import { SecaoOperacao } from "./operacao/SecaoOperacao";
-import { SecaoParceiros } from "./parceiros/SecaoParceiros";
 import { SecaoPlacar } from "./placar/SecaoPlacar";
 import { SecaoTema } from "./tema/SecaoTema";
 import { SecaoTotens } from "./totens/SecaoTotens";
@@ -57,21 +57,26 @@ export function TelaConfiguracao() {
   const bloqueios = checklist.filter((i) => i.estado === "PENDENTE").length;
 
   let conteudo;
-  if (secao === "geral") conteudo = <FormGeral travas={travas} />;
+  if (secao === "geral")
+    conteudo = (
+      <div className="flex flex-col gap-8">
+        <FormGeral travas={travas} />
+        <PainelPatrocinadores travas={travas} />
+      </div>
+    );
   else if (secao === "categorias") conteudo = <SecaoCategoriasConfig travas={travas} />;
   else if (secao === "candidatos") conteudo = <SecaoCandidatos travas={travas} />;
   else if (secao === "juri") conteudo = <SecaoJuri travas={travas} />;
   else if (secao === "totens") conteudo = <SecaoTotens travas={travas} />;
   else if (secao === "placar") conteudo = <SecaoPlacar travas={travas} />;
   else if (secao === "tema") conteudo = <SecaoTema travas={travas} />;
-  else if (secao === "parceiros") conteudo = <SecaoParceiros travas={travas} />;
   else conteudo = <SecaoOperacao travas={travas} checklist={checklist} />;
 
   const painelChecklist = <ChecklistAtivacao itens={checklist} base={base} />;
 
   return (
     <FormularioSujoProvider>
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6">
         <TituloPainel titulo="Configuração" />
         {leitura && (
           <Alerta variante="informacao" titulo="Somente leitura">
@@ -85,7 +90,7 @@ export function TelaConfiguracao() {
         )}
 
         {mostrarChecklist && (
-          <details className="rounded-2xl border border-tema-borda bg-tema-superficie p-4 xl:hidden">
+          <details className="rounded-2xl border border-tema-borda bg-tema-superficie p-4 lg:hidden">
             <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-semibold">
               <ListChecks aria-hidden className="size-4" />
               Checklist de ativação · {bloqueios === 0 ? "pronto" : `${bloqueios} pendente(s)`}
@@ -94,21 +99,28 @@ export function TelaConfiguracao() {
           </details>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[13rem_1fr] xl:grid-cols-[13rem_1fr_18rem]">
-          <SecaoNav base={base} atual={secao} rotuloCandidatos={ativo.tema.rotuloCandidatos} />
+        {/* 24/11/2026: duas colunas só. À esquerda, o menu de seções e, abaixo dele, o checklist de ativação (antes numa terceira
+            coluna à direita); o conteúdo fica com o resto da largura. Abaixo de lg, o checklist é o <details> do topo. */}
+        <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
+          <div className="flex min-w-0 flex-col gap-6">
+            <SecaoNav base={base} atual={secao} rotuloCandidatos={ativo.tema.rotuloCandidatos} />
+            {mostrarChecklist && (
+              <aside aria-label="Checklist de ativação" className="hidden h-fit flex-col gap-3 rounded-2xl border border-tema-borda bg-tema-superficie p-4 lg:flex">
+                <h2 className="flex items-center gap-2 font-semibold">
+                  <ListChecks aria-hidden className="size-4" />
+                  Checklist de ativação
+                  <span className={bloqueios === 0 ? "ml-auto text-xs font-medium text-tema-sucesso" : "ml-auto text-xs font-medium text-tema-erro"}>
+                    {bloqueios === 0 ? "pronto" : `${bloqueios} pendente(s)`}
+                  </span>
+                </h2>
+                {painelChecklist}
+                <p className="text-sm text-tema-texto-suave">
+                  {checklistTemBloqueio(checklist) ? "Resolva as pendências para ativar." : "Tudo pronto para ativar na Operação."}
+                </p>
+              </aside>
+            )}
+          </div>
           <div className="min-w-0">{conteudo}</div>
-          {mostrarChecklist && (
-            <aside aria-label="Checklist de ativação" className="hidden h-fit flex-col gap-3 rounded-2xl border border-tema-borda bg-tema-superficie p-4 xl:flex">
-              <h2 className="flex items-center gap-2 font-semibold">
-                <ListChecks aria-hidden className="size-4" />
-                Checklist de ativação
-              </h2>
-              {painelChecklist}
-              <p className="text-sm text-tema-texto-suave">
-                {checklistTemBloqueio(checklist) ? "Resolva as pendências para ativar." : "Tudo pronto para ativar na Operação."}
-              </p>
-            </aside>
-          )}
         </div>
       </div>
     </FormularioSujoProvider>

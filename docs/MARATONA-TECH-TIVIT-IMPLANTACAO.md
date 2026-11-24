@@ -58,7 +58,6 @@ Crie a conta com **esse e-mail** (o código chega no terminal do `pnpm dev`): vo
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | passo F |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | passo A (a `SUPABASE_URL` precisa existir no **build**) |
 | `TRUSTED_ORIGINS` | opcional: o endereço `*.vercel.app`, se for usá-lo ao lado do domínio próprio |
-| `NEXT_PUBLIC_MODULOS_FESTIVAL` | **não definir** (ou `false`): júri, totem e apresentação ficam fora |
 | `NEXT_PUBLIC_DEV_TOOLBAR` | **não definir**: a toolbar do protótipo nem entra no build |
 
 3. **Migração e seed** (uma vez, da sua máquina, apontando para o Supabase): coloque `DATABASE_URL` e `DIRECT_URL` do Supabase no `.env.local` e rode:
@@ -116,7 +115,7 @@ Ao aplicar as migrações, o evento publicado com o slug antigo é renomeado par
 ## I. Véspera (domingo, 18/10)
 
 - **Congele o código**: só correções críticas daqui em diante.
-- Confira: domínio no ar, e-mail chegando em Gmail/Outlook/Hotmail, Google funcionando, `NEXT_PUBLIC_DEV_TOOLBAR` e `NEXT_PUBLIC_MODULOS_FESTIVAL` **sem** valor `true`, projeto do Supabase ativo, admins entrando.
+- Confira: domínio no ar, e-mail chegando em Gmail/Outlook/Hotmail, Google funcionando, `NEXT_PUBLIC_DEV_TOOLBAR` **sem** valor `true`, projeto do Supabase ativo, admins entrando.
 - Leia o [roteiro do dia](MARATONA-TECH-TIVIT-DIA-DO-EVENTO.md).
 
 ---

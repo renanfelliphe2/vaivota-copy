@@ -140,7 +140,6 @@ export function SecaoCandidatos({ travas }: { travas: Travas }) {
         eventoId={eventoId}
         candidato={candidatoEditado}
         campos={dados.campos}
-        categorias={ativo.categorias}
         rotuloCandidato={tema.rotuloCandidato}
         travas={travas}
         aoFechar={fecharPainel}

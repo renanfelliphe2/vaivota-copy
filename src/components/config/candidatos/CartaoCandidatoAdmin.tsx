@@ -44,9 +44,9 @@ export function CartaoCandidatoAdmin({
   const fora = estado === "FORA_DA_DISPUTA";
 
   return (
-    <article aria-labelledby={`adm-${candidato.id}`} className="flex flex-col gap-3 rounded-2xl border border-tema-borda bg-tema-superficie p-3 sm:flex-row">
-      <div className="w-full shrink-0 overflow-hidden rounded-xl sm:w-36">
-        <ImagemCandidato titulo={candidato.titulo} imagemUrl={candidato.imagemUrl} sizes="144px" />
+    <article aria-labelledby={`adm-${candidato.id}`} className="flex w-full flex-col gap-3 rounded-2xl border border-tema-borda bg-tema-superficie p-3">
+      <div className="w-full shrink-0 overflow-hidden rounded-xl">
+        <ImagemCandidato titulo={candidato.titulo} imagemUrl={candidato.imagemUrl} sizes="(min-width: 640px) 18rem, 100vw" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -64,7 +64,7 @@ export function CartaoCandidatoAdmin({
         </h3>
         {!candidato.imagemUrl && <p className="text-sm font-medium text-tema-aviso">Sem imagem: obrigatória para colocar na votação.</p>}
         {!leitura && (
-          <div className="flex flex-wrap gap-2">
+          <div className="mt-auto flex flex-wrap gap-2 pt-1">
             <Botao variante="contorno" tamanho="pequeno" onClick={() => acoes.aoEditar(candidato.id)} icone={<Pencil aria-hidden className="size-4" />} aria-label={`Editar: ${candidato.titulo}`}>
               Editar
             </Botao>
