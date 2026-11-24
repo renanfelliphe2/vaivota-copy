@@ -9,7 +9,8 @@ import { useChecklist, useTravas } from "@/store/seletores/checklist";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { ChecklistAtivacao } from "./ChecklistAtivacao";
 import { FormularioSujoProvider } from "./FormularioSujoProvider";
-import { PainelPatrocinadores } from "./PainelPatrocinadores";
+import { PainelParceiros } from "./PainelParceiros";
+import { PainelSobre } from "./PainelSobre";
 import { SECOES, SecaoNav } from "./SecaoNav";
 import { SecaoCandidatos } from "./candidatos/SecaoCandidatos";
 import { SecaoCategoriasConfig } from "./categorias/SecaoCategoriasConfig";
@@ -62,7 +63,8 @@ export function TelaConfiguracao() {
     conteudo = (
       <div className="flex flex-col gap-8">
         <FormGeral travas={travas} />
-        <PainelPatrocinadores travas={travas} />
+        <PainelSobre travas={travas} />
+        <PainelParceiros travas={travas} />
       </div>
     );
   else if (secao === "categorias") conteudo = <SecaoCategoriasConfig travas={travas} />;

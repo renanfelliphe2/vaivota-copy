@@ -17,13 +17,25 @@ export type SeletorImagemProps = {
   disabled?: boolean;
   erro?: string | null;
   aoMudar: (url: string | null) => void;
+  /** Aviso quando não há imagem (null: nenhum). Padrão: o dos itens, em que a imagem é obrigatória. */
+  avisoSemImagem?: string | null;
+  dica?: string;
 };
 
 /**
  * ST2: envia o arquivo ao servidor assim que é escolhido (PNG, JPG ou WebP, até 2 MB; o servidor confere tipo e tamanho
  * de novo, pelo conteúdo) e guarda a URL pública que voltou. Mostra a prévia da imagem já enviada.
  */
-export function SeletorImagem({ titulo, valor, podeRemover, disabled, erro, aoMudar }: SeletorImagemProps) {
+export function SeletorImagem({
+  titulo,
+  valor,
+  podeRemover,
+  disabled,
+  erro,
+  aoMudar,
+  avisoSemImagem = "Sem imagem: obrigatória para colocar na votação.",
+  dica = "PNG, JPG ou WebP, até 2 MB. Use uma imagem horizontal (proporção 4:3).",
+}: SeletorImagemProps) {
   const ativo = useEventoAtivo();
   const [erroArquivo, setErroArquivo] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -51,7 +63,7 @@ export function SeletorImagem({ titulo, valor, podeRemover, disabled, erro, aoMu
       <div className="w-48 overflow-hidden rounded-xl border border-tema-borda">
         <ImagemCandidato titulo={titulo || "Sem título"} imagemUrl={valor} />
       </div>
-      {!valor && <p className="text-sm font-medium text-tema-aviso">Sem imagem: obrigatória para colocar na votação.</p>}
+      {!valor && avisoSemImagem && <p className="text-sm font-medium text-tema-aviso">{avisoSemImagem}</p>}
       <div className="flex flex-wrap items-center gap-2">
         <label
           className={cx(
@@ -79,7 +91,7 @@ export function SeletorImagem({ titulo, valor, podeRemover, disabled, erro, aoMu
           </Botao>
         )}
       </div>
-      <p className="text-sm text-tema-texto-suave">PNG, JPG ou WebP, até 2 MB. Use uma imagem horizontal (proporção 4:3).</p>
+      <p className="text-sm text-tema-texto-suave">{dica}</p>
       {mensagem && (
         <p id={`${id}-erro`} role="alert" className="text-sm font-medium text-tema-erro">
           {mensagem}

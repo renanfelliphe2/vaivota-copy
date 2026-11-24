@@ -169,10 +169,11 @@ const servicos = {
   salvarCamposExtras: definir(
     z.object({
       eventoId: id,
+      categoriaId: id,
       campos: z.array(z.object({ chave: z.string().max(60).optional(), rotulo: texto(100) })).max(20),
       motivo: texto(500).optional(),
     }),
-    (_c, u, a) => candidatos.salvarCamposExtras(u, a.eventoId, a.campos, a.motivo),
+    (_c, u, a) => candidatos.salvarCamposExtras(u, a.eventoId, a.categoriaId, a.campos, a.motivo),
   ),
 
   // Configuração (ST7)
@@ -206,6 +207,13 @@ const servicos = {
     }),
     (_c, u, a) => configuracao.salvarPlacar(u, a.eventoId, a.dados),
   ),
+  salvarSobre: definir(
+    z.object({
+      eventoId: id,
+      dados: z.object({ titulo: texto(200), texto: texto(6000), imagemUrl: z.string().max(500).nullable() }),
+    }),
+    (_c, u, a) => configuracao.salvarSobre(u, a.eventoId, a.dados),
+  ),
   salvarApresentacao: definir(
     z.object({
       eventoId: id,
@@ -234,13 +242,26 @@ const servicos = {
     (_c, u, a) => configuracao.salvarTema(u, a.eventoId, a.dados),
   ),
 
-  // Parceiros (admin): a lista inteira, na ordem recebida
+  // Parceiros (admin): a lista inteira, na ordem recebida, com os grupos (C1)
   salvarParceiros: definir(
     z.object({
       eventoId: id,
-      lista: z.array(z.object({ id: id.nullable(), nome: texto(100), logoUrl: z.string().max(500).nullable(), linkUrl: z.string().max(300).nullable().optional() })).max(50),
+      dados: z.object({
+        grupos: z.array(z.object({ id: id.nullable(), chave: texto(64), nome: texto(100) })).max(30),
+        parceiros: z
+          .array(
+            z.object({
+              id: id.nullable(),
+              nome: texto(100),
+              logoUrl: z.string().max(500).nullable(),
+              linkUrl: z.string().max(300).nullable().optional(),
+              grupos: z.array(texto(64)).max(30).optional(),
+            }),
+          )
+          .max(50),
+      }),
     }),
-    (ctx, u, a) => parceiros.salvarParceiros(u, a.eventoId, a.lista, { ip: ctx.ip }),
+    (ctx, u, a) => parceiros.salvarParceiros(u, a.eventoId, a.dados, { ip: ctx.ip }),
   ),
 
   // Categorias (admin): a lista inteira, na ordem recebida
@@ -249,7 +270,14 @@ const servicos = {
       eventoId: id,
       lista: z
         .array(
-          z.object({ id: id.nullable(), nome: texto(100), premio: texto(100), descricao: texto(1000).optional(), canal: z.enum(["ONLINE", "TOTEM"]).optional() }),
+          z.object({
+            id: id.nullable(),
+            nome: texto(100),
+            premio: texto(100),
+            descricao: texto(1000).optional(),
+            canal: z.enum(["ONLINE", "TOTEM"]).optional(),
+            copiarCamposDe: id.nullable().optional(),
+          }),
         )
         .max(30),
     }),

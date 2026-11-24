@@ -226,6 +226,11 @@ model Evento {
   // Aviso de privacidade próprio do evento: opcional e complementar ao aviso da plataforma VaiVota (controladora dos dados).
   avisoPrivacidadeUrl    String?             @map("aviso_privacidade_url") @db.VarChar(500)
   prazoAnonimizacaoDias  Int                 @default(90) @map("prazo_anonimizacao_dias")
+  // "Sobre o evento" (demanda C2, 25/11/2026), no fim da página: título, texto (parágrafos, com **negrito**) e imagem. Sem
+  // título nem texto, a seção não aparece. A imagem é sempre um arquivo enviado por este sistema.
+  sobreTitulo            String?             @map("sobre_titulo") @db.VarChar(120)
+  sobreTexto             String?             @map("sobre_texto")
+  sobreImagemUrl         String?             @map("sobre_imagem_url") @db.VarChar(500)
   urnaAbertaEm           DateTime?           @map("urna_aberta_em") @db.Timestamptz(3)
   urnaEncerradaEm        DateTime?           @map("urna_encerrada_em") @db.Timestamptz(3)
   concluidoEm            DateTime?           @map("concluido_em") @db.Timestamptz(3)
@@ -240,6 +245,7 @@ model Evento {
   candidatos         Candidato[]
   criteriosJuri      CriterioJuri[]
   parceiros          Parceiro[]
+  gruposParceiros    GrupoParceiro[]
   participacoes      Participacao[]
   convitesJurado     ConviteJurado[]
   convitesAdmin      ConviteAdmin[]
@@ -317,17 +323,22 @@ model ConfigApresentacao {
   @@map("config_apresentacao")
 }
 
-// Campos extras dos candidatos, definidos por evento (ex.: "Equipe", "Tecnologias").
+// Campos extras dos candidatos (ex.: "Direção", "Duração"). D1 (25/11/2026): cada categoria define os seus; o item preenche os
+// da categoria dele. A mesma chave em duas categorias é o "mesmo" campo: o valor fica quando o item muda entre elas. Excluir a
+// categoria leva os campos dela junto.
 model CampoCandidato {
-  id       String @id @default(uuid())
-  eventoId String @map("evento_id")
-  chave    String @db.VarChar(40)
-  rotulo   String @db.VarChar(80)
-  ordem    Int    @default(0)
+  id          String @id @default(uuid())
+  eventoId    String @map("evento_id")
+  categoriaId String @map("categoria_id")
+  chave       String @db.VarChar(40)
+  rotulo      String @db.VarChar(80)
+  ordem       Int    @default(0)
 
-  evento Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  evento    Evento    @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  categoria Categoria @relation(fields: [categoriaId, eventoId], references: [id, eventoId], onDelete: Cascade)
 
-  @@unique([eventoId, chave])
+  @@unique([categoriaId, chave])
+  @@index([eventoId])
   @@map("campo_candidato")
 }
 
@@ -336,24 +347,25 @@ model CampoCandidato {
 // CADA categoria. Evento sem categorias segue com a urna única de sempre. Categoria com item ou voto não é removida (o serviço
 // recusa; as FKs também). CHECKs na migração: nome com 2 caracteres ou mais e ordem >= 0.
 model Categoria {
-  id           String   @id @default(uuid())
-  eventoId     String   @map("evento_id")
-  slug         String   @db.VarChar(60)
-  nome         String   @db.VarChar(80)
+  id           String         @id @default(uuid())
+  eventoId     String         @map("evento_id")
+  slug         String         @db.VarChar(60)
+  nome         String         @db.VarChar(80)
   // Nome do prêmio, opcional (ex.: "Melhor filme Júri Popular").
-  premio       String?  @db.VarChar(80)
+  premio       String?        @db.VarChar(80)
   // Descrição opcional (23/11/2026): aparece no topo da página da categoria.
-  descricao    String?  @db.VarChar(600)
+  descricao    String?        @db.VarChar(600)
   canal        CanalCategoria @default(ONLINE)
-  ordem        Int      @default(0)
-  criadoEm     DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
-  atualizadoEm DateTime @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+  ordem        Int            @default(0)
+  criadoEm     DateTime       @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm DateTime       @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
   evento Evento @relation(fields: [eventoId], references: [id], onDelete: Restrict)
 
   candidatos Candidato[]
   votantes   ParticipacaoCategoria[]
   totens     DispositivoCategoria[]
+  campos     CampoCandidato[]
 
   @@unique([eventoId, slug])
   // Alvo das FKs compostas (mesmo evento).
@@ -532,10 +544,42 @@ model Parceiro {
   criadoEm     DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
   atualizadoEm DateTime @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
-  evento Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  evento Evento          @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  grupos ParceiroGrupo[]
 
   @@index([eventoId, ordem])
   @@map("parceiro")
+}
+
+// Grupos de parceiros (demanda C1, 25/11/2026), ex.: Patrocínio, Realização, Apoio Cultural. Padrão de todo evento: Patrocínio e
+// Realização. Na página do evento, os parceiros aparecem por grupo, na ordem dos grupos. Remover um grupo só tira os parceiros
+// dele (ParceiroGrupo some em cascata); os parceiros continuam cadastrados.
+model GrupoParceiro {
+  id           String   @id @default(uuid())
+  eventoId     String   @map("evento_id")
+  nome         String   @db.VarChar(40)
+  ordem        Int      @default(0)
+  criadoEm     DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm DateTime @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+
+  evento    Evento          @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  parceiros ParceiroGrupo[]
+
+  @@index([eventoId, ordem])
+  @@map("grupo_parceiro")
+}
+
+// Um parceiro pode estar em mais de um grupo.
+model ParceiroGrupo {
+  grupoId    String @map("grupo_id")
+  parceiroId String @map("parceiro_id")
+
+  grupo    GrupoParceiro @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  parceiro Parceiro      @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  @@id([grupoId, parceiroId])
+  @@index([parceiroId])
+  @@map("parceiro_grupo")
 }
 
 // Critério de avaliação do júri (ex.: Direção, Roteiro). Vale para os dois modos por critério. Critério que já recebeu

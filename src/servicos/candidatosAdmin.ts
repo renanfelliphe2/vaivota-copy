@@ -43,11 +43,12 @@ export function desqualificarCandidato(eventoId: string, candidatoId: string, mo
   return comRecarga(chamar<null>("desqualificarCandidato", { eventoId, candidatoId, motivo }));
 }
 
+/** `chave` ausente: campo novo. `chave` que a categoria ainda não tem (copiada de outra categoria): campo novo com essa chave. */
 export type CampoEditado = { chave?: string; rotulo: string };
 
-/** Cria, renomeia, reordena e remove campos extras. Remover apaga os valores nos candidatos na mesma operação. */
-export function salvarCamposExtras(eventoId: string, campos: CampoEditado[], motivo?: string): Promise<Resultado<null>> {
-  return comRecarga(chamar<null>("salvarCamposExtras", { eventoId, campos, motivo }));
+/** D1 (25/11/2026): os campos extras de UMA categoria. Remover apaga os valores nos itens dela na mesma operação. */
+export function salvarCamposExtras(eventoId: string, categoriaId: string, campos: CampoEditado[], motivo?: string): Promise<Resultado<null>> {
+  return comRecarga(chamar<null>("salvarCamposExtras", { eventoId, categoriaId, campos, motivo }));
 }
 
 /**

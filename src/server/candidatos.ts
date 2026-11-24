@@ -1,6 +1,6 @@
 import "server-only";
 import type { Evento as EventoLinha, Prisma } from "@/generated/prisma/client";
-import { gerarChave } from "@/dominio/camposExtras";
+import { chaveValida, gerarChave } from "@/dominio/camposExtras";
 import type { OrdemCandidatos } from "@/dominio/tipos";
 import { exigirAcao, resolverFaseConfig, type AcaoConfig } from "@/dominio/travas";
 import { LIMITES, validarCandidato, validarMotivo, validarRotuloCampo, type DadosCandidato } from "@/dominio/validacoesConfig";
@@ -15,16 +15,18 @@ import { urlDeImagemValida } from "./storage";
 // ST2: candidatos (os "projetos" da Maratona Tech Tivit) e campos extras (equipe, tecnologias). Só o admin do evento chama.
 // A imagem vem do upload (src/server/upload.ts): aqui `imagemUrl` só aceita o que o próprio sistema gravou.
 
-function limparCampos(chavesDoEvento: Set<string>, campos: Record<string, string>): Record<string, string> {
+function limparCampos(chavesDaCategoria: Set<string>, campos: Record<string, string>): Record<string, string> {
   return Object.fromEntries(
     Object.entries(campos)
-      .filter(([k, v]) => chavesDoEvento.has(k) && v.trim() !== "")
+      .filter(([k, v]) => chavesDaCategoria.has(k) && v.trim() !== "")
       .map(([k, v]) => [k, v.trim()]),
   );
 }
 
-async function chavesDosCampos(eventoId: string): Promise<Set<string>> {
-  const campos = await db().campoCandidato.findMany({ where: { eventoId }, select: { chave: true } });
+/** D1 (25/11/2026): os campos são da categoria do item. Item sem categoria não tem campos. */
+async function chavesDosCampos(categoriaId: string | null, cliente: Pick<Transacao, "campoCandidato"> = db()): Promise<Set<string>> {
+  if (!categoriaId) return new Set();
+  const campos = await cliente.campoCandidato.findMany({ where: { categoriaId }, select: { chave: true } });
   return new Set(campos.map((c) => c.chave));
 }
 
@@ -80,11 +82,12 @@ export async function criarCandidato(usuario: UsuarioSessao | null, eventoId: st
   const recusaCategoria = await categoriaInvalida(eventoId, dados.categoriaId);
   if (recusaCategoria) return recusaCategoria;
 
-  const chaves = await chavesDosCampos(eventoId);
   const r = await comEventoTravado(eventoId, "CANDIDATOS_PUBLICACAO", async (tx) => {
     const maior = await tx.candidato.aggregate({ where: { eventoId }, _max: { ordem: true } });
     // 25/11/2026: no evento de categoria única (ex.: "Melhor Projeto"), o item novo já entra nela; com várias, o admin escolhe.
     const categorias = dados.categoriaId ? [] : await tx.categoria.findMany({ where: { eventoId }, select: { id: true }, take: 2 });
+    const categoriaId = dados.categoriaId ?? (categorias.length === 1 ? categorias[0].id : null);
+    const chaves = await chavesDosCampos(categoriaId, tx);
     const novo = await tx.candidato.create({
       data: {
         eventoId,
@@ -93,7 +96,7 @@ export async function criarCandidato(usuario: UsuarioSessao | null, eventoId: st
         publicado: false, // sempre nasce como rascunho
         ordem: (maior._max.ordem ?? 0) + 1,
         camposExtras: limparCampos(chaves, dados.camposExtras),
-        categoriaId: dados.categoriaId ?? (categorias.length === 1 ? categorias[0].id : null),
+        categoriaId,
       },
       select: { id: true },
     });
@@ -134,8 +137,12 @@ export async function salvarCandidato(
   }
 
   try {
-    const chaves = await chavesDosCampos(eventoId);
-    const camposExtras = limparCampos(chaves, dados.camposExtras);
+    // D1: os campos da categoria (a nova, se mudou: os que ela não tem se perdem, depois da pergunta na tela). Item sem categoria
+    // não tem campos na tela, e os valores que ele já tinha ficam guardados até entrar numa categoria.
+    const camposExtras =
+      categoriaId === null
+        ? ((atual.camposExtras as Record<string, string> | null) ?? {})
+        : limparCampos(await chavesDosCampos(categoriaId), dados.camposExtras);
     const titulo = dados.titulo.trim();
     const alterados: string[] = [];
     if (titulo !== atual.titulo) alterados.push("titulo");
@@ -299,28 +306,38 @@ export async function desqualificarCandidato(
   return r;
 }
 
+/**
+ * `chave` de um campo que a categoria já tem: renomeia ou reordena. `chave` ausente: campo novo, com a chave gerada do rótulo.
+ * D1: `chave` que a categoria ainda não tem (copiar campos de outra categoria): campo novo com essa mesma chave, para o valor
+ * continuar valendo quando o item muda entre as duas.
+ */
 export type CampoEditado = { chave?: string; rotulo: string };
 
 /**
- * Cria, renomeia, reordena e remove campos extras. Remover apaga os valores nos candidatos na mesma operação.
- * Estrutura (adicionar e remover) trava com a urna aberta; rótulo e ordem são corrigíveis com auditoria.
+ * Cria, renomeia, reordena e remove os campos extras de UMA categoria (D1, 25/11/2026). Remover apaga os valores nos itens da
+ * categoria na mesma operação. Estrutura (adicionar e remover) trava com a urna aberta; rótulo e ordem são corrigíveis com
+ * auditoria.
  */
 export async function salvarCamposExtras(
   usuario: UsuarioSessao | null,
   eventoId: string,
+  categoriaId: string,
   campos: CampoEditado[],
   motivo?: string,
 ): Promise<Resultado<null>> {
   const admin = await exigirAdmin(usuario, eventoId);
   if (!admin.ok) return admin;
   const { evento, usuarioId } = admin.dados;
-  const atuais = await db().campoCandidato.findMany({ where: { eventoId }, orderBy: { ordem: "asc" } });
+  const categoria = await db().categoria.findFirst({ where: { id: categoriaId, eventoId }, select: { id: true, nome: true } });
+  if (!categoria) return falha("NAO_ENCONTRADO", { detalhe: `categoria ${categoriaId} fora de ${eventoId}` });
+  const atuais = await db().campoCandidato.findMany({ where: { categoriaId }, orderBy: { ordem: "asc" } });
+  const existente = (c: CampoEditado) => (c.chave ? atuais.find((a) => a.chave === c.chave) : undefined);
   const chavesNovas = new Set(campos.filter((c) => c.chave).map((c) => c.chave!));
   const removidos = atuais.filter((c) => !chavesNovas.has(c.chave)).map((c) => c.chave);
-  const adicionados = campos.filter((c) => !c.chave).map((c) => c.rotulo.trim());
-  const renomeados = campos.filter((c) => c.chave && atuais.find((a) => a.chave === c.chave)?.rotulo !== c.rotulo.trim()).map((c) => c.chave!);
+  const adicionados = campos.filter((c) => !existente(c)).map((c) => c.rotulo.trim());
+  const renomeados = campos.filter((c) => existente(c) && existente(c)!.rotulo !== c.rotulo.trim()).map((c) => c.chave!);
   const reordenado =
-    campos.filter((c) => c.chave).map((c) => c.chave).join() !== atuais.filter((a) => chavesNovas.has(a.chave)).map((a) => a.chave).join();
+    campos.filter((c) => existente(c)).map((c) => c.chave).join() !== atuais.filter((a) => chavesNovas.has(a.chave)).map((a) => a.chave).join();
 
   if (removidos.length || adicionados.length) {
     const trava = exigirAcao(evento, "CAMPOS_EXTRAS_ESTRUTURA");
@@ -333,6 +350,8 @@ export async function salvarCamposExtras(
   if (!removidos.length && !adicionados.length && !renomeados.length && !reordenado) return sucesso(null);
 
   if (campos.length > LIMITES.maxCampos) return falha("VALIDACAO", { campos: { campos: `Use no máximo ${LIMITES.maxCampos} campos.` } });
+  if (new Set(campos.filter((c) => c.chave).map((c) => c.chave)).size !== campos.filter((c) => c.chave).length)
+    return falha("VALIDACAO", { detalhe: "campo repetido na lista" });
   const erros: Record<string, string> = {};
   campos.forEach((c, i) => {
     const outros = campos.filter((_, k) => k !== i).map((o) => o.rotulo);
@@ -344,20 +363,21 @@ export async function salvarCamposExtras(
   try {
     await db().$transaction(async (tx) => {
       await travarEvento(tx, eventoId);
-      const chaves = atuais.map((a) => a.chave);
+      if (removidos.length) await tx.campoCandidato.deleteMany({ where: { categoriaId, chave: { in: removidos } } });
+      // As chaves que ficam e as pedidas (copiadas) não podem ser tomadas por uma gerada.
+      const chaves = [...atuais.map((a) => a.chave), ...campos.flatMap((c) => (c.chave && !existente(c) ? [c.chave] : []))];
       for (const [i, c] of campos.entries()) {
-        const existente = c.chave ? atuais.find((a) => a.chave === c.chave) : undefined;
-        if (existente) {
-          await tx.campoCandidato.update({ where: { id: existente.id }, data: { rotulo: c.rotulo.trim(), ordem: i + 1 } });
+        const atual = existente(c);
+        if (atual) {
+          await tx.campoCandidato.update({ where: { id: atual.id }, data: { rotulo: c.rotulo.trim(), ordem: i + 1 } });
         } else {
-          const chave = gerarChave(c.rotulo, chaves);
+          const chave = c.chave && chaveValida(c.chave) ? c.chave : gerarChave(c.rotulo, chaves);
           chaves.push(chave);
-          await tx.campoCandidato.create({ data: { eventoId, chave, rotulo: c.rotulo.trim(), ordem: i + 1 } });
+          await tx.campoCandidato.create({ data: { eventoId, categoriaId, chave, rotulo: c.rotulo.trim(), ordem: i + 1 } });
         }
       }
       if (removidos.length) {
-        await tx.campoCandidato.deleteMany({ where: { eventoId, chave: { in: removidos } } });
-        const candidatos = await tx.candidato.findMany({ where: { eventoId }, select: { id: true, camposExtras: true } });
+        const candidatos = await tx.candidato.findMany({ where: { eventoId, categoriaId }, select: { id: true, camposExtras: true } });
         for (const c of candidatos) {
           const valores = c.camposExtras as Record<string, string> | null;
           if (!valores || !removidos.some((k) => k in valores)) continue;
@@ -370,7 +390,8 @@ export async function salvarCamposExtras(
         usuarioId,
         acao: "CONFIG_ALTERADA",
         entidade: "campo_candidato",
-        detalhes: { adicionados, removidos, renomeados, reordenado, ...(motivo?.trim() ? { motivo: motivo.trim() } : {}) },
+        entidadeId: categoriaId,
+        detalhes: { categoria: categoria.nome, adicionados, removidos, renomeados, reordenado, ...(motivo?.trim() ? { motivo: motivo.trim() } : {}) },
       });
     });
     invalidarEstadoPublico();

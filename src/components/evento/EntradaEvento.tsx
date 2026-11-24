@@ -8,6 +8,7 @@ import { ComoFunciona } from "@/components/landing/ComoFunciona";
 import { DestaqueCandidatoProvider } from "@/components/landing/DestaqueCandidato";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { Parceiros } from "@/components/landing/Parceiros";
+import { SobreEvento } from "@/components/landing/SobreEvento";
 import { SecaoVotacao } from "@/components/votacao/SecaoVotacao";
 import { Alerta } from "@/components/ui/Alerta";
 import { ehRotaInterna } from "@/dominio/acesso";
@@ -76,6 +77,8 @@ export function EntradaEvento() {
         )}
       </DestaqueCandidatoProvider>
       {cinema ? <ComoFuncionaCinema /> : <ComoFunciona />}
+      {/* C2 (25/11/2026): "sobre o evento" no fim da página; os parceiros, quando há categorias, vêm depois, no pé (EventoShell). */}
+      <SobreEvento cinema={cinema} />
       {!comCategorias && <Parceiros cinema={cinema} />}
     </>
   );

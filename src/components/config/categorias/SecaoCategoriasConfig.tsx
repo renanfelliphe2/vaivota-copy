@@ -1,15 +1,16 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check, Copy, Download, ExternalLink, Film, Globe, Layers, Lock, MonitorPlay, Pencil, Plus, Search, Tablet, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Copy, Download, ExternalLink, Film, Globe, Layers, ListPlus, Lock, MonitorPlay, Pencil, Plus, Search, Tablet, Trash2 } from "lucide-react";
 import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import { useRef, useState, type ReactNode } from "react";
 import { categoriasDoCanal, enderecosDasCategorias, LIMITES_CATEGORIA, ROTULOS_CANAL, rotaCategoria, validarCategorias } from "@/dominio/categorias";
-import type { Candidato, CanalCategoria, Categoria } from "@/dominio/tipos";
+import { avisoCamposPerdidos, camposDaCategoria, camposPerdidosNaMudanca } from "@/dominio/camposExtras";
+import type { CampoCandidato, Candidato, CanalCategoria, Categoria } from "@/dominio/tipos";
 import type { Travas } from "@/dominio/travas";
 import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
-import { Campo, Input, Textarea } from "@/components/ui/Campo";
+import { Campo, Input, Select, Textarea } from "@/components/ui/Campo";
 import { Dialogo } from "@/components/ui/Dialogo";
 import { Selo } from "@/components/ui/Selo";
 import { DialogoConfirmacao } from "@/components/ui/DialogoConfirmacao";
@@ -19,6 +20,7 @@ import { useOrigem } from "@/lib/useOrigem";
 import { salvarCategorias, vincularCandidatosCategoria, type CategoriaEditada } from "@/servicos/categorias";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { BannerTrava } from "../BannerTrava";
+import { CamposExtrasEditor } from "../candidatos/CamposExtrasEditor";
 import { DicaTrava } from "../DicaTrava";
 import { useFormularioSujo } from "../FormularioSujoProvider";
 import { useServico } from "../useServico";
@@ -38,10 +40,13 @@ export function SecaoCategoriasConfig({ travas }: { travas: Travas }) {
   const [editando, setEditando] = useState<Categoria | "nova" | null>(null);
   const [selecionando, setSelecionando] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState<Categoria | null>(null);
+  const [camposDe, setCamposDe] = useState<string | null>(null);
   const servico = useServico();
+  const { confirmarSaida } = useFormularioSujo();
   if (!ativo) return null;
 
-  const { categorias, candidatos } = ativo;
+  const { categorias, candidatos, camposCandidato } = ativo;
+  const categoriaCampos = categorias.find((c) => c.id === camposDe) ?? null;
   const rotulo = ativo.tema.rotuloCandidatos;
   const rotuloMin = rotulo.toLocaleLowerCase("pt-BR");
   const pode = travas.permite("CATEGORIAS_ROTULO");
@@ -77,7 +82,7 @@ export function SecaoCategoriasConfig({ travas }: { travas: Travas }) {
           </Botao>
         )}
       </div>
-      <BannerTrava travas={travas} acoes={["CATEGORIAS_ROTULO", "CATEGORIAS_ESTRUTURA"]} />
+      <BannerTrava travas={travas} acoes={["CATEGORIAS_ROTULO", "CATEGORIAS_ESTRUTURA", "CAMPOS_EXTRAS_ESTRUTURA"]} />
       <DicaTrava motivo={pode ? null : travas.motivo("CATEGORIAS_ROTULO")} />
 
       {categorias.length === 0 ? (
@@ -96,6 +101,8 @@ export function SecaoCategoriasConfig({ travas }: { travas: Travas }) {
               <CartaoCategoria
                 categoria={c}
                 itens={itensDa(c.id)}
+                campos={camposDaCategoria(camposCandidato, c.id)}
+                aoCampos={() => setCamposDe(c.id)}
                 slugEvento={ativo.slug}
                 rotulo={rotulo}
                 primeira={i === 0}
@@ -122,6 +129,7 @@ export function SecaoCategoriasConfig({ travas }: { travas: Travas }) {
         aberto={editando !== null}
         categoria={editando === "nova" ? null : editando}
         todas={categorias}
+        campos={camposCandidato}
         slugEvento={ativo.slug}
         podeEstrutura={podeEstrutura}
         aoFechar={() => setEditando(null)}
@@ -132,12 +140,34 @@ export function SecaoCategoriasConfig({ travas }: { travas: Travas }) {
         categoria={categorias.find((c) => c.id === selecionando) ?? null}
         categorias={categorias}
         candidatos={candidatos}
+        campos={camposCandidato}
         eventoId={ativo.evento.id}
         rotulo={rotulo}
         pode={podeEstrutura}
         motivoTrava={travas.motivo("CATEGORIAS_ESTRUTURA")}
         aoFechar={() => setSelecionando(null)}
       />
+      {/* D1 (25/11/2026): os campos extras são de cada categoria. */}
+      <Dialogo
+        aberto={categoriaCampos !== null}
+        aoFechar={() => confirmarSaida(() => setCamposDe(null))}
+        fecharNoFundo={false}
+        titulo={`Campos extras de ${categoriaCampos?.nome ?? ""}`}
+        descricao="Informações que cada item da categoria preenche, como Direção ou Duração."
+        className="sm:max-w-2xl!"
+      >
+        {categoriaCampos && (
+          <CamposExtrasEditor
+            eventoId={ativo.evento.id}
+            categoria={categoriaCampos}
+            categorias={categorias}
+            campos={camposCandidato}
+            candidatos={candidatos}
+            travas={travas}
+            aoSalvar={() => setCamposDe(null)}
+          />
+        )}
+      </Dialogo>
       <DialogoConfirmacao
         aberto={excluindo !== null}
         aoFechar={() => setExcluindo(null)}
@@ -174,9 +204,14 @@ function CartaoCategoria({
   aoEditar,
   aoExcluir,
   aoSelecionar,
+  campos,
+  aoCampos,
 }: {
   categoria: Categoria;
   itens: Candidato[];
+  /** Os campos extras desta categoria (D1). */
+  campos: CampoCandidato[];
+  aoCampos: () => void;
   slugEvento: string;
   rotulo: string;
   primeira: boolean;
@@ -233,6 +268,16 @@ function CartaoCategoria({
       </div>
 
       {categoria.descricao && <p className="line-clamp-2 text-sm text-tema-texto-suave">{categoria.descricao}</p>}
+
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-tema-fundo px-3 py-2 text-sm">
+        <span className="min-w-0">
+          <span className="font-semibold">Campos extras: </span>
+          <span className="text-tema-texto-suave">{campos.length ? campos.map((c) => c.rotulo).join(", ") : "nenhum"}</span>
+        </span>
+        <Botao variante="fantasma" tamanho="pequeno" onClick={aoCampos} aria-label={`Campos extras de ${categoria.nome}`} icone={<ListPlus aria-hidden className="size-4" />}>
+          Campos
+        </Botao>
+      </div>
 
       {itens.length === 0 ? (
         <button
@@ -311,6 +356,7 @@ function ModalCategoria({
   aberto,
   categoria,
   todas,
+  campos,
   slugEvento,
   podeEstrutura,
   aoFechar,
@@ -319,6 +365,7 @@ function ModalCategoria({
   aberto: boolean;
   categoria: Categoria | null;
   todas: readonly Categoria[];
+  campos: readonly CampoCandidato[];
   slugEvento: string;
   podeEstrutura: boolean;
   aoFechar: () => void;
@@ -333,7 +380,7 @@ function ModalCategoria({
       titulo={categoria ? `Editar ${categoria.nome}` : "Nova categoria"}
       className="sm:max-w-2xl!"
     >
-      <FormCategoria categoria={categoria} todas={todas} slugEvento={slugEvento} podeEstrutura={podeEstrutura} aoFechar={aoFechar} aoSalvar={aoSalvar} />
+      <FormCategoria categoria={categoria} todas={todas} campos={campos} slugEvento={slugEvento} podeEstrutura={podeEstrutura} aoFechar={aoFechar} aoSalvar={aoSalvar} />
     </Dialogo>
   );
 }
@@ -341,6 +388,7 @@ function ModalCategoria({
 function FormCategoria({
   categoria,
   todas,
+  campos,
   slugEvento,
   podeEstrutura,
   aoFechar,
@@ -348,6 +396,7 @@ function FormCategoria({
 }: {
   categoria: Categoria | null;
   todas: readonly Categoria[];
+  campos: readonly CampoCandidato[];
   slugEvento: string;
   podeEstrutura: boolean;
   aoFechar: () => void;
@@ -363,13 +412,16 @@ function FormCategoria({
   const [tentou, setTentou] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erroServidor, setErroServidor] = useState<{ campos?: Record<string, string>; mensagem: string } | null>(null);
+  // D1 (25/11/2026): a categoria nova pode nascer com os campos extras de outra.
+  const comCampos = todas.filter((c) => camposDaCategoria(campos, c.id).length > 0);
+  const [copiarDe, setCopiarDe] = useState("");
 
   const lista: CategoriaEditada[] = todas.map((c) =>
     c.id === categoria?.id ? { id: c.id, ...d } : { id: c.id, nome: c.nome, premio: c.premio ?? "", descricao: c.descricao ?? "", canal: c.canal },
   );
   // Trocar o canal é estrutura (trava com a votação aberta), como criar e excluir.
   const travaCanal = categoria !== null && !podeEstrutura;
-  if (!categoria) lista.push({ id: null, ...d });
+  if (!categoria) lista.push({ id: null, ...d, copiarCamposDe: copiarDe || null });
   const indice = categoria ? todas.findIndex((c) => c.id === categoria.id) : lista.length - 1;
   const erros = validarCategorias(lista);
   const meus = (campo: string) => erros[`${campo}-${indice}`] ?? erroServidor?.campos?.[`${campo}-${indice}`] ?? null;
@@ -458,6 +510,26 @@ function FormCategoria({
         </div>
         {travaCanal && <span className="text-sm text-tema-texto-suave">Com a votação aberta, o lugar da votação não muda.</span>}
       </fieldset>
+      {!categoria && comCampos.length > 0 && (
+        <Campo
+          id="categoria-copiar-campos"
+          rotulo="Campos extras"
+          dica={
+            copiarDe
+              ? `Nasce com: ${camposDaCategoria(campos, copiarDe).map((c) => c.rotulo).join(", ")}. Dá para mudar depois, em "Campos".`
+              : 'Sem campos extras. Dá para criar ou copiar depois, em "Campos".'
+          }
+        >
+          <Select value={copiarDe} onChange={(e) => setCopiarDe(e.target.value)}>
+            <option value="">Começar sem campos</option>
+            {comCampos.map((c) => (
+              <option key={c.id} value={c.id}>
+                Copiar de {c.nome}
+              </option>
+            ))}
+          </Select>
+        </Campo>
+      )}
       {/* 24/11/2026: o endereço não é digitado; é o do evento seguido do nome da categoria. */}
       <div className="flex flex-col gap-1 rounded-xl border border-tema-borda bg-tema-superficie px-4 py-3 text-sm">
         <span className="font-semibold">Endereço da página</span>
@@ -492,6 +564,7 @@ function ModalItens({
   categoria,
   categorias,
   candidatos,
+  campos,
   eventoId,
   rotulo,
   pode,
@@ -502,6 +575,7 @@ function ModalItens({
   categoria: Categoria | null;
   categorias: readonly Categoria[];
   candidatos: readonly Candidato[];
+  campos: readonly CampoCandidato[];
   eventoId: string;
   rotulo: string;
   pode: boolean;
@@ -512,6 +586,7 @@ function ModalItens({
   const [marcados, setMarcados] = useState<Set<string>>(salvos);
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"todos" | "sem" | "nesta">("todos");
+  const [confirmarPerda, setConfirmarPerda] = useState(false);
   const { marcarSujo, confirmarSaida } = useFormularioSujo();
   const servico = useServico();
 
@@ -524,6 +599,7 @@ function ModalItens({
       setMarcados(salvos());
       setBusca("");
       setFiltro("todos");
+      setConfirmarPerda(false);
       servico.limparErro();
     }
   }
@@ -560,13 +636,24 @@ function ModalItens({
     }
   }
 
-  async function salvar() {
+  // D1 (25/11/2026): quem entra vindo de outra categoria (ou sem categoria) perde os valores dos campos que esta não tem.
+  const entram = candidatos.filter((c) => marcados.has(c.id) && !original.has(c.id));
+  const perdas = categoria ? entram.map((c) => ({ item: c, campos: camposPerdidosNaMudanca(c, campos, categoria.id) })).filter((p) => p.campos.length > 0) : [];
+  const rotulosPerdidos = [...new Set(perdas.flatMap((p) => p.campos.map((c) => c.rotulo)))];
+
+  async function gravar() {
     if (!categoria) return;
     const r = await servico.executar(() => vincularCandidatosCategoria(eventoId, categoria.id, [...marcados]), "Categoria salva");
+    setConfirmarPerda(false);
     if (r.ok) {
       marcarSujo(false);
       aoFechar();
     }
+  }
+
+  async function salvar() {
+    if (perdas.length) setConfirmarPerda(true);
+    else await gravar();
   }
 
   const FILTROS = [
@@ -595,6 +682,16 @@ function ModalItens({
             <Botao onClick={() => void salvar()} disabled={!alterado} carregando={servico.carregando}>
               Salvar
             </Botao>
+            <DialogoConfirmacao
+              aberto={confirmarPerda}
+              aoFechar={() => setConfirmarPerda(false)}
+              aoConfirmar={() => gravar()}
+              carregando={servico.carregando}
+              perigo
+              titulo={`Mudar para ${categoria?.nome ?? ""}`}
+              consequencia={`${avisoCamposPerdidos(rotulosPerdidos)} Afeta: ${perdas.map((p) => p.item.titulo).join(", ")}.`}
+              rotuloConfirmar="Mudar e apagar os dados"
+            />
           </>
         ) : (
           <Botao variante="contorno" onClick={fechar}>

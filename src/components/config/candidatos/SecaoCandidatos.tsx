@@ -3,6 +3,7 @@
 import { Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { camposDaCategoria } from "@/dominio/camposExtras";
 import type { OrdemCandidatos } from "@/dominio/tipos";
 import type { Travas } from "@/dominio/travas";
 import { Botao } from "@/components/ui/Botao";
@@ -20,7 +21,6 @@ import { useEventoAtivo } from "@/store/seletores/evento";
 import { BannerTrava } from "../BannerTrava";
 import { DicaTrava } from "../DicaTrava";
 import { useServico } from "../useServico";
-import { CamposExtrasEditor } from "./CamposExtrasEditor";
 import { DesqualificarDialog } from "./DesqualificarDialog";
 import { ListaCandidatosAdmin } from "./ListaCandidatosAdmin";
 import { PainelCandidato } from "./PainelCandidato";
@@ -49,6 +49,9 @@ export function SecaoCandidatos({ travas }: { travas: Travas }) {
   const podeAdicionar = travas.permite("CANDIDATOS_PUBLICACAO");
   const titulo = (id: string | null) => dados.itens.find((i) => i.candidato.id === id)?.candidato.titulo ?? "";
   const ordem = ordemEscolhida ?? ativo.evento.ordemCandidatos;
+  // D1: o formulário mostra os campos da categoria do item. O item novo entra na categoria única, se o evento tem uma só (o
+  // servidor faz o mesmo); com várias, ele nasce sem categoria e ganha os campos quando for vinculado.
+  const categoriaDoForm = candidatoEditado ? candidatoEditado.categoriaId : ativo.categorias.length === 1 ? ativo.categorias[0].id : null;
 
   async function trocarOrdem(nova: OrdemCandidatos) {
     setOrdemEscolhida(nova);
@@ -76,7 +79,7 @@ export function SecaoCandidatos({ travas }: { travas: Travas }) {
           </Botao>
         )}
       </div>
-      <BannerTrava travas={travas} acoes={["CANDIDATOS_PUBLICACAO", "CANDIDATOS_CORRIGIR", "CAMPOS_EXTRAS_ESTRUTURA"]} />
+      <BannerTrava travas={travas} acoes={["CANDIDATOS_PUBLICACAO", "CANDIDATOS_CORRIGIR"]} />
       <p className="font-semibold">
         Na votação: {dados.naVotacao} <span className="font-normal text-tema-texto-suave">(mínimo 2 para ativar)</span>
       </p>
@@ -133,13 +136,17 @@ export function SecaoCandidatos({ travas }: { travas: Travas }) {
         />
       )}
 
-      <CamposExtrasEditor eventoId={eventoId} campos={dados.campos} candidatos={ativo.candidatos} travas={travas} />
+      {/* D1 (25/11/2026): os campos extras são de cada categoria e são editados na seção Categorias. */}
+      <p className="text-sm text-tema-texto-suave">
+        Os campos extras (como Direção ou Duração) são de cada categoria: crie e edite em Configuração &gt; Categorias, no botão &ldquo;Campos&rdquo;.
+      </p>
 
       <PainelCandidato
         editar={editar}
         eventoId={eventoId}
         candidato={candidatoEditado}
-        campos={dados.campos}
+        campos={camposDaCategoria(dados.campos, categoriaDoForm)}
+        semCategoria={categoriaDoForm === null}
         rotuloCandidato={tema.rotuloCandidato}
         travas={travas}
         aoFechar={fecharPainel}

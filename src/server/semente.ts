@@ -1,4 +1,5 @@
 import "server-only";
+import { GRUPOS_PADRAO } from "@/dominio/gruposParceiros";
 import type { Prisma } from "@/generated/prisma/client";
 import { gerarSlugCategoria, nomeCategoriaUnica } from "@/dominio/categorias";
 import { PRESETS_TEMA } from "@/dominio/presetsTema";
@@ -169,14 +170,6 @@ async function semearEvento(def: DefinicaoEvento): Promise<{ eventoId: string; c
     create: { eventoId: evento.id, ...(def.apresentacao ?? {}) },
   });
 
-  for (const [ordem, campo] of def.campos.entries()) {
-    await db().campoCandidato.upsert({
-      where: { eventoId_chave: { eventoId: evento.id, chave: campo.chave } },
-      update: {},
-      create: { eventoId: evento.id, chave: campo.chave, rotulo: campo.rotulo, ordem: ordem + 1 },
-    });
-  }
-
   if (!existia) {
     // 25/11/2026: todo evento tem ao menos uma categoria. O evento nasce com a categoria única "Melhor <item>"; o admin renomeia,
     // cria outras ou a exclui depois de criar as dele (seção Categorias).
@@ -184,9 +177,24 @@ async function semearEvento(def: DefinicaoEvento): Promise<{ eventoId: string; c
     await db().categoria.create({ data: { eventoId: evento.id, nome: nomeUnica, slug: gerarSlugCategoria(nomeUnica, []), ordem: 1 } });
     if (def.criterios.length)
       await db().criterioJuri.createMany({ data: def.criterios.map((nome, i) => ({ eventoId: evento.id, nome, ordem: i + 1 })) });
-    if (def.parceiros.length)
-      await db().parceiro.createMany({ data: def.parceiros.map((p, i) => ({ eventoId: evento.id, nome: p.nome, logoUrl: p.logoUrl, ordem: i + 1 })) });
+    // C1 (25/11/2026): os grupos padrão; os parceiros do seed ficam em Patrocínio (o primeiro).
+    const grupos = await Promise.all(GRUPOS_PADRAO.map((nome, i) => db().grupoParceiro.create({ data: { eventoId: evento.id, nome, ordem: i + 1 } })));
+    for (const [i, p] of def.parceiros.entries())
+      await db().parceiro.create({
+        data: { eventoId: evento.id, nome: p.nome, logoUrl: p.logoUrl, ordem: i + 1, grupos: { create: { grupoId: grupos[0].id } } },
+      });
   }
+
+  // D1 (25/11/2026): os campos extras são da categoria; o seed completa os que faltam na primeira categoria do evento.
+  const primeira = await db().categoria.findFirst({ where: { eventoId: evento.id }, orderBy: { ordem: "asc" }, select: { id: true } });
+  if (primeira)
+    for (const [ordem, campo] of def.campos.entries()) {
+      await db().campoCandidato.upsert({
+        where: { categoriaId_chave: { categoriaId: primeira.id, chave: campo.chave } },
+        update: {},
+        create: { eventoId: evento.id, categoriaId: primeira.id, chave: campo.chave, rotulo: campo.rotulo, ordem: ordem + 1 },
+      });
+    }
   return { eventoId: evento.id, criado: !existia };
 }
 

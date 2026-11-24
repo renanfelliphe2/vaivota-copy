@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { criarEstadoInicial } from "@/mocks/criarEstadoInicial";
+import { ID_CATEGORIA_UNICA_FV } from "@/mocks/seed";
 import { gerarChave, contarValores, removerValores } from "./camposExtras";
 import { avaliarContrasteTema } from "./contrasteTema";
 import { estadoExibidoConvite, proximoNumeroRotulo, resumirConvites } from "./convites";
@@ -85,10 +86,10 @@ describe("Candidatos", () => {
     expect(gerarChave("Direção de Arte", [])).toBe("direcao_de_arte");
     expect(gerarChave("Elenco", ["elenco"])).toBe("elenco_2");
     const { candidatos } = criarEstadoInicial().banco;
-    expect(contarValores(candidatos, "evt-ver-e-fazer-filmes", "duracao")).toBe(7);
-    const sem = removerValores(candidatos, "evt-ver-e-fazer-filmes", ["duracao"]);
-    expect(contarValores(sem, "evt-ver-e-fazer-filmes", "duracao")).toBe(0);
-    expect(contarValores(sem, "evt-ver-e-fazer-filmes", "direcao")).toBe(8);
+    expect(contarValores(candidatos, ID_CATEGORIA_UNICA_FV, "duracao")).toBe(7);
+    const sem = removerValores(candidatos, ID_CATEGORIA_UNICA_FV, ["duracao"]);
+    expect(contarValores(sem, ID_CATEGORIA_UNICA_FV, "duracao")).toBe(0);
+    expect(contarValores(sem, ID_CATEGORIA_UNICA_FV, "direcao")).toBe(8);
   });
 });
 

@@ -1,4 +1,5 @@
-import type { CampoCandidato, ConfigApresentacao, ConfigPlacar, CriterioJuri, Parceiro } from "@/dominio/tipos";
+import type { CampoCandidato, ConfigApresentacao, ConfigPlacar, CriterioJuri, GrupoParceiro, Parceiro } from "@/dominio/tipos";
+import { ID_CATEGORIA_UNICA_FV } from "./candidatos";
 import { ID_FESTIVAL } from "./eventos";
 
 export const seedConfigsPlacar = [
@@ -33,9 +34,9 @@ export const seedConfigsApresentacao = [
 ] satisfies ConfigApresentacao[];
 
 export const seedCamposCandidato = [
-  { id: "campo-fv-descricao", eventoId: ID_FESTIVAL, chave: "descricao", rotulo: "Descrição", ordem: 1 },
-  { id: "campo-fv-direcao", eventoId: ID_FESTIVAL, chave: "direcao", rotulo: "Direção", ordem: 2 },
-  { id: "campo-fv-duracao", eventoId: ID_FESTIVAL, chave: "duracao", rotulo: "Duração", ordem: 3 },
+  { id: "campo-fv-descricao", eventoId: ID_FESTIVAL, categoriaId: ID_CATEGORIA_UNICA_FV, chave: "descricao", rotulo: "Descrição", ordem: 1 },
+  { id: "campo-fv-direcao", eventoId: ID_FESTIVAL, categoriaId: ID_CATEGORIA_UNICA_FV, chave: "direcao", rotulo: "Direção", ordem: 2 },
+  { id: "campo-fv-duracao", eventoId: ID_FESTIVAL, categoriaId: ID_CATEGORIA_UNICA_FV, chave: "duracao", rotulo: "Duração", ordem: 3 },
 ] satisfies CampoCandidato[];
 
 /** Critérios do júri do Festival (documento de requisitos, §3.3). O modo começa em VOTO_UNICO; a toolbar troca. */
@@ -55,3 +56,9 @@ export const seedParceiros = [
   { id: "parc-fv-energisa", eventoId: ID_FESTIVAL, nome: "Energisa", logoUrl: "/parceiros/energisa.png", ordem: 5 },
   { id: "parc-fv-mg", eventoId: ID_FESTIVAL, nome: "Cultura e Turismo de Minas Gerais", logoUrl: "/parceiros/cultura-e-turismo-mg.png", ordem: 6 },
 ] satisfies Parceiro[];
+
+/** C1 (25/11/2026): os grupos padrão; os parceiros do Festival ficam em Patrocínio. */
+export const seedGruposParceiros = [
+  { id: "grupo-fv-patrocinio", eventoId: ID_FESTIVAL, nome: "Patrocínio", ordem: 1, parceiroIds: seedParceiros.map((p) => p.id) },
+  { id: "grupo-fv-realizacao", eventoId: ID_FESTIVAL, nome: "Realização", ordem: 2, parceiroIds: [] },
+] satisfies GrupoParceiro[];

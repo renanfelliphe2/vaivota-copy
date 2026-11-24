@@ -19,6 +19,8 @@ export type FormCandidatoProps = {
   /** null = novo. */
   candidato: Candidato | null;
   campos: CampoCandidato[];
+  /** D1: o item (ou o novo) está sem categoria, e por isso sem campos extras. */
+  semCategoria?: boolean;
   travas: Travas;
   aoSalvar: () => void;
   aoCancelar: () => void;
@@ -33,7 +35,7 @@ function inicial(c: Candidato | null): DadosCandidato {
 }
 
 /** Etapa 6 (CP4): título, imagem e valores dos campos extras. Nunca muda publicação nem ordem. */
-export function FormCandidato({ eventoId, candidato, campos, travas, aoSalvar, aoCancelar }: FormCandidatoProps) {
+export function FormCandidato({ eventoId, candidato, campos, semCategoria = false, travas, aoSalvar, aoCancelar }: FormCandidatoProps) {
   const salvo = inicial(candidato);
   const [d, setD] = useState<DadosCandidato>(salvo);
   const [tentou, setTentou] = useState(false);
@@ -128,6 +130,11 @@ export function FormCandidato({ eventoId, candidato, campos, travas, aoSalvar, a
             )}
           </Campo>
         ))}
+        {semCategoria && (
+          <p className="text-sm text-tema-texto-suave">
+            Os campos extras (como Direção ou Duração) são da categoria. Vincule este item a uma categoria em Configuração &gt; Categorias para preenchê-los.
+          </p>
+        )}
       </fieldset>
       <div className="flex flex-col-reverse gap-2 border-t border-tema-borda pt-4 sm:flex-row sm:justify-end">
         <Botao variante="contorno" onClick={cancelar} disabled={servico.carregando}>

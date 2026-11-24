@@ -160,7 +160,7 @@ describe("candidatos (ST2)", () => {
     });
 
     expect(
-      (await salvarCamposExtras(adm, e, [{ chave: "descricao", rotulo: "Descrição" }, { chave: "equipe", rotulo: "Time" }, { rotulo: "Cidade" }])).ok,
+      (await salvarCamposExtras(adm, e, campos[0].categoriaId, [{ chave: "descricao", rotulo: "Descrição" }, { chave: "equipe", rotulo: "Time" }, { rotulo: "Cidade" }])).ok,
     ).toBe(true);
     const depois = await db().campoCandidato.findMany({ where: { eventoId: e }, orderBy: { ordem: "asc" } });
     expect(depois.map((x) => [x.chave, x.rotulo])).toEqual([["descricao", "Descrição"], ["equipe", "Time"], ["cidade", "Cidade"]]);

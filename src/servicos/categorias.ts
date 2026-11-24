@@ -10,7 +10,15 @@ import type { Resultado } from "./resultado";
  * `id` null: categoria nova. `premio`/`descricao` vazios: sem prêmio/descrição. O endereço é gerado do nome pelo servidor.
  * `canal` (25/11/2026): onde a categoria é votada, na página do evento ou só no totem.
  */
-export type CategoriaEditada = { id: string | null; nome: string; premio: string; descricao: string; canal: CanalCategoria };
+export type CategoriaEditada = {
+  id: string | null;
+  nome: string;
+  premio: string;
+  descricao: string;
+  canal: CanalCategoria;
+  /** D1 (25/11/2026): só na categoria nova, de qual categoria copiar os campos extras. */
+  copiarCamposDe?: string | null;
+};
 
 /** Os itens da categoria (24/11/2026), a lista inteira: quem entra muda de categoria, quem sai fica sem categoria. */
 export async function vincularCandidatosCategoria(eventoId: string, categoriaId: string, candidatoIds: readonly string[]): Promise<Resultado<null>> {

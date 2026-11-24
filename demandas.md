@@ -68,7 +68,7 @@ commits `261bd71` e `8732676` aos dois remotos (o push depende da migração).
 
 ## Fase C — parceiros e "sobre o evento"
 
-### [ ] C1. "Patrocinadores" vira "Parceiros", com grupos (demanda 8)
+### [x] C1. "Patrocinadores" vira "Parceiros", com grupos (demanda 8)
 - Todo texto de "Patrocinadores" passa a "Parceiros" (admin e página).
 - Cada evento tem **grupos de parceiros**. Padrão: **Patrocínio** e **Realização**. O admin cria, renomeia, ordena e remove grupos
   (ex.: Apoio Cultural, Parceria).
@@ -77,7 +77,7 @@ commits `261bd71` e `8732676` aos dois remotos (o push depende da migração).
 - Na página do evento, os parceiros aparecem por grupo, com o nome do grupo como título, na ordem dos grupos.
 - Migração: os parceiros atuais (os 6 do Festival) vão para **Patrocínio**.
 
-### [ ] C2. Seção "sobre o evento" no fim da página (demanda 7)
+### [x] C2. Seção "sobre o evento" no fim da página (demanda 7)
 - Seção nova, **no fim da página de todos os eventos**, no modelo do anexo: cartão na cor do tema, imagem à esquerda, título
   e texto à direita. No celular, a imagem vem em cima.
 - No admin (Configuração > Geral): **título**, **texto** (parágrafos, com **negrito**) e **imagem** (upload, como as outras imagens).
@@ -88,7 +88,7 @@ commits `261bd71` e `8732676` aos dois remotos (o push depende da migração).
 
 ## Fase D — campos extras por categoria
 
-### [ ] D1. Campos extras definidos pela categoria (demanda 9)
+### [x] D1. Campos extras definidos pela categoria (demanda 9)
 - Hoje os campos extras (ex.: Direção, Duração) são do evento inteiro. Passam a ser **da categoria**: cada categoria define os
   seus campos, e o item preenche os campos da categoria dele. Categorias diferentes podem ter campos diferentes.
 - Migração: os campos atuais do evento são copiados para **todas** as categorias; nenhum valor se perde.

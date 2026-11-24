@@ -1,9 +1,13 @@
+import { camposDaCategoria } from "@/dominio/camposExtras";
 import type { CampoCandidato, Candidato } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 
-/** Campos com valor, na ordem de `CampoCandidato.ordem` (os campos já chegam ordenados). */
+/**
+ * Campos com valor, na ordem de `CampoCandidato.ordem`. D1 (25/11/2026): `campos` são os do evento; só valem os da categoria do
+ * item (cartão, detalhe, júri e telão mostram os campos da categoria de cada item).
+ */
 export function camposComValor(candidato: Candidato, campos: readonly CampoCandidato[]) {
-  return campos
+  return camposDaCategoria(campos, candidato.categoriaId)
     .map((campo) => ({ campo, valor: candidato.camposExtras?.[campo.chave]?.trim() ?? "" }))
     .filter((c) => c.valor !== "");
 }

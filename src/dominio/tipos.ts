@@ -143,6 +143,11 @@ export type Evento = {
   bloquearVotoProprio: boolean;
   ordemCandidatos: OrdemCandidatos;
   avisoPrivacidadeUrl: string | null;
+  /** "Sobre o evento" (demanda C2, 25/11/2026), no fim da página. Sem título nem texto, a seção não aparece. */
+  sobreTitulo?: string | null;
+  /** Parágrafos separados por linha em branco; **negrito** entre dois asteriscos duplos. */
+  sobreTexto?: string | null;
+  sobreImagemUrl?: string | null;
   prazoAnonimizacaoDias: number;
   urnaAbertaEm: Instante | null;
   urnaEncerradaEm: Instante | null;
@@ -199,9 +204,11 @@ export type ConfigApresentacao = {
 
 export type OpcoesTelao = { candidatos: boolean; tempo: boolean; qr: boolean; link: boolean };
 
+/** D1 (25/11/2026): cada categoria define os seus campos; o item preenche os da categoria dele. */
 export type CampoCandidato = {
   id: string;
   eventoId: string;
+  categoriaId: string;
   chave: string;
   rotulo: string;
   ordem: number;
@@ -285,15 +292,28 @@ export type VotoJuri = {
   atualizadoEm: Instante;
 };
 
-/** 08/10/2026: parceiro do evento (patrocinador, apoio), na faixa do telão e na página do evento. Sem logo, o nome em texto. */
+/** 08/10/2026: parceiro do evento (patrocínio, realização, apoio), na faixa do telão e na página do evento. Sem logo, o nome em texto. */
 export type Parceiro = {
   id: string;
   eventoId: string;
   nome: string;
   logoUrl: string | null;
-  /** Site do patrocinador (24/11/2026), sempre http(s); a logo na página do evento leva a ele. */
+  /** Site do parceiro (24/11/2026), sempre http(s); a logo na página do evento leva a ele. */
   linkUrl?: string | null;
   ordem: number;
+};
+
+/**
+ * Grupo de parceiros (demanda C1, 25/11/2026), ex.: Patrocínio, Realização, Apoio Cultural. Um parceiro pode estar em vários.
+ * Na página do evento, os parceiros aparecem por grupo, com o nome do grupo como título, na ordem dos grupos.
+ */
+export type GrupoParceiro = {
+  id: string;
+  eventoId: string;
+  nome: string;
+  ordem: number;
+  /** Na ordem dos parceiros. */
+  parceiroIds: string[];
 };
 
 /** Critério de avaliação do júri (ex.: Direção, Roteiro). Vale para os dois modos por critério. */
@@ -452,6 +472,7 @@ export type Banco = {
   notasJuri: NotaJuri[];
   escolhasCriterioJuri: EscolhaCriterioJuri[];
   parceiros: Parceiro[];
+  gruposParceiros: GrupoParceiro[];
   dispositivos: Dispositivo[];
   votosInfantis: VotoInfantil[];
   resultados: ResultadoOficial[];

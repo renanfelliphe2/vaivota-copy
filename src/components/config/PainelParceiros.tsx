@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Handshake, ImagePlus, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Handshake, ImagePlus, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
-import type { Parceiro } from "@/dominio/tipos";
+import { LIMITES_GRUPO, parceirosPorGrupo, validarGrupos } from "@/dominio/gruposParceiros";
+import type { GrupoParceiro, Parceiro } from "@/dominio/tipos";
 import type { Travas } from "@/dominio/travas";
 import { LIMITES, validarArquivoImagem, validarParceiros } from "@/dominio/validacoesConfig";
 import { LogoParceiro } from "@/components/evento/LogoParceiro";
@@ -10,6 +11,7 @@ import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Campo, Input } from "@/components/ui/Campo";
 import { Dialogo } from "@/components/ui/Dialogo";
+import { DialogoConfirmacao } from "@/components/ui/DialogoConfirmacao";
 import { cx } from "@/lib/classes";
 import { enviarImagemCandidato } from "@/servicos/candidatosAdmin";
 import { salvarParceiros, type ParceiroEditado } from "@/servicos/parceiros";
@@ -20,80 +22,103 @@ import { useFormularioSujo } from "./FormularioSujoProvider";
 import { useServico } from "./useServico";
 
 /**
- * Patrocinadores do evento (24/11/2026; antes era a seção Parceiros): nome, logo e, se tiver, o link do site de cada um, na ordem
- * da faixa do telão e da página do evento. Em Geral, abaixo do formulário, fica um resumo (as logos em grade) e o botão que abre
- * o modal, onde cada patrocinador é um cartão da grade. Os dados seguem na tabela `parceiro`.
+ * Parceiros do evento (demanda C1, 25/11/2026; de 24 a 25/11/2026 chamados "Patrocinadores"): nome, logo e, se tiver, o link do
+ * site de cada um, na ordem da faixa do telão e da página do evento, e os GRUPOS (Patrocínio, Realização…) em que cada um
+ * aparece. Em Geral, abaixo do formulário, fica um resumo por grupo e o botão que abre o modal. Os dados ficam nas tabelas
+ * `parceiro`, `grupo_parceiro` e `parceiro_grupo`.
  */
-export function PainelPatrocinadores({ travas }: { travas: Travas }) {
+export function PainelParceiros({ travas }: { travas: Travas }) {
   const ativo = useEventoAtivo();
   const [aberto, setAberto] = useState(false);
   if (!ativo) return null;
   const lista = ativo.parceiros;
+  const grupos = ativo.gruposParceiros;
   const pode = travas.permite("TEMA");
+  const blocos = parceirosPorGrupo(grupos, lista);
   return (
-    <section aria-labelledby="titulo-patrocinadores" className="flex flex-col gap-4 rounded-2xl border border-tema-borda bg-tema-superficie p-5">
+    <section aria-labelledby="titulo-parceiros" className="flex flex-col gap-4 rounded-2xl border border-tema-borda bg-tema-superficie p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h3 id="titulo-patrocinadores" className="flex items-center gap-2 text-lg font-bold">
+          <h3 id="titulo-parceiros" className="flex items-center gap-2 text-lg font-bold">
             <Handshake aria-hidden className="size-5" />
-            Patrocinadores
+            Parceiros
             {lista.length > 0 && <span className="text-sm font-normal text-tema-texto-suave">({lista.length})</span>}
           </h3>
-          <p className="text-sm text-tema-texto-suave">No rodapé do telão antes da revelação e na página do evento.</p>
+          <p className="text-sm text-tema-texto-suave">Por grupo na página do evento; todos juntos no rodapé do telão antes da revelação.</p>
         </div>
         <Botao variante="contorno" tamanho="pequeno" onClick={() => setAberto(true)}>
-          {pode ? "Gerenciar patrocinadores" : "Ver patrocinadores"}
+          {pode ? "Gerenciar parceiros" : "Ver parceiros"}
         </Botao>
       </div>
       {lista.length === 0 ? (
-        <p className="text-sm text-tema-texto-suave">Nenhum patrocinador. Sem eles, a faixa do telão e da página não aparece.</p>
+        <p className="text-sm text-tema-texto-suave">
+          Nenhum parceiro. Sem eles, a faixa do telão e da página não aparece.
+          {grupos.length > 0 && ` Grupos: ${grupos.map((g) => g.nome).join(", ")}.`}
+        </p>
       ) : (
-        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-          {lista.slice(0, 12).map((p) => (
-            <li key={p.id} title={p.nome} className="flex h-16 min-w-0 items-center justify-center overflow-hidden rounded-lg border border-tema-borda bg-tema-fundo px-1.5">
-              <LogoParceiro parceiro={p} className="max-h-11 max-w-full" classeNome="line-clamp-2 whitespace-normal! text-center text-xs font-semibold leading-tight" />
-            </li>
+        <div className="flex flex-col gap-3">
+          {blocos.map((b) => (
+            <div key={b.grupo?.id ?? "sem-grupo"} className="flex flex-col gap-1.5">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-tema-texto-suave">{b.grupo?.nome ?? "Sem grupo"}</p>
+              <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+                {b.parceiros.map((p) => (
+                  <li key={p.id} title={p.nome} className="flex h-16 min-w-0 items-center justify-center overflow-hidden rounded-lg border border-tema-borda bg-tema-fundo px-1.5">
+                    <LogoParceiro parceiro={p} className="max-h-11 max-w-full" classeNome="line-clamp-2 whitespace-normal! text-center text-xs font-semibold leading-tight" />
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-          {lista.length > 12 && (
-            <li className="flex h-16 items-center justify-center rounded-lg border border-dashed border-tema-borda text-xs font-semibold text-tema-texto-suave">
-              +{lista.length - 12}
-            </li>
-          )}
-        </ul>
+        </div>
       )}
-      <ModalPatrocinadores aberto={aberto} aoFechar={() => setAberto(false)} eventoId={ativo.evento.id} salvos={lista} travas={travas} />
+      <ModalParceiros aberto={aberto} aoFechar={() => setAberto(false)} eventoId={ativo.evento.id} salvos={lista} gruposSalvos={grupos} travas={travas} />
     </section>
   );
 }
 
-/** Chave local estável de cada cartão (o id do parceiro ainda não existe nos novos). */
-type Linha = { id: string | null; nome: string; logoUrl: string | null; linkUrl: string; chave: string };
+/** Chave local estável de cada cartão (o id do parceiro ainda não existe nos novos). `grupos`: chaves dos grupos. */
+type Linha = { id: string | null; nome: string; logoUrl: string | null; linkUrl: string; chave: string; grupos: string[] };
+/** Grupo no rascunho: `chave` é o id, se já existe; senão uma chave local. */
+type LinhaGrupo = { id: string | null; chave: string; nome: string };
 
-const doSalvo = (salvos: readonly Parceiro[]): Linha[] =>
-  salvos.map((p) => ({ id: p.id, nome: p.nome, logoUrl: p.logoUrl, linkUrl: p.linkUrl ?? "", chave: p.id }));
+const doSalvo = (salvos: readonly Parceiro[], grupos: readonly GrupoParceiro[]): Linha[] =>
+  salvos.map((p) => ({
+    id: p.id,
+    nome: p.nome,
+    logoUrl: p.logoUrl,
+    linkUrl: p.linkUrl ?? "",
+    chave: p.id,
+    grupos: grupos.filter((g) => g.parceiroIds.includes(p.id)).map((g) => g.id),
+  }));
+const gruposDoSalvo = (grupos: readonly GrupoParceiro[]): LinhaGrupo[] => grupos.map((g) => ({ id: g.id, chave: g.id, nome: g.nome }));
 
 /**
  * O modal fica sempre montado (o <dialog> devolve o foco a quem abriu ao fechar); o rascunho recomeça do salvo a cada abertura.
  * Botões no rodapé do Dialogo, fora da área que rola. Fechar com alteração pendente pergunta antes (FormularioSujoProvider).
  */
-function ModalPatrocinadores({
+function ModalParceiros({
   aberto,
   aoFechar,
   eventoId,
   salvos,
+  gruposSalvos,
   travas,
 }: {
   aberto: boolean;
   aoFechar: () => void;
   eventoId: string;
   salvos: readonly Parceiro[];
+  gruposSalvos: readonly GrupoParceiro[];
   travas: Travas;
 }) {
-  const [linhas, setLinhas] = useState<Linha[]>(() => doSalvo(salvos));
+  const [linhas, setLinhas] = useState<Linha[]>(() => doSalvo(salvos, gruposSalvos));
+  const [grupos, setGrupos] = useState<LinhaGrupo[]>(() => gruposDoSalvo(gruposSalvos));
   const [proximaChave, setProximaChave] = useState(1);
   const [focarChave, setFocarChave] = useState<string | null>(null);
   const [tentou, setTentou] = useState(false);
   const [errosLogo, setErrosLogo] = useState<Record<string, string>>({});
+  /** O grupo que o admin pediu para remover (o modal de confirmação fica aberto enquanto não é null). */
+  const [removendo, setRemovendo] = useState<LinhaGrupo | null>(null);
   /** Cartões com um logo subindo (o envio é assíncrono). */
   const [enviando, setEnviando] = useState<Record<string, boolean>>({});
   const { marcarSujo, confirmarSaida } = useFormularioSujo();
@@ -104,21 +129,26 @@ function ModalPatrocinadores({
   if (aberto !== abertoAntes) {
     setAbertoAntes(aberto);
     if (aberto) {
-      setLinhas(doSalvo(salvos));
+      setLinhas(doSalvo(salvos, gruposSalvos));
+      setGrupos(gruposDoSalvo(gruposSalvos));
       setTentou(false);
       setErrosLogo({});
       setFocarChave(null);
+      setRemovendo(null);
       servico.limparErro();
     }
   }
 
   const pode = travas.permite("TEMA");
-  const erros = validarParceiros(linhas.map((l) => l.nome), linhas.map((l) => l.linkUrl));
+  const erros = { ...validarParceiros(linhas.map((l) => l.nome), linhas.map((l) => l.linkUrl)), ...validarGrupos(grupos.map((g) => g.nome)) };
   const temErro = Object.keys(erros).length > 0;
   const subindo = Object.values(enviando).some(Boolean);
   const alterado =
-    JSON.stringify(linhas.map((l) => [l.id, l.nome.trim(), l.logoUrl, l.linkUrl.trim()])) !==
-    JSON.stringify(salvos.map((p) => [p.id, p.nome, p.logoUrl, p.linkUrl ?? ""]));
+    JSON.stringify([linhas.map((l) => [l.id, l.nome.trim(), l.logoUrl, l.linkUrl.trim(), [...l.grupos].sort()]), grupos.map((g) => [g.id, g.nome.trim()])]) !==
+    JSON.stringify([
+      salvos.map((p) => [p.id, p.nome, p.logoUrl, p.linkUrl ?? "", gruposSalvos.filter((g) => g.parceiroIds.includes(p.id)).map((g) => g.id).sort()]),
+      gruposSalvos.map((g) => [g.id, g.nome]),
+    ]);
 
   function fechar() {
     if (!alterado) {
@@ -146,9 +176,43 @@ function ModalPatrocinadores({
 
   function adicionar() {
     const chave = `novo-${proximaChave}`;
-    mudarLinhas([...linhas, { id: null, nome: "", logoUrl: null, linkUrl: "", chave }]);
+    mudarLinhas([...linhas, { id: null, nome: "", logoUrl: null, linkUrl: "", chave, grupos: [] }]);
     setProximaChave((n) => n + 1);
     setFocarChave(chave);
+  }
+
+  function mudarGrupos(novos: LinhaGrupo[]) {
+    setGrupos(novos);
+    marcarSujo(true);
+  }
+
+  function moverGrupo(i: number, delta: -1 | 1) {
+    const novos = [...grupos];
+    [novos[i], novos[i + delta]] = [novos[i + delta], novos[i]];
+    mudarGrupos(novos);
+  }
+
+  function adicionarGrupo() {
+    const chave = `grupo-novo-${proximaChave}`;
+    mudarGrupos([...grupos, { id: null, chave, nome: "" }]);
+    setProximaChave((n) => n + 1);
+    setFocarChave(chave);
+  }
+
+  /** Confirmado: o grupo sai do rascunho e os parceiros dele só deixam de estar nele (continuam na lista). */
+  function removerGrupo(g: LinhaGrupo) {
+    mudarGrupos(grupos.filter((x) => x.chave !== g.chave));
+    setLinhas((atuais) => atuais.map((l) => ({ ...l, grupos: l.grupos.filter((c) => c !== g.chave) })));
+    setRemovendo(null);
+  }
+
+  function alternarGrupo(chaveParceiro: string, chaveGrupo: string) {
+    setLinhas((atuais) =>
+      atuais.map((l) =>
+        l.chave !== chaveParceiro ? l : { ...l, grupos: l.grupos.includes(chaveGrupo) ? l.grupos.filter((c) => c !== chaveGrupo) : [...l.grupos, chaveGrupo] },
+      ),
+    );
+    marcarSujo(true);
   }
 
   // O arquivo sobe ao servidor assim que é escolhido (ele confere tipo e tamanho pelo conteúdo e grava no Storage); o cartão guarda
@@ -171,7 +235,10 @@ function ModalPatrocinadores({
     setTentou(true);
     if (temErro || subindo) return;
     const r = await servico.executar(() =>
-      salvarParceiros(eventoId, linhas.map(({ id, nome, logoUrl, linkUrl }): ParceiroEditado => ({ id, nome, logoUrl, linkUrl: linkUrl.trim() || null }))),
+      salvarParceiros(eventoId, {
+        grupos: grupos.map(({ id, chave, nome }) => ({ id, chave, nome })),
+        parceiros: linhas.map(({ id, nome, logoUrl, linkUrl, grupos: g }): ParceiroEditado => ({ id, nome, logoUrl, linkUrl: linkUrl.trim() || null, grupos: g })),
+      }),
     );
     if (r.ok) {
       marcarSujo(false);
@@ -185,7 +252,7 @@ function ModalPatrocinadores({
         Cancelar
       </Botao>
       <Botao onClick={() => void salvar()} disabled={!alterado || subindo} carregando={servico.carregando}>
-        Salvar patrocinadores
+        Salvar parceiros
       </Botao>
     </>
   ) : (
@@ -194,28 +261,79 @@ function ModalPatrocinadores({
     </Botao>
   );
 
+  const quantosNoGrupo = (chave: string) => linhas.filter((l) => l.grupos.includes(chave)).length;
+  const nomeDoGrupo = (g: LinhaGrupo, i: number) => g.nome.trim() || `grupo ${i + 1}`;
+
   return (
     <Dialogo
       aberto={aberto}
       aoFechar={fechar}
       fecharNoFundo={false}
-      titulo="Patrocinadores"
-      descricao="Na ordem em que aparecem no rodapé do telão (antes da revelação) e na página do evento, onde a logo leva ao site, se houver."
+      titulo="Parceiros"
+      descricao="Na página do evento, os parceiros aparecem por grupo, na ordem dos grupos; a logo leva ao site, se houver. No rodapé do telão (antes da revelação), todos juntos, na ordem da lista."
       rodape={rodape}
       className="sm:w-[calc(100%-2rem)] sm:max-w-5xl!"
     >
-      <div aria-busy={servico.carregando || undefined} className="flex flex-col gap-4">
+      <div aria-busy={servico.carregando || undefined} className="flex flex-col gap-6">
         <BannerTrava travas={travas} acoes={["TEMA"]} />
         <DicaTrava motivo={pode ? null : travas.motivo("TEMA")} />
         {/* O toast fica atrás do modal (fora da camada do <dialog>): o erro do servidor aparece aqui também. */}
         {servico.erro && <Alerta variante="erro">{servico.erro.mensagem}</Alerta>}
         {tentou && erros.parceiros && <Alerta variante="erro">{erros.parceiros}</Alerta>}
+        {tentou && erros.grupos && <Alerta variante="erro">{erros.grupos}</Alerta>}
+
+        <fieldset disabled={!pode} className="flex min-w-0 flex-col gap-3">
+          <legend className="mb-1 text-base font-bold">Grupos</legend>
+          <p className="text-sm text-tema-texto-suave">
+            O título de cada bloco de parceiros na página do evento, nesta ordem (ex.: Patrocínio, Realização, Apoio Cultural). Um parceiro
+            pode estar em mais de um grupo.
+          </p>
+          <ol className="flex flex-col gap-2">
+            {grupos.map((g, i) => {
+              const rotulo = nomeDoGrupo(g, i);
+              const erro = (tentou || g.nome ? (erros[`grupo-${i}`] ?? null) : null) ?? servico.erro?.campos?.[`grupo-${i}`] ?? null;
+              return (
+                <li key={g.chave} className="flex flex-col gap-1 rounded-xl border border-tema-borda bg-tema-superficie p-2 sm:flex-row sm:items-start sm:gap-2">
+                  <Campo id={`grupo-${g.chave}`} rotulo={<span className="sr-only">Nome do grupo {i + 1}</span>} erro={erro} className="min-w-0 flex-1">
+                    <Input
+                      value={g.nome}
+                      maxLength={LIMITES_GRUPO.nome[1]}
+                      placeholder="Nome do grupo"
+                      autoFocus={focarChave === g.chave}
+                      onChange={(e) => mudarGrupos(grupos.map((x) => (x.chave === g.chave ? { ...x, nome: e.target.value } : x)))}
+                    />
+                  </Campo>
+                  <div className="flex items-center justify-end gap-1">
+                    <span className="mr-2 text-sm text-tema-texto-suave">
+                      {quantosNoGrupo(g.chave)} {quantosNoGrupo(g.chave) === 1 ? "parceiro" : "parceiros"}
+                    </span>
+                    <BotaoIcone rotulo={`Mover ${rotulo} para cima`} disabled={i === 0} onClick={() => moverGrupo(i, -1)}>
+                      <ArrowUp aria-hidden className="size-4" />
+                    </BotaoIcone>
+                    <BotaoIcone rotulo={`Mover ${rotulo} para baixo`} disabled={i === grupos.length - 1} onClick={() => moverGrupo(i, 1)}>
+                      <ArrowDown aria-hidden className="size-4" />
+                    </BotaoIcone>
+                    <BotaoIcone rotulo={`Remover o grupo ${rotulo}`} perigo onClick={() => setRemovendo(g)}>
+                      <Trash2 aria-hidden className="size-4" />
+                    </BotaoIcone>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+          {grupos.length === 0 && <p className="text-sm text-tema-texto-suave">Nenhum grupo: na página, os parceiros aparecem juntos, sem título de grupo.</p>}
+          {pode && grupos.length < LIMITES_GRUPO.maximo && (
+            <Botao variante="contorno" tamanho="pequeno" className="self-start" onClick={adicionarGrupo} icone={<Plus aria-hidden className="size-4" />}>
+              Adicionar grupo
+            </Botao>
+          )}
+        </fieldset>
 
         <fieldset disabled={!pode} className="min-w-0">
-          <legend className="sr-only">Patrocinadores</legend>
+          <legend className="mb-3 text-base font-bold">Parceiros</legend>
           <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {linhas.map((l, i) => {
-              const rotulo = l.nome.trim() || `patrocinador ${i + 1}`;
+              const rotulo = l.nome.trim() || `parceiro ${i + 1}`;
               const erroNome = (tentou || l.nome ? (erros[`parceiro-${i}`] ?? null) : null) ?? servico.erro?.campos?.[`parceiro-${i}`] ?? null;
               const erroLink = (l.linkUrl ? (erros[`parceiro-link-${i}`] ?? null) : null) ?? servico.erro?.campos?.[`parceiro-link-${i}`] ?? null;
               return (
@@ -250,7 +368,7 @@ function ModalPatrocinadores({
                     <Input
                       value={l.nome}
                       maxLength={LIMITES.nomeParceiro[1]}
-                      placeholder="Nome do patrocinador"
+                      placeholder="Nome do parceiro"
                       autoFocus={focarChave === l.chave}
                       onChange={(e) => mudar(l.chave, { nome: e.target.value })}
                     />
@@ -266,6 +384,28 @@ function ModalPatrocinadores({
                       onChange={(e) => mudar(l.chave, { linkUrl: e.target.value })}
                     />
                   </Campo>
+                  {grupos.length > 0 && (
+                    <fieldset className="flex flex-col gap-1">
+                      <legend className="text-sm font-semibold">Grupos</legend>
+                      <div className="flex flex-wrap gap-1.5">
+                        {grupos.map((g, gi) => {
+                          const marcado = l.grupos.includes(g.chave);
+                          return (
+                            <label
+                              key={g.chave}
+                              className={cx(
+                                "inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-semibold ring-1 transition has-focus-visible:outline-3 has-focus-visible:outline-tema-foco",
+                                marcado ? "bg-tema-primaria text-tema-sobre-primaria ring-tema-primaria" : "bg-tema-fundo text-tema-texto ring-tema-borda hover:ring-tema-primaria",
+                              )}
+                            >
+                              <input type="checkbox" className="sr-only" checked={marcado} onChange={() => alternarGrupo(l.chave, g.chave)} />
+                              {nomeDoGrupo(g, gi)}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+                  )}
                 </li>
               );
             })}
@@ -278,18 +418,36 @@ function ModalPatrocinadores({
                   className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-tema-borda p-6 text-sm font-semibold text-tema-texto-suave hover:border-tema-primaria hover:text-tema-primaria-texto focus-visible:outline-3 focus-visible:outline-tema-foco"
                 >
                   <Plus aria-hidden className="size-6" />
-                  Adicionar patrocinador
+                  Adicionar parceiro
                 </button>
               </li>
             )}
           </ol>
-          {linhas.length === 0 && !pode && <p className="text-tema-texto-suave">Nenhum patrocinador cadastrado.</p>}
+          {linhas.length === 0 && !pode && <p className="text-tema-texto-suave">Nenhum parceiro cadastrado.</p>}
         </fieldset>
 
         <p className="text-sm text-tema-texto-suave">
-          Logo em PNG, JPG ou WebP, até 2 MB; prefira fundo transparente. Até {LIMITES.maxParceiros} patrocinadores.
+          Logo em PNG, JPG ou WebP, até 2 MB; prefira fundo transparente. Até {LIMITES.maxParceiros} parceiros. Parceiro sem grupo aparece
+          na página num bloco sem título, depois dos grupos.
         </p>
       </div>
+
+      <DialogoConfirmacao
+        aberto={removendo !== null}
+        aoFechar={() => setRemovendo(null)}
+        aoConfirmar={() => {
+          if (removendo) removerGrupo(removendo);
+        }}
+        titulo={`Remover o grupo ${removendo ? nomeDoGrupo(removendo, grupos.indexOf(removendo)) : ""}?`}
+        consequencia={
+          !removendo || quantosNoGrupo(removendo.chave) === 0
+            ? "O grupo não tem parceiros. A mudança vale ao salvar."
+            : quantosNoGrupo(removendo.chave) === 1
+              ? "O parceiro dele continua cadastrado: só sai deste grupo. A mudança vale ao salvar."
+              : `Os ${quantosNoGrupo(removendo.chave)} parceiros dele continuam cadastrados: só saem deste grupo. A mudança vale ao salvar.`
+        }
+        rotuloConfirmar="Remover grupo"
+      />
     </Dialogo>
   );
 }

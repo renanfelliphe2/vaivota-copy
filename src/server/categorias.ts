@@ -20,7 +20,16 @@ import { exigirAdmin, type UsuarioSessao } from "./sessao";
  * `id` null: categoria nova. `premio`/`descricao` vazios: sem prêmio/descrição. `descricao` ausente: mantém a salva. `slug`, se
  * vier (clientes antigos), é ignorado.
  */
-export type CategoriaEditadaServidor = { id: string | null; nome: string; premio: string; descricao?: string; canal?: CanalCategoria; slug?: string };
+export type CategoriaEditadaServidor = {
+  id: string | null;
+  nome: string;
+  premio: string;
+  descricao?: string;
+  canal?: CanalCategoria;
+  slug?: string;
+  /** D1 (25/11/2026): só na categoria nova, a categoria (do mesmo evento) de onde copiar os campos extras. */
+  copiarCamposDe?: string | null;
+};
 
 export async function salvarCategorias(
   usuario: UsuarioSessao | null,
@@ -33,7 +42,7 @@ export async function salvarCategorias(
   const { usuarioId } = admin.dados;
   const trava = exigirAcao(admin.dados.evento, "CATEGORIAS_ROTULO");
   if (!trava.ok) return trava;
-  const limpa = lista.map((c) => ({ id: c.id, nome: c.nome.trim(), premio: c.premio.trim(), descricao: c.descricao?.trim(), canal: c.canal }));
+  const limpa = lista.map((c) => ({ id: c.id, nome: c.nome.trim(), premio: c.premio.trim(), descricao: c.descricao?.trim(), canal: c.canal, copiarCamposDe: c.copiarCamposDe }));
   const campos = validarCategorias(limpa);
   if (Object.keys(campos).length > 0) return falha("VALIDACAO", { campos });
   const ids = limpa.flatMap((c) => (c.id ? [c.id] : []));
@@ -96,10 +105,27 @@ export async function salvarCategorias(
     }
     // Troca de endereço em duas etapas: dois endereços trocados entre si não colidem no índice único (evento, endereço).
     for (const c of enderecoTrocado) await tx.categoria.update({ where: { id: c.id! }, data: { slug: `x${randomBytes(8).toString("hex")}` } });
+    // D1: a categoria nova pode nascer com os campos extras de outra (que continue no evento), com as mesmas chaves.
+    const origem = (c: (typeof comSlug)[number]) => (c.id === null && c.copiarCamposDe && porId.has(c.copiarCamposDe) && mantidas.has(c.copiarCamposDe) ? c.copiarCamposDe : null);
+    const copias = new Map<string, { chave: string; rotulo: string; ordem: number }[]>();
+    for (const c of comSlug) {
+      const de = origem(c);
+      if (de && !copias.has(de))
+        copias.set(de, await tx.campoCandidato.findMany({ where: { categoriaId: de }, select: { chave: true, rotulo: true, ordem: true }, orderBy: { ordem: "asc" } }));
+    }
+    const camposCopiados: { categoria: string; de: string; campos: number }[] = [];
     for (const [i, c] of comSlug.entries()) {
       const dados = { nome: c.nome, premio: c.premio || null, ...(c.descricao !== undefined && { descricao: c.descricao || null }), slug: c.slug, canal: c.canal, ordem: i + 1 };
       if (c.id) await tx.categoria.update({ where: { id: c.id }, data: dados });
-      else await tx.categoria.create({ data: { eventoId, ...dados } });
+      else {
+        const nova = await tx.categoria.create({ data: { eventoId, ...dados }, select: { id: true } });
+        const de = origem(c);
+        const campos = de ? (copias.get(de) ?? []) : [];
+        if (campos.length) {
+          await tx.campoCandidato.createMany({ data: campos.map((k) => ({ eventoId, categoriaId: nova.id, chave: k.chave, rotulo: k.rotulo, ordem: k.ordem })) });
+          camposCopiados.push({ categoria: c.nome, de: porId.get(de!)!.nome, campos: campos.length });
+        }
+      }
     }
 
     await registrarAuditoria(tx, {
@@ -114,6 +140,7 @@ export async function salvarCategorias(
         removidas: removidas.map((c) => c.nome),
         enderecosTrocados: enderecoTrocado.map((c) => ({ de: porId.get(c.id!)!.slug, para: c.slug })),
         canaisTrocados: canalTrocado.map((c) => ({ categoria: c.nome, para: c.canal })),
+        ...(camposCopiados.length && { camposCopiados }),
       },
       ipHash: hashDoIp(ctx.ip),
     });
@@ -163,7 +190,20 @@ export async function vincularCandidatosCategoria(
     if (!entram.length && !saem.length) return sucesso(null);
 
     if (saem.length) await tx.candidato.updateMany({ where: { id: { in: saem.map((c) => c.id) } }, data: { categoriaId: null } });
-    if (entram.length) await tx.candidato.updateMany({ where: { id: { in: entram } }, data: { categoriaId } });
+    // D1 (25/11/2026): quem entra fica só com os valores dos campos que esta categoria tem (a tela perguntou antes). Quem sai
+    // para "sem categoria" guarda os valores: não há campos para comparar.
+    let camposPerdidos = 0;
+    if (entram.length) {
+      const chaves = new Set((await tx.campoCandidato.findMany({ where: { categoriaId }, select: { chave: true } })).map((c) => c.chave));
+      const vindos = await tx.candidato.findMany({ where: { id: { in: entram } }, select: { id: true, camposExtras: true } });
+      for (const c of vindos) {
+        const valores = (c.camposExtras as Record<string, string> | null) ?? {};
+        const ficam = Object.fromEntries(Object.entries(valores).filter(([k]) => chaves.has(k)));
+        const perdidos = Object.keys(valores).length - Object.keys(ficam).length;
+        camposPerdidos += perdidos;
+        await tx.candidato.update({ where: { id: c.id }, data: { categoriaId, ...(perdidos > 0 && { camposExtras: ficam }) } });
+      }
+    }
 
     await registrarAuditoria(tx, {
       eventoId,
@@ -171,7 +211,7 @@ export async function vincularCandidatosCategoria(
       acao: "CONFIG_ALTERADA",
       entidade: "categoria",
       entidadeId: categoriaId,
-      detalhes: { categoria: categoria.nome, entraram: entram.length, sairam: saem.length },
+      detalhes: { categoria: categoria.nome, entraram: entram.length, sairam: saem.length, ...(camposPerdidos > 0 && { valoresApagados: camposPerdidos }) },
       ipHash: hashDoIp(ctx.ip),
     });
     return sucesso(null);

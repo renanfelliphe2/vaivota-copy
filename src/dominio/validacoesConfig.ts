@@ -238,7 +238,7 @@ export function validarCriteriosJuri(nomes: readonly string[], porCriterio: bool
 }
 
 /**
- * Link do site do patrocinador (24/11/2026): opcional. Aceita com ou sem https:// ("energisa.com.br" vira
+ * Link do site do parceiro (24/11/2026): opcional. Aceita com ou sem https:// ("energisa.com.br" vira
  * "https://energisa.com.br/") e só http(s) com um domínio de verdade; javascript:, data: e afins são recusados.
  * Vazio: { ok: true, url: null }.
  */
@@ -259,7 +259,7 @@ export function normalizarLinkSite(texto: string): { ok: true; url: string | nul
   return url.length > LIMITES.linkParceiro ? { ok: false } : { ok: true, url };
 }
 
-/** Parceiros (08/10/2026): nome obrigatório e único; o logo é opcional. 24/11/2026: `links` opcionais (site do patrocinador). */
+/** Parceiros (08/10/2026): nome obrigatório e único; o logo é opcional. 24/11/2026: `links` opcionais (site do parceiro). */
 export function validarParceiros(nomes: readonly string[], links: readonly (string | null | undefined)[] = []): Erros {
   const erros: Erros = {};
   if (nomes.length > LIMITES.maxParceiros) erros.parceiros = `Use até ${LIMITES.maxParceiros} parceiros.`;

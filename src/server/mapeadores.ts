@@ -10,6 +10,7 @@ import type {
   CriterioJuri,
   Evento,
   Instante,
+  GrupoParceiro,
   Parceiro,
   Participacao,
   TextosEstado,
@@ -49,6 +50,9 @@ export function eventoParaDominio(e: P.Evento): Evento {
     bloquearVotoProprio: e.bloquearVotoProprio,
     ordemCandidatos: e.ordemCandidatos,
     avisoPrivacidadeUrl: e.avisoPrivacidadeUrl,
+    sobreTitulo: e.sobreTitulo,
+    sobreTexto: e.sobreTexto,
+    sobreImagemUrl: e.sobreImagemUrl,
     prazoAnonimizacaoDias: e.prazoAnonimizacaoDias,
     urnaAbertaEm: instanteOuNulo(e.urnaAbertaEm, f),
     urnaEncerradaEm: instanteOuNulo(e.urnaEncerradaEm, f),
@@ -95,6 +99,26 @@ export function criterioParaDominio(c: P.CriterioJuri): CriterioJuri {
 /** Convite para o admin no estado público: nunca o hash do código nem a participação de quem resgatou. */
 export function parceiroParaDominio(p: P.Parceiro): Parceiro {
   return { id: p.id, eventoId: p.eventoId, nome: p.nome, logoUrl: p.logoUrl, linkUrl: p.linkUrl, ordem: p.ordem };
+}
+
+/** Grupos de parceiros (C1), na ordem; os parceiros de cada um na ordem da lista de parceiros. */
+export function gruposParaDominio(
+  grupos: readonly (P.GrupoParceiro & { parceiros: { parceiroId: string }[] })[],
+  parceiros: readonly P.Parceiro[],
+): GrupoParceiro[] {
+  const ordem = new Map(parceiros.map((p) => [p.id, p.ordem]));
+  return [...grupos]
+    .sort((a, b) => a.ordem - b.ordem || a.id.localeCompare(b.id))
+    .map((g) => ({
+      id: g.id,
+      eventoId: g.eventoId,
+      nome: g.nome,
+      ordem: g.ordem,
+      parceiroIds: g.parceiros
+        .map((p) => p.parceiroId)
+        .filter((id) => ordem.has(id))
+        .sort((a, b) => (ordem.get(a) ?? 0) - (ordem.get(b) ?? 0) || a.localeCompare(b)),
+    }));
 }
 
 export function convitePublicoParaDominio(c: P.ConviteJurado, fuso: string): ConvitePublico {
@@ -147,7 +171,7 @@ export function categoriaParaDominio(c: P.Categoria): Categoria {
 }
 
 export function campoParaDominio(c: P.CampoCandidato): CampoCandidato {
-  return { id: c.id, eventoId: c.eventoId, chave: c.chave, rotulo: c.rotulo, ordem: c.ordem };
+  return { id: c.id, eventoId: c.eventoId, categoriaId: c.categoriaId, chave: c.chave, rotulo: c.rotulo, ordem: c.ordem };
 }
 
 function camposExtrasDe(valor: P.Candidato["camposExtras"]): Record<string, string> | null {

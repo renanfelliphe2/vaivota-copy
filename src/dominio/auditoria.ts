@@ -54,6 +54,9 @@ const CAMPO_CONFIG: Record<string, string> = {
   ordemCandidatos: "ordem dos candidatos",
   moduloJuri: "módulo do júri",
   moduloInfantil: "módulo infantil",
+  sobreTitulo: "título do sobre o evento",
+  sobreTexto: "texto do sobre o evento",
+  sobreImagemUrl: "imagem do sobre o evento",
 };
 
 function listaDeCampos(detalhes: Detalhes): string | null {

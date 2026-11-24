@@ -5,9 +5,13 @@ import { db, desconectarBanco } from "@/server/db";
 import { invalidarEstadoPublico, montarEstadoPublico } from "@/server/estadoPublico";
 import { temaParaDominio } from "@/server/mapeadores";
 import { entradaDoChecklist } from "@/server/operacao";
-import { salvarParceiros } from "@/server/parceiros";
+import { salvarParceiros as salvarParceirosComGrupos, type ParceiroEditado } from "@/server/parceiros";
 import { semearFestivalVerEFazerFilmes, semearMaratonaTechTivit } from "@/server/semente";
 import { criarAdminDireto } from "./apoio";
+
+/** A lista só, sem grupos (os testes de antes da C1): os grupos do evento saem e os parceiros ficam soltos. */
+const salvarParceiros = (u: Parameters<typeof salvarParceirosComGrupos>[0], e: string, lista: ParceiroEditado[], c: { ip: string }) =>
+  salvarParceirosComGrupos(u, e, { grupos: [], parceiros: lista }, c);
 
 // Seed dos eventos contra um PostgreSQL de verdade: o Festival nasce completo e rodar o seed de novo nunca desfaz uma edição.
 

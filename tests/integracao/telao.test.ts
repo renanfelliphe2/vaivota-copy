@@ -14,12 +14,16 @@ import {
 } from "@/server/apresentacao";
 import { zerarMemoria } from "@/server/limites";
 import { abrirUrna, ativarEvento, encerrarUrna } from "@/server/operacao";
-import { salvarApresentacao } from "@/server/configuracao";
-import { salvarParceiros } from "@/server/parceiros";
+import { salvarApresentacao, salvarSobre } from "@/server/configuracao";
+import { salvarParceiros as salvarParceirosComGrupos, type ParceiroEditado } from "@/server/parceiros";
 import { executarServico, type ContextoRpc } from "@/server/rpc";
 import { prefixoPublico } from "@/server/storage";
 import { votarPopular } from "@/server/votacao";
 import { criarAdminDireto, criarCandidatos, criarUsuarioDireto, ligarInfantil, ligarJuri, semearEvento } from "./apoio";
+
+/** A lista só, sem grupos (os testes de antes da C1): os grupos do evento saem e os parceiros ficam soltos. */
+const salvarParceiros = (u: Parameters<typeof salvarParceirosComGrupos>[0], e: string, lista: ParceiroEditado[], c: { ip: string }) =>
+  salvarParceirosComGrupos(u, e, { grupos: [], parceiros: lista }, c);
 
 // Festival: parceiros (lista salva pelo admin, logo só do próprio sistema), módulo do júri ligado e desligado pelo admin e o telão
 // (status do resultado, ao vivo, revelação, ensaio e trilha da cerimônia) contra um PostgreSQL de verdade. Cada grupo usa o
@@ -163,12 +167,12 @@ describe("parceiros", () => {
   it("pelo RPC: valida os argumentos e usa a sessão do cookie, nunca um campo enviado", async () => {
     const e = await semearEvento("teste-parceiros-rpc", { ativo: true });
     const contexto: ContextoRpc = { headers: new Headers(), ip: ctx.ip, cookies: [] };
-    // Sem sessão: recusa. Argumento fora do formato: VALIDACAO (a lista é um array de objetos).
-    expect(await executarServico("salvarParceiros", { eventoId: e, lista: [{ id: null, nome: "Alfa", logoUrl: null }] }, contexto)).toMatchObject({
+    // Sem sessão: recusa. Argumento fora do formato: VALIDACAO (os parceiros são um array de objetos).
+    expect(await executarServico("salvarParceiros", { eventoId: e, dados: { grupos: [], parceiros: [{ id: null, nome: "Alfa", logoUrl: null }] } }, contexto)).toMatchObject({
       ok: false,
       erro: { codigo: "NAO_AUTORIZADO" },
     });
-    expect(await executarServico("salvarParceiros", { eventoId: e, lista: "nada" }, contexto)).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
+    expect(await executarServico("salvarParceiros", { eventoId: e, dados: { grupos: [], parceiros: "nada" } }, contexto)).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
   });
 });
 
@@ -521,5 +525,105 @@ describe("telão da votação (B2)", () => {
     const estado = await montarEstadoPublico(null);
     const config = estado.eventos.find((x) => x.evento.id === e)?.configApresentacao;
     expect(config).toMatchObject({ telaoIntervaloSegundos: 30, telaoMostrar: dados.mostrar });
+  });
+});
+
+describe("grupos de parceiros (C1)", () => {
+  it("evento novo nasce com Patrocínio e Realização; grupos criados, renomeados, ordenados e removidos; parceiro em vários", async () => {
+    const e = await semearEvento("teste-grupos-parceiros", { ativo: true });
+    const admin = await criarAdminDireto(e);
+    const padrao = await db().grupoParceiro.findMany({ where: { eventoId: e }, orderBy: { ordem: "asc" } });
+    expect(padrao.map((g) => g.nome)).toEqual(["Patrocínio", "Realização"]);
+    const [patrocinio, realizacao] = padrao;
+
+    const r1 = await salvarParceirosComGrupos(
+      admin,
+      e,
+      {
+        grupos: [
+          { id: patrocinio.id, chave: patrocinio.id, nome: "Patrocínio" },
+          { id: null, chave: "novo-1", nome: "Apoio Cultural" },
+          { id: realizacao.id, chave: realizacao.id, nome: "Realização e produção" },
+        ],
+        parceiros: [
+          { id: null, nome: "Alfa", logoUrl: null, grupos: [patrocinio.id, "novo-1"] },
+          { id: null, nome: "Beta", logoUrl: null, grupos: [realizacao.id] },
+          { id: null, nome: "Gama", logoUrl: null, grupos: [] },
+        ],
+      },
+      ctx,
+    );
+    expect(r1.ok).toBe(true);
+    invalidarEstadoPublico();
+    const publico = (await montarEstadoPublico(null)).eventos.find((x) => x.evento.id === e)!;
+    const idDe = (nome: string) => publico.parceiros.find((p) => p.nome === nome)!.id;
+    expect(publico.gruposParceiros.map((g) => [g.nome, g.parceiroIds])).toEqual([
+      ["Patrocínio", [idDe("Alfa")]],
+      ["Apoio Cultural", [idDe("Alfa")]],
+      ["Realização e produção", [idDe("Beta")]],
+    ]);
+
+    // Remover um grupo: os parceiros dele continuam cadastrados.
+    const apoio = publico.gruposParceiros[1];
+    const r2 = await salvarParceirosComGrupos(
+      admin,
+      e,
+      {
+        grupos: [{ id: patrocinio.id, chave: patrocinio.id, nome: "Patrocínio" }, { id: realizacao.id, chave: realizacao.id, nome: "Realização" }],
+        parceiros: publico.parceiros.map((p) => ({ id: p.id, nome: p.nome, logoUrl: null, grupos: p.nome === "Alfa" ? [patrocinio.id] : [] })),
+      },
+      ctx,
+    );
+    expect(r2.ok).toBe(true);
+    expect(await db().grupoParceiro.findUnique({ where: { id: apoio.id } })).toBeNull();
+    expect(await db().parceiro.count({ where: { eventoId: e } })).toBe(3);
+    expect(await db().parceiroGrupo.count({ where: { grupo: { eventoId: e } } })).toBe(1);
+  });
+
+  it("recusa nome de grupo inválido ou repetido, grupo inexistente na lista e grupo de outro evento", async () => {
+    const e = await semearEvento("teste-grupos-parceiros-erros", { ativo: true });
+    const outro = await semearEvento("teste-grupos-parceiros-outro", { ativo: true });
+    const admin = await criarAdminDireto(e);
+    const alheio = (await db().grupoParceiro.findFirstOrThrow({ where: { eventoId: outro } })).id;
+    const salvar = (grupos: { id: string | null; chave: string; nome: string }[], parceiros: ParceiroEditado[] = []) =>
+      salvarParceirosComGrupos(admin, e, { grupos, parceiros }, ctx);
+
+    expect(await salvar([{ id: null, chave: "a", nome: "A" }])).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO", campos: { "grupo-0": expect.any(String) } } });
+    expect(await salvar([{ id: null, chave: "a", nome: "Apoio" }, { id: null, chave: "b", nome: "apoio" }])).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
+    expect(await salvar([{ id: null, chave: "a", nome: "Apoio" }], [{ id: null, nome: "Alfa", logoUrl: null, grupos: ["fantasma"] }])).toMatchObject({
+      ok: false,
+      erro: { codigo: "VALIDACAO" },
+    });
+    expect(await salvar([{ id: alheio, chave: alheio, nome: "Roubado" }])).toMatchObject({ ok: false, erro: { codigo: "CONFLITO" } });
+    // Nada foi gravado: os grupos padrão seguem lá.
+    expect((await db().grupoParceiro.findMany({ where: { eventoId: e } })).map((g) => g.nome).sort()).toEqual(["Patrocínio", "Realização"]);
+  });
+});
+
+describe("sobre o evento (C2)", () => {
+  it("salva título, texto e imagem do próprio evento; recusa imagem de fora e quem não é admin; vazio some", async () => {
+    const e = await semearEvento("teste-sobre-evento", { ativo: true });
+    const admin = await criarAdminDireto(e);
+    const publico = await criarUsuarioDireto(e);
+    const dados = { titulo: "  O lugar para quem quer Ver Filmes  ", texto: "Um **dois**.\n\nTrês.", imagemUrl: logoDoEvento(e) };
+
+    expect(await salvarSobre(publico, e, dados)).toMatchObject({ ok: false });
+    expect(await salvarSobre(admin, e, { ...dados, imagemUrl: "https://exemplo.com/foto.png" })).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
+    expect(await salvarSobre(admin, e, { ...dados, titulo: "x".repeat(121) })).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
+
+    expect((await salvarSobre(admin, e, dados)).ok).toBe(true);
+    invalidarEstadoPublico();
+    const evento = (await montarEstadoPublico(null)).eventos.find((x) => x.evento.id === e)!.evento;
+    expect(evento).toMatchObject({ sobreTitulo: "O lugar para quem quer Ver Filmes", sobreTexto: "Um **dois**.\n\nTrês.", sobreImagemUrl: dados.imagemUrl });
+    expect(await db().auditoria.count({ where: { eventoId: e, acao: "CONFIG_ALTERADA", entidade: "evento" } })).toBeGreaterThan(0);
+
+    // A imagem já salva continua valendo; tudo vazio volta a null.
+    expect((await salvarSobre(admin, e, { ...dados, titulo: "Outro" })).ok).toBe(true);
+    expect((await salvarSobre(admin, e, { titulo: " ", texto: "", imagemUrl: null })).ok).toBe(true);
+    expect(await db().evento.findUniqueOrThrow({ where: { id: e }, select: { sobreTitulo: true, sobreTexto: true, sobreImagemUrl: true } })).toEqual({
+      sobreTitulo: null,
+      sobreTexto: null,
+      sobreImagemUrl: null,
+    });
   });
 });

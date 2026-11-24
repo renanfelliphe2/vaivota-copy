@@ -8,6 +8,7 @@ import type {
   CriterioJuri,
   Dispositivo,
   Evento,
+  GrupoParceiro,
   Parceiro,
   Participacao,
   Tema,
@@ -44,6 +45,8 @@ export type EventoPublico = {
   criteriosJuri: CriterioJuri[];
   /** Parceiros do evento, na ordem da faixa do telão e da página do evento. Evento em rascunho: só o admin os recebe. */
   parceiros: Parceiro[];
+  /** Grupos de parceiros (C1, 25/11/2026), na ordem; a mesma regra de visibilidade dos parceiros. */
+  gruposParceiros: GrupoParceiro[];
   /** Só o admin do evento recebe (checklist de ativação e trava do módulo júri); para os demais, vazio. */
   convitesJurado: ConvitePublico[];
   /** Só o admin do evento recebe (checklist de ativação do totem); para os demais, vazio. */

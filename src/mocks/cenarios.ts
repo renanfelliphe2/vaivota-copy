@@ -52,7 +52,9 @@ function completarCandidatos(atual: EstadoApp, { eventoId }: ContextoCenario): E
   const faltam = META_MUITOS_CANDIDATOS - votaveis(doEvento).length;
   if (faltam <= 0) return atual;
 
-  const campos = atual.banco.camposCandidato.filter((c) => c.eventoId === eventoId);
+  // D1: os campos são da categoria; os sintéticos entram na primeira categoria do evento, com os campos dela.
+  const categoriaId = atual.banco.categorias.filter((c) => c.eventoId === eventoId).sort((a, b) => a.ordem - b.ordem)[0]?.id ?? null;
+  const campos = atual.banco.camposCandidato.filter((c) => c.eventoId === eventoId && c.categoriaId === categoriaId);
   const ids = new Set(atual.banco.candidatos.map((c) => c.id));
   let ordem = Math.max(0, ...doEvento.map((c) => c.ordem));
   const novos: Candidato[] = [];
@@ -71,7 +73,7 @@ function completarCandidatos(atual: EstadoApp, { eventoId }: ContextoCenario): E
       ordem,
       camposExtras: Object.fromEntries(campos.map((c) => [c.chave, `${c.rotulo} ${nn}`])),
       usuarioVinculadoId: null,
-      categoriaId: null,
+      categoriaId,
       criadoEm: evento.criadoEm,
       atualizadoEm: evento.criadoEm,
     });

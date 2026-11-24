@@ -1,5 +1,6 @@
 import "server-only";
 import { avaliarContrasteTema } from "@/dominio/contrasteTema";
+import { validarSobre } from "@/dominio/sobreEvento";
 import { validarConfigTelao } from "@/dominio/telao";
 import type { Evento, OpcoesTelao, RegraDesempate } from "@/dominio/tipos";
 import { exigirAcao, resolverFaseConfig, type AcaoConfig } from "@/dominio/travas";
@@ -23,6 +24,7 @@ import { invalidarEstadoPublico } from "./estadoPublico";
 import { eventoParaDominio } from "./mapeadores";
 import { falha, falhaInterna, sucesso, type Resultado } from "./resultado";
 import { exigirAdmin, type UsuarioSessao } from "./sessao";
+import { urlDeImagemValida } from "./storage";
 
 // ST7: seções Geral, Placar e Tema da configuração. No evento tudo isso já vem do seed; estas ações servem para
 // corrigir o que mudar (principalmente a janela de votação, cujo horário exato o evento ainda confirma).
@@ -176,6 +178,41 @@ export async function salvarPlacar(usuario: UsuarioSessao | null, eventoId: stri
     return sucesso(null);
   } catch (e) {
     return falhaInterna(e, "salvarPlacar");
+  }
+}
+
+export type DadosSobre = { titulo: string; texto: string; imagemUrl: string | null };
+
+/**
+ * "Sobre o evento" (demanda C2, 25/11/2026): título, texto e imagem no fim da página. Livre como o nome e a descrição. A imagem só
+ * vale se é a já salva ou um arquivo enviado a este evento (nada de endereço externo digitado). Vazio vira null.
+ */
+export async function salvarSobre(usuario: UsuarioSessao | null, eventoId: string, dados: DadosSobre): Promise<Resultado<null>> {
+  const admin = await exigirAdmin(usuario, eventoId);
+  if (!admin.ok) return admin;
+  const { evento, usuarioId } = admin.dados;
+  const trava = exigirAcao(evento, "GERAL_NOME_DESCRICAO");
+  if (!trava.ok) return trava;
+  const erros = validarSobre(dados);
+  if (Object.keys(erros).length) return falha("VALIDACAO", { campos: erros });
+  if (dados.imagemUrl !== null && dados.imagemUrl !== evento.sobreImagemUrl && !urlDeImagemValida(dados.imagemUrl, eventoId))
+    return falha("VALIDACAO", { campos: { sobreImagemUrl: "Envie a imagem de novo." }, detalhe: `sobreImagemUrl fora do storage: ${dados.imagemUrl.slice(0, 80)}` });
+  const proximo = {
+    sobreTitulo: dados.titulo.trim() || null,
+    sobreTexto: dados.texto.trim() || null,
+    sobreImagemUrl: dados.imagemUrl,
+  };
+  const campos = (Object.keys(proximo) as (keyof typeof proximo)[]).filter((c) => proximo[c] !== evento[c]);
+  if (!campos.length) return sucesso(null);
+  try {
+    await db().$transaction(async (tx) => {
+      await tx.evento.update({ where: { id: eventoId }, data: proximo });
+      await registrarAuditoria(tx, { eventoId, usuarioId, acao: "CONFIG_ALTERADA", entidade: "evento", entidadeId: eventoId, detalhes: { campos } });
+    });
+    invalidarEstadoPublico();
+    return sucesso(null);
+  } catch (e) {
+    return falhaInterna(e, "salvarSobre");
   }
 }
 

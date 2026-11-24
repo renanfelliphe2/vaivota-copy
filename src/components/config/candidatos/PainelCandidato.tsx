@@ -12,13 +12,15 @@ export type PainelCandidatoProps = {
   eventoId: string;
   candidato: Candidato | null;
   campos: CampoCandidato[];
+  /** D1: o item (ou o novo) está sem categoria, e por isso sem campos extras. */
+  semCategoria?: boolean;
   rotuloCandidato: string;
   travas: Travas;
   aoFechar: () => void;
 };
 
 /** Etapa 6 (CP4): Dialogo controlado por ?editar=<id|novo>; fechar com alteração pendente pergunta antes. */
-export function PainelCandidato({ editar, eventoId, candidato, campos, rotuloCandidato, travas, aoFechar }: PainelCandidatoProps) {
+export function PainelCandidato({ editar, eventoId, candidato, campos, semCategoria, rotuloCandidato, travas, aoFechar }: PainelCandidatoProps) {
   const { confirmarSaida, marcarSujo } = useFormularioSujo();
   const aberto = editar === "novo" || (editar !== null && candidato !== null);
   const fechar = () => confirmarSaida(aoFechar);
@@ -36,6 +38,7 @@ export function PainelCandidato({ editar, eventoId, candidato, campos, rotuloCan
           eventoId={eventoId}
           candidato={editar === "novo" ? null : candidato}
           campos={campos}
+          semCategoria={semCategoria}
           travas={travas}
           aoSalvar={aoFechar}
           aoCancelar={() => {

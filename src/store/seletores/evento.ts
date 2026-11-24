@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useMemo } from "react";
 import { criteriosDoEvento } from "@/dominio/avaliacaoJuri";
 import { categoriasDoEvento } from "@/dominio/categorias";
-import type { CampoCandidato, Candidato, Categoria, ConfigApresentacao, ConfigPlacar, CriterioJuri, Evento, Parceiro, Tema } from "@/dominio/tipos";
+import type { CampoCandidato, Candidato, Categoria, ConfigApresentacao, ConfigPlacar, CriterioJuri, Evento, GrupoParceiro, Parceiro, Tema } from "@/dominio/tipos";
 import { useStore } from "../AppProvider";
 
 export type EventoAtivo = {
@@ -21,6 +21,8 @@ export type EventoAtivo = {
   criteriosJuri: CriterioJuri[];
   /** Parceiros (08/10/2026), ordenados. */
   parceiros: Parceiro[];
+  /** Grupos de parceiros (C1, 25/11/2026), na ordem. */
+  gruposParceiros: GrupoParceiro[];
 };
 
 /** Slug da rota (/e/[slug]) ou, fora dela, dev.slugPadrao. */
@@ -46,6 +48,7 @@ export function useEventoAtivo(): EventoAtivo | null {
   const candidatos = useStore((e) => e.banco.candidatos);
   const criteriosJuri = useStore((e) => e.banco.criteriosJuri);
   const parceiros = useStore((e) => e.banco.parceiros);
+  const gruposParceiros = useStore((e) => e.banco.gruposParceiros);
 
   return useMemo(() => {
     const evento = eventos.find((e) => e.slug === slug);
@@ -65,8 +68,9 @@ export function useEventoAtivo(): EventoAtivo | null {
       candidatos: candidatos.filter((c) => c.eventoId === evento.id),
       criteriosJuri: criteriosDoEvento({ criteriosJuri }, evento.id),
       parceiros: parceiros.filter((p) => p.eventoId === evento.id).sort((a, b) => a.ordem - b.ordem),
+      gruposParceiros: gruposParceiros.filter((g) => g.eventoId === evento.id).sort((a, b) => a.ordem - b.ordem),
     };
-  }, [slug, eventos, temas, configsPlacar, configsApresentacao, camposCandidato, categorias, candidatos, criteriosJuri, parceiros]);
+  }, [slug, eventos, temas, configsPlacar, configsApresentacao, camposCandidato, categorias, candidatos, criteriosJuri, parceiros, gruposParceiros]);
 }
 
 /** Temas de todos os eventos (galeria /dev/ui). */
