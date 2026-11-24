@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CircleCheck, Heart } from "lucide-react";
+import { ArrowRight, CircleCheck, Heart, MapPin } from "lucide-react";
 import Link from "next/link";
 import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
 import { useIdentidadePagina } from "@/components/evento/identidadePagina";
@@ -26,10 +26,12 @@ export const idSecaoCategoria = (slugCategoria: string) => `categoria-${slugCate
  * Para quem já votou numa categoria, o selo "Você já votou" (o servidor só sabe o SE; nunca em quem). 24/11/2026: no aparelho em
  * que a pessoa votou, também EM QUEM (guardado só no navegador, src/store/meusVotos.ts): o cartão ganha o selo "Seu voto" e a
  * categoria diz "Você votou em …". Sem categorias, nada.
+ * 25/11/2026 (demanda A3): as categorias do totem também aparecem, com os itens, para divulgá-los; sem "Ver mais" (não têm página
+ * nem QR Code) e com o aviso de que o voto é só nos totens. Não contam no "Você votou em X de Y".
  */
 export function SecaoCategorias() {
   const ativo = useEventoAtivo();
-  const categorias = useCategoriasDoEvento();
+  const categorias = useCategoriasDoEvento({ incluirTotem: true });
   const visao = useVisaoEvento();
   const sessao = useSessao();
   const cinema = useIdentidadePagina().estilo === "cinema";
@@ -38,7 +40,8 @@ export function SecaoCategorias() {
   const { tema } = ativo;
   const aberta = visao.variante === "ABERTA";
   const publico = sessao.logado && sessao.papel === "PUBLICO";
-  const comItens = categorias.filter((c) => c.itens.length > 0);
+  // Só as da página contam no "Você votou em X de Y".
+  const comItens = categorias.filter((c) => !c.soTotem && c.itens.length > 0);
   const votadas = comItens.filter((c) => c.votou).length;
   const rotuloItens = tema.rotuloCandidatos.toLocaleLowerCase("pt-BR");
 
@@ -165,7 +168,11 @@ function SecaoDaCategoria({
               )}
             </p>
           </div>
-          <BotaoVerMais href={href} nome={categoria.nome} className="hidden sm:inline-flex" />
+          {dados.soTotem ? (
+            <AvisoSoTotem />
+          ) : (
+            <BotaoVerMais href={href} nome={categoria.nome} className="hidden sm:inline-flex" />
+          )}
         </div>
 
         {itens.length === 0 ? (
@@ -183,9 +190,19 @@ function SecaoDaCategoria({
         )}
 
         {/* No celular, o "Ver mais" vem depois da lista. */}
-        <BotaoVerMais href={href} nome={categoria.nome} className="self-stretch sm:hidden" />
+        {!dados.soTotem && <BotaoVerMais href={href} nome={categoria.nome} className="self-stretch sm:hidden" />}
       </div>
     </section>
+  );
+}
+
+/** No lugar do "Ver mais" da categoria do totem: o voto é só no local. */
+function AvisoSoTotem() {
+  return (
+    <p className="inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-tema-fundo px-4 py-2 text-sm font-semibold text-tema-primaria-texto shadow-sm ring-1 ring-tema-borda/80 sm:self-auto">
+      <MapPin aria-hidden className="size-4 shrink-0" />
+      Votação só nos totens, no local do evento.
+    </p>
   );
 }
 
