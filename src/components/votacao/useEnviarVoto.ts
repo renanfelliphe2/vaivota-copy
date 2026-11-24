@@ -7,6 +7,7 @@ import { useAnunciar } from "@/components/a11y/LiveRegion";
 import type { CodigoErro } from "@/servicos/resultado";
 import { consultarEstadoVoto, votarJuri, votarPopular } from "@/servicos/votacao";
 import { concluirEnvio, iniciarEnvio } from "@/store/acoesVotacao";
+import { guardarMeuVoto } from "@/store/meusVotos";
 import { useLerEstado } from "@/store/seletores/dev";
 
 type Mudanca = Partial<Omit<EstadoUiVotacao, "chave">>;
@@ -43,6 +44,9 @@ export function useEnviarVoto(eventoId: string, papelVoto: PapelVoto, aoConcluir
   const envioAtual = useRef<{ candidatoId: string; jaVotouAntes: boolean } | null>(null);
 
   function sucesso(candidatoId: string, resultado: ResultadoEnvioVoto) {
+    // 24/11/2026: o público vê depois em quem votou. Só neste navegador (o servidor não sabe: o voto é secreto).
+    const usuarioId = lerEstado().sessao.usuarioId;
+    if (papelVoto === "PUBLICO" && usuarioId) guardarMeuVoto({ usuarioId, eventoId, categoriaId, candidatoId });
     concluirEnvio(eventoId, { envio: "OCIOSO", falhaEnvio: null, aviso: null, selecaoId: null, ultimoVoto: { candidatoId, resultado } });
     anunciar(resultado === "ATUALIZADO" ? "Seu voto foi atualizado." : "Seu voto foi registrado.");
     aoConcluir();

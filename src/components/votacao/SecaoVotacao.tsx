@@ -1,11 +1,12 @@
 "use client";
 
-import { CircleCheck, ClipboardPen, Gavel, Trophy, Vote } from "lucide-react";
+import { CircleCheck, ClipboardPen, Gavel, Heart, Trophy, Vote } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { candidatoAvaliado, ehModoPorCriterio, mediaDasNotas } from "@/dominio/avaliacaoJuri";
 import { rotaAvaliacao, rotaVerificarEmail } from "@/dominio/destinoAcesso";
 import type { PapelVoto } from "@/dominio/estadoVotar";
+import { VOTO_UNICO } from "@/dominio/meusVotos";
 import { localizarNaOrdem } from "@/dominio/ordemVotacao";
 import { resolverPassoVotar } from "@/dominio/passoVotar";
 import { votacaoAberta } from "@/dominio/situacaoEvento";
@@ -24,6 +25,7 @@ import { formatarDecimal } from "@/lib/formatar";
 import { textoContador } from "@/lib/textosEstado";
 import { abrirAcesso } from "@/store/acoesAcesso";
 import { descartarSucesso, selecionarCandidato } from "@/store/acoesVotacao";
+import { useMeusVotos } from "@/store/meusVotos";
 import { useCandidatosParaVotacao, type ItemLista } from "@/store/seletores/candidatos";
 import { useEstadoVotar } from "@/store/seletores/estadoVotar";
 import { useEventoAtivo } from "@/store/seletores/evento";
@@ -74,6 +76,9 @@ export function SecaoVotacao() {
   // papelVoto só existe com tela = LISTA: a consulta do voto atual roda só para o jurado na lista.
   const { candidatoAtualId, recarregar } = useVotoAtual(eventoId, sessao.usuario?.id ?? null, papelVoto === "JURADO" && !porCriterio);
   const juri = useAvaliacaoJuri(eventoId, sessao.usuario?.id ?? null, modoJuri, porCriterio);
+  // Em quem o público votou (24/11/2026): só o que este navegador guardou; o servidor só sabe que votou.
+  const meusVotos = useMeusVotos(sessao.usuario?.id ?? null, eventoId);
+  const meuVotoId = sessao.papel === "PUBLICO" && sessao.jaVotou ? (meusVotos[VOTO_UNICO] ?? null) : null;
   const [filtro, setFiltro] = useState<FiltroAvaliacao>("TODOS");
   // JA_VOTOU (sucesso ou envio em andamento) é sempre do público.
   const papel: PapelVoto = papelVoto ?? "PUBLICO";
@@ -355,7 +360,11 @@ export function SecaoVotacao() {
             )
           }
           renderSelo={(item) =>
-            modo !== "ESCOLHA" ? null : porCriterio ? (
+            item.candidato.id === meuVotoId ? (
+              <Selo variante="primaria" icone={Heart} className="bg-tema-fundo">
+                Seu voto
+              </Selo>
+            ) : modo !== "ESCOLHA" ? null : porCriterio ? (
               seloCriterio(item)
             ) : ehVotoAtual(item) ? (
               <Selo variante="sucesso" icone={Gavel} className="bg-tema-fundo">

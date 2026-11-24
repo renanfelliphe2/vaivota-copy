@@ -86,7 +86,7 @@ Cada grupo é normalizado antes de receber o peso; os pesos somam 100% e são co
 ## Princípios de design
 
 1. **Integridade primeiro:** nenhum voto válido duplicado, perdido ou alterado indevidamente.
-2. **Sigilo proporcional ao grupo:** voto popular secreto, voto do júri identificado para o admin, voto infantil sem identidade.
+2. **Sigilo proporcional ao grupo:** voto popular secreto (a pessoa vê em quem votou só no aparelho em que votou, guardado no navegador, nunca no servidor), voto do júri identificado para o admin, voto infantil sem identidade.
 3. **Simples para votar:** poucos passos, feedback claro, mobile-first.
 4. **Configurável, não customizável:** tema e regras por evento, sem editor visual.
 5. **Escopo enxuto:** sem recursos sociais, curtidas ou gamificação.

@@ -28,7 +28,8 @@ import { useSessao } from "@/store/seletores/sessao";
 import { useSelecaoVoto } from "@/store/seletores/votacao";
 import { useVisaoEvento } from "@/store/seletores/visao";
 import { DialogoCoracao } from "./DialogoCoracao";
-import { ID_SECAO_CATEGORIAS } from "./SecaoCategorias";
+import { ID_SECAO_CATEGORIAS, SeloSeuVoto } from "./SecaoCategorias";
+import { useMeusVotos } from "@/store/meusVotos";
 
 /**
  * O que a página da categoria deixa fazer:
@@ -62,6 +63,8 @@ export function PaginaCategoria() {
   const router = useRouter();
   const anunciar = useAnunciar();
   const cinema = useIdentidadePagina().estilo === "cinema";
+  // Em quem a pessoa votou, se este navegador sabe (24/11/2026; o servidor só sabe que votou).
+  const meusVotos = useMeusVotos(sessao.usuario?.id ?? null, eventoId || null);
 
   const visitante = !sessao.logado || !sessao.emailVerificado;
   const aberta = visao?.variante === "ABERTA";
@@ -98,6 +101,7 @@ export function PaginaCategoria() {
 
   const { slug, tema } = ativo;
   const { categoria, itens } = atual;
+  const meuItem = modo === "JA_VOTOU" ? (itens.find((i) => i.candidato.id === meusVotos[categoria.id]) ?? null) : null;
   const itemSelecionado = modo === "ESCOLHA" ? (itens.find((i) => i.candidato.id === votacao.selecaoId && !i.bloqueadoVotoProprio) ?? null) : null;
   // O coração só depois de um voto desta categoria (o `ultimoVoto` não diz em quem a ninguém: fica só nesta aba).
   const sucessoAqui = votacao.ultimoVoto !== null && itens.some((i) => i.candidato.id === votacao.ultimoVoto?.candidatoId);
@@ -147,7 +151,7 @@ export function PaginaCategoria() {
 
           <AvisoVotacao aviso={aviso} />
           {modo === "JA_VOTOU" && (
-            <Alerta variante="sucesso" titulo="Você já votou nesta categoria">
+            <Alerta variante="sucesso" titulo={meuItem ? `Você votou em ${meuItem.candidato.titulo}` : "Você já votou nesta categoria"}>
               Obrigado! {pendentes.length > 0 ? "Ainda dá para votar nas outras categorias, logo abaixo." : "O resultado será divulgado pela organização."}
             </Alerta>
           )}
@@ -167,7 +171,13 @@ export function PaginaCategoria() {
             <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
               {itens.map((item) => (
                 <li key={item.candidato.id} className="flex">
-                  <BotaoFilme item={item} clicavel={clicavel && !item.bloqueadoVotoProprio} cinema={cinema} aoTocar={() => tocar(item)} />
+                  <BotaoFilme
+                    item={item}
+                    clicavel={clicavel && !item.bloqueadoVotoProprio}
+                    meuVoto={item.candidato.id === meuItem?.candidato.id}
+                    cinema={cinema}
+                    aoTocar={() => tocar(item)}
+                  />
                 </li>
               ))}
             </ul>
@@ -277,7 +287,20 @@ function CabecaCategoria({ dados }: { dados: CategoriaComItens }) {
  * O botão do filme (organograma: imagem + título). Clicável, o cartão inteiro é o botão ("Votar em <título>"); na leitura,
  * o mesmo cartão sem ação. Nunca mostra número de votos.
  */
-function BotaoFilme({ item, clicavel, cinema, aoTocar }: { item: ItemLista; clicavel: boolean; cinema: boolean; aoTocar: () => void }) {
+function BotaoFilme({
+  item,
+  clicavel,
+  meuVoto = false,
+  cinema,
+  aoTocar,
+}: {
+  item: ItemLista;
+  clicavel: boolean;
+  /** O item em que a pessoa votou (24/11/2026): selo "Seu voto" e moldura na cor do tema. */
+  meuVoto?: boolean;
+  cinema: boolean;
+  aoTocar: () => void;
+}) {
   const { candidato, bloqueadoVotoProprio } = item;
   const dicaId = `dica-voto-proprio-${candidato.id}`;
   const conteudo = (
@@ -298,6 +321,7 @@ function BotaoFilme({ item, clicavel, cinema, aoTocar }: { item: ItemLista; clic
             <Heart className="size-5" />
           </span>
         )}
+        {meuVoto && <SeloSeuVoto />}
       </div>
       <div aria-hidden className="h-1 w-full bg-linear-to-r from-tema-primaria to-tema-secundaria" />
       <div className="flex flex-1 flex-col gap-2 p-3 text-left sm:p-4">
@@ -314,10 +338,13 @@ function BotaoFilme({ item, clicavel, cinema, aoTocar }: { item: ItemLista; clic
       </div>
     </>
   );
-  const classes = "group relative isolate flex w-full flex-col overflow-hidden rounded-2xl bg-tema-fundo shadow-sm ring-1 ring-tema-borda/80 sm:rounded-3xl";
+  const classes = cx(
+    "group relative isolate flex w-full flex-col overflow-hidden rounded-2xl bg-tema-fundo sm:rounded-3xl",
+    meuVoto ? "shadow-lg shadow-tema-primaria/25 ring-4 ring-tema-primaria" : "shadow-sm ring-1 ring-tema-borda/80",
+  );
   if (!clicavel)
     return (
-      <article aria-label={candidato.titulo} aria-describedby={bloqueadoVotoProprio ? dicaId : undefined} className={classes}>
+      <article aria-label={meuVoto ? `${candidato.titulo} (seu voto)` : candidato.titulo} aria-describedby={bloqueadoVotoProprio ? dicaId : undefined} className={classes}>
         {conteudo}
       </article>
     );

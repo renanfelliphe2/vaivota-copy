@@ -77,6 +77,8 @@ Reaproveitável sem mudança: `src/dominio/**` (regras puras: apuração, travas
 
 Apresentação entre abas (03/11/2026): a sala de controle e o telão são abas diferentes e a revelação (cena, passo, pausa) mora no navegador (`ui.apresentacao`). `store/sincronizarApresentacao.ts` espelha só essa fatia entre as abas (BroadcastChannel) e no `localStorage`, então o telão recarregado retoma de onde parou. O controle remoto (`ControleRemoto`, montado no layout raiz) fala com o palco por outro canal (`canalTelao`), fora do estado.
 
+"Seu voto" (24/11/2026): o público vê em quem votou, mas o servidor continua sem saber. Depois do voto confirmado, `store/meusVotos.ts` guarda no `localStorage` do aparelho a escolha (por conta, evento e categoria) e a landing e a página da categoria destacam o item. Nada disso vai ao servidor; em outro aparelho, ou depois de limpar os dados do navegador, a pessoa vê só "Você já votou".
+
 Escritas fora de `servicos/` (só estado de tela ou ferramenta do protótipo): `store/acoesVotacao.ts` (`ui.votacao`), `store/acoesDashboard.ts` (`ui.dashboard` e controles da toolbar), `store/acoesApresentacao.ts` (`ui.apresentacao`, `ui.palcoAtivo`), `store/acoes.ts` (toolbar), `store/transicoes.ts` (transições puras usadas por `operacao.ts`, pelo relógio e pela toolbar).
 
 ## Dados expostos ao cliente que o servidor real não pode expor (Etapa 9, 5.11)

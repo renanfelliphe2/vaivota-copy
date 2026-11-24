@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CircleCheck } from "lucide-react";
+import { ArrowRight, CircleCheck, Heart } from "lucide-react";
 import Link from "next/link";
 import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
 import { useIdentidadePagina } from "@/components/evento/identidadePagina";
@@ -9,6 +9,7 @@ import { cx } from "@/lib/classes";
 import { textoContador } from "@/lib/textosEstado";
 import type { ItemLista } from "@/store/seletores/candidatos";
 import { useCategoriasDoEvento, type CategoriaComItens } from "@/store/seletores/categorias";
+import { useMeusVotos } from "@/store/meusVotos";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { useSessao } from "@/store/seletores/sessao";
 import { useVisaoEvento } from "@/store/seletores/visao";
@@ -22,7 +23,9 @@ export const idSecaoCategoria = (slugCategoria: string) => `categoria-${slugCate
  * Categorias na página do evento. 09/11/2026 (organograma do Festival Ver e Fazer Filmes): um botão por categoria.
  * 23/11/2026: todas as categorias aparecem na própria página do evento. No topo, um botão por categoria que rola até a seção
  * dela; cada seção mostra todos os itens da categoria e um "Ver mais", que leva à página da categoria (descrição e voto).
- * Para quem já votou numa categoria, o selo "Você já votou" (só o SE; nunca em quem). Sem categorias, nada.
+ * Para quem já votou numa categoria, o selo "Você já votou" (o servidor só sabe o SE; nunca em quem). 24/11/2026: no aparelho em
+ * que a pessoa votou, também EM QUEM (guardado só no navegador, src/store/meusVotos.ts): o cartão ganha o selo "Seu voto" e a
+ * categoria diz "Você votou em …". Sem categorias, nada.
  */
 export function SecaoCategorias() {
   const ativo = useEventoAtivo();
@@ -30,6 +33,7 @@ export function SecaoCategorias() {
   const visao = useVisaoEvento();
   const sessao = useSessao();
   const cinema = useIdentidadePagina().estilo === "cinema";
+  const meusVotos = useMeusVotos(sessao.usuario?.id ?? null, ativo?.evento.id ?? null);
   if (!ativo || !categorias || categorias.length === 0 || !visao) return null;
   const { tema } = ativo;
   const aberta = visao.variante === "ABERTA";
@@ -92,6 +96,7 @@ export function SecaoCategorias() {
           rotuloContador={textoContador(c.itens.length, tema)}
           rotuloItens={rotuloItens}
           votou={publico && c.votou}
+          meuVotoId={publico && c.votou ? (meusVotos[c.categoria.id] ?? null) : null}
           cinema={cinema}
           // Alterna o fundo, começando pelo da cabeça (que vira o fundo da primeira seção).
           fundo={i % 2 === 0 ? (cinema ? "bg-cine-papel" : "bg-tema-superficie") : "bg-tema-fundo"}
@@ -117,6 +122,7 @@ function SecaoDaCategoria({
   rotuloContador,
   rotuloItens,
   votou,
+  meuVotoId,
   cinema,
   fundo,
 }: {
@@ -126,11 +132,14 @@ function SecaoDaCategoria({
   rotuloContador: string;
   rotuloItens: string;
   votou: boolean;
+  /** Em quem a pessoa votou nesta categoria, se este navegador sabe. */
+  meuVotoId: string | null;
   cinema: boolean;
   fundo: string;
 }) {
   const { categoria, itens } = dados;
   const idTitulo = `titulo-${idSecaoCategoria(categoria.slug)}`;
+  const meuItem = meuVotoId ? (itens.find((i) => i.candidato.id === meuVotoId) ?? null) : null;
 
   return (
     <section id={idSecaoCategoria(categoria.slug)} aria-labelledby={idTitulo} className={cx("w-full scroll-mt-40", fundo)}>
@@ -151,7 +160,7 @@ function SecaoDaCategoria({
               {votou && (
                 <span className="inline-flex items-center gap-1 font-semibold text-tema-sucesso">
                   <CircleCheck aria-hidden className="size-4" />
-                  Você já votou
+                  {meuItem ? `Você votou em ${meuItem.candidato.titulo}` : "Você já votou"}
                 </span>
               )}
             </p>
@@ -167,7 +176,7 @@ function SecaoDaCategoria({
           <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
             {itens.map((item) => (
               <li key={item.candidato.id} className="flex">
-                <CartaoItem item={item} cinema={cinema} />
+                <CartaoItem item={item} cinema={cinema} meuVoto={item.candidato.id === meuItem?.candidato.id} />
               </li>
             ))}
           </ul>
@@ -196,20 +205,39 @@ function BotaoVerMais({ href, nome, className }: { href: string; nome: string; c
 }
 
 /** Cartaz + título, só para conhecer (o voto é na página da categoria). Nunca mostra número de votos. */
-function CartaoItem({ item, cinema }: { item: ItemLista; cinema: boolean }) {
+function CartaoItem({ item, cinema, meuVoto }: { item: ItemLista; cinema: boolean; meuVoto: boolean }) {
   const { candidato } = item;
   return (
-    <article aria-label={candidato.titulo} className="flex w-full flex-col overflow-hidden rounded-2xl bg-tema-fundo shadow-sm ring-1 ring-tema-borda/80">
-      <ImagemCandidato
-        titulo={candidato.titulo}
-        imagemUrl={candidato.imagemUrl}
-        proporcao="5/7"
-        sizes="(min-width: 1152px) 13rem, (min-width: 1024px) 19vw, (min-width: 640px) 32vw, 48vw"
-      />
+    <article
+      aria-label={meuVoto ? `${candidato.titulo} (seu voto)` : candidato.titulo}
+      className={cx(
+        "flex w-full flex-col overflow-hidden rounded-2xl bg-tema-fundo",
+        meuVoto ? "shadow-lg shadow-tema-primaria/25 ring-4 ring-tema-primaria" : "shadow-sm ring-1 ring-tema-borda/80",
+      )}
+    >
+      <div className="relative">
+        <ImagemCandidato
+          titulo={candidato.titulo}
+          imagemUrl={candidato.imagemUrl}
+          proporcao="5/7"
+          sizes="(min-width: 1152px) 13rem, (min-width: 1024px) 19vw, (min-width: 640px) 32vw, 48vw"
+        />
+        {meuVoto && <SeloSeuVoto />}
+      </div>
       <div aria-hidden className="h-1 w-full bg-linear-to-r from-tema-primaria to-tema-secundaria" />
       <h4 className={cx("line-clamp-3 p-3 text-sm leading-snug tracking-tight wrap-anywhere sm:text-base", cinema ? "font-cine font-bold" : "font-display font-extrabold")}>
         {candidato.titulo}
       </h4>
     </article>
+  );
+}
+
+/** Selo sobre o cartaz do item em que a pessoa votou (24/11/2026). */
+export function SeloSeuVoto() {
+  return (
+    <span className="absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-full bg-tema-primaria px-3 py-1 text-xs font-bold text-tema-sobre-primaria shadow-md sm:left-3 sm:top-3 sm:text-sm">
+      <Heart aria-hidden className="size-3.5 fill-current sm:size-4" />
+      Seu voto
+    </span>
   );
 }
