@@ -144,8 +144,9 @@ export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
         <Cartao className="flex flex-col gap-3">
           <h2 className="text-xl font-bold">Categoria no telão</h2>
           <p className="text-sm text-tema-texto-suave">
-            O telão apresenta uma categoria por vez: com a votação aberta, o QR Code leva à página dela; depois do encerramento, a revelação
-            é dela. Troque aqui para passar à próxima (o palco aberto troca junto).
+            Com a votação aberta, o telão alterna sozinho entre as categorias (o intervalo e o que aparece ficam em Configuração &gt;
+            Apresentação). Esta escolha vale antes da abertura e para a revelação do resultado, que é de uma categoria por vez: troque
+            aqui para passar à próxima (o palco aberto troca junto).
           </p>
           <div role="radiogroup" aria-label="Categoria no telão" className="flex flex-wrap gap-2">
             {ativo.categorias.map((c) => (

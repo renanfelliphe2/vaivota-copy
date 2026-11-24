@@ -11,6 +11,8 @@ import { lerRevelacao } from "@/dominio/apresentacao/revelacao";
 import { montarFinal, montarRoteiro } from "@/dominio/apresentacao/roteiro";
 import type { AcaoMotor, DadosRevelacao, EstadoMotor, EstadoTrailer } from "@/dominio/apresentacao/tipos";
 import { votaveis } from "@/dominio/candidatos";
+import { rotaCategoria } from "@/dominio/categorias";
+import { categoriaDoTelao } from "@/dominio/telao";
 import { resolverFaseConfig } from "@/dominio/travas";
 import { formatarDataHora, paraMs } from "@/lib/tempo";
 import { TEXTOS_PALCO } from "@/lib/textosPalco";
@@ -249,12 +251,27 @@ export function PalcoReal({
     const abertaHa = evento.urnaAbertaEm ? agora - paraMs(evento.urnaAbertaEm) : Infinity;
     const subestado: SubestadoAoVivo =
       situacao === "TEMPO_ESGOTADO" ? "TEMPO_ESGOTADO" : situacao === "RETA_FINAL" ? "RETA_FINAL" : abertaHa <= DURACOES.mensagemAbertura ? "ABERTURA" : null;
+    // B2 (25/11/2026): durante a votação, uma categoria por vez, trocando a cada n segundos (as do totem também, sem QR Code).
+    // A escolha da sala continua valendo para a revelação. Sem nenhuma categoria com item, a de antes.
+    const todosVotaveis = votaveis(ativo.candidatos);
+    const idsComItens = new Set(todosVotaveis.flatMap((c) => (c.categoriaId ? [c.categoriaId] : [])));
+    const ciclo = categoriaDoTelao(ativo.categorias, idsComItens, agora, configApresentacao.telaoIntervaloSegundos);
+    const emTela = ciclo?.categoria ?? categoria;
+    const candidatosEmTela = emTela
+      ? todosVotaveis.filter((c) => c.categoriaId === emTela.id).map((c) => ({ id: c.id, titulo: c.titulo, imagemUrl: c.imagemUrl, ordem: c.ordem }))
+      : candidatos;
     conteudo = (
       <CenaAoVivo
-        nome={nome}
+        nome={emTela ? `${tema.nomeExibicao ?? evento.nome} · ${emTela.nome}` : nome}
         logoUrl={tema.logoUrl}
-        candidatos={candidatos}
-        urlQr={urlQr}
+        candidatos={candidatosEmTela}
+        urlQr={emTela ? `${window.location.origin}${rotaCategoria(ativo.slug, emTela.slug)}` : urlQr}
+        mostrar={configApresentacao.telaoMostrar}
+        categoria={
+          emTela
+            ? { nome: emTela.nome, premio: emTela.premio, soTotem: emTela.canal === "TOTEM", posicao: ciclo ? { indice: ciclo.indice, total: ciclo.total } : null }
+            : null
+        }
         contagem={evento.janelaFim ? <ContagemRegressiva alvoMs={paraMs(evento.janelaFim)} rotulo="Encerra em" textoZerado={TEXTOS_PALCO.tempoEsgotado} /> : null}
         totalGeral={aoVivo.dados?.totalGeral ?? null}
         parcial={aoVivo.dados?.parcial ?? null}

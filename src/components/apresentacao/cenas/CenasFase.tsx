@@ -8,7 +8,9 @@ import type { CandidatoPalco } from "@/dominio/apresentacao/tipos";
 import { formatarNumero } from "@/lib/formatar";
 import { TEXTOS_PALCO } from "@/lib/textosPalco";
 import { usePaginaRotativa } from "../hooks";
-import { CartaoCandidatoPalco, QrPlaca } from "../Pecas";
+import { TELAO_PADRAO } from "@/dominio/telao";
+import type { OpcoesTelao } from "@/dominio/tipos";
+import { AvisoTotemPlaca, CartaoCandidatoPalco, LinkPlaca, QrPlaca } from "../Pecas";
 
 // Etapa 8 (5.7, 5.9): cenas das fases fora da revelação. Só desenham o que recebem.
 
@@ -89,6 +91,8 @@ export function CenaAoVivo({
   parcial,
   subestado,
   encerrada = false,
+  mostrar = TELAO_PADRAO.mostrar,
+  categoria = null,
 }: {
   nome: string;
   logoUrl: string | null;
@@ -100,6 +104,13 @@ export function CenaAoVivo({
   subestado: SubestadoAoVivo;
   /** 08/10/2026: votação encerrada na própria tela dos candidatos: sem QR nem temporizador; o aviso fica no lugar do QR. */
   encerrada?: boolean;
+  /** B2 (25/11/2026): o que a votação ao vivo mostra (Configuração > Apresentação). */
+  mostrar?: OpcoesTelao;
+  /**
+   * B2: a categoria em tela no ciclo do telão. `soTotem`: categoria do totem, sem QR Code nem link, com o aviso. `posicao`: os
+   * pontinhos do ciclo. Sem candidatos na tela, o nome dela ocupa o lugar deles.
+   */
+  categoria?: { nome: string; premio: string | null; soTotem: boolean; posicao: { indice: number; total: number } | null } | null;
 }) {
   const votos = parcial ? new Map(parcial.map((p) => [p.candidatoId, p.votos])) : null;
   if (encerrada)
@@ -135,18 +146,38 @@ export function CenaAoVivo({
             </span>
           </div>
         )}
-        <Grade candidatos={candidatos} votos={votos} />
+        {mostrar.candidatos ? (
+          // A chave reinicia a página da grade a cada troca de categoria.
+          <Grade key={categoria?.nome} candidatos={candidatos} votos={votos} />
+        ) : (
+          categoria && (
+            <div key={categoria.nome} className="palco-entrada flex flex-1 flex-col justify-center gap-6">
+              <p className="text-[48px] font-semibold uppercase tracking-[0.2em] text-tema-primaria-texto">Categoria</p>
+              <p className="text-[140px] font-black leading-none">{categoria.nome}</p>
+              {categoria.premio && <p className="text-[64px] font-bold text-tema-texto-suave">{categoria.premio}</p>}
+            </div>
+          )
+        )}
+        {categoria?.posicao && categoria.posicao.total > 1 && <PontosDoCiclo {...categoria.posicao} />}
       </div>
       <aside className="flex flex-col items-center justify-between gap-8">
-        <QrPlaca url={urlQr} />
+        {categoria?.soTotem ? (
+          <AvisoTotemPlaca />
+        ) : mostrar.qr ? (
+          <QrPlaca url={urlQr} legenda={mostrar.link} />
+        ) : mostrar.link ? (
+          <LinkPlaca url={urlQr} />
+        ) : (
+          <span aria-hidden />
+        )}
         <div className="flex flex-col items-center gap-2 text-center">
-          {subestado === "RETA_FINAL" && (
+          {mostrar.tempo && subestado === "RETA_FINAL" && (
             <p className="inline-flex items-center gap-3 rounded-full border-4 border-tema-aviso px-6 py-2 text-[40px] font-bold text-tema-aviso">
               <Timer aria-hidden className="size-10" /> {TEXTOS_PALCO.retaFinal}
             </p>
           )}
           {subestado !== "TEMPO_ESGOTADO" &&
-            (contagem ? (
+            (contagem && mostrar.tempo ? (
               <div className={subestado === "RETA_FINAL" ? "text-[96px] font-black tabular-nums" : "text-[72px] font-bold tabular-nums"}>{contagem}</div>
             ) : (
               <p className="text-[48px] font-bold">{TEXTOS_PALCO.votacaoAberta}</p>
@@ -158,6 +189,17 @@ export function CenaAoVivo({
           )}
         </div>
       </aside>
+    </div>
+  );
+}
+
+/** Em que ponto do ciclo de categorias o telão está (B2). */
+function PontosDoCiclo({ indice, total }: { indice: number; total: number }) {
+  return (
+    <div aria-hidden className="flex items-center gap-4">
+      {Array.from({ length: total }, (_, i) => (
+        <span key={i} className={i === indice ? "h-5 w-16 rounded-full bg-tema-primaria" : "size-5 rounded-full bg-tema-borda"} />
+      ))}
     </div>
   );
 }
