@@ -150,7 +150,7 @@ export function DemoDoVoto() {
                   </div>
                   <p className="mt-3 flex gap-1.5 px-1 text-[11px] leading-snug text-tema-texto-suave">
                     <Lock aria-hidden className="mt-px size-3.5 shrink-0" />
-                    Seu voto é secreto: ele não fica ligado ao seu nome.
+                    Seu voto é secreto.
                   </p>
                   <p className="mt-2 px-1 text-[11px] font-semibold leading-snug">Depois de confirmar, não será possível alterar nem desfazer o voto.</p>
                   <div className="mt-auto flex flex-col gap-1.5">

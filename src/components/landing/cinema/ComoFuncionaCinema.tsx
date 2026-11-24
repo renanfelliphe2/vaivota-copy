@@ -76,7 +76,7 @@ export function ComoFuncionaCinema() {
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="flex items-center gap-2 font-semibold text-white/90">
             <Lock aria-hidden className="size-5 shrink-0 text-cine-secundaria-clara" />
-            Seu voto é secreto: ele não fica ligado ao seu nome.
+            Seu voto é secreto.
           </p>
           {temCandidatos && (
             <a

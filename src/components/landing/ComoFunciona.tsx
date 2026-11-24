@@ -69,7 +69,7 @@ export function ComoFunciona() {
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="flex items-center gap-2 font-semibold">
             <Lock aria-hidden className="size-5 shrink-0" />
-            Seu voto é secreto: ele não fica ligado ao seu nome.
+            Seu voto é secreto.
           </p>
           {temCandidatos && (
             <a

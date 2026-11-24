@@ -93,7 +93,7 @@ function ConteudoRevisao(props: DialogoRevisaoProps & { item: ItemLista }) {
         </Alerta>
       ) : (
         <>
-          <Alerta variante="informacao">Seu voto é secreto: ele não fica ligado ao seu nome.</Alerta>
+          <Alerta variante="informacao">Seu voto é secreto.</Alerta>
           <p className="text-sm font-medium">Depois de confirmar, não será possível alterar nem desfazer o voto.</p>
         </>
       )}
