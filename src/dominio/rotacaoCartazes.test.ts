@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aplicarTroca, cartazesIniciais, proximaTroca, type Troca } from "./rotacaoCartazes";
+import { aplicarTroca, cartazesIniciais, filmesDaFita, proximaTroca, type Troca, type UltimaTroca } from "./rotacaoCartazes";
 
 /** Sorteio repetível (mulberry32), para o teste não depender do acaso. */
 function semente(a: number) {
@@ -14,17 +14,23 @@ function semente(a: number) {
 
 const filmes = (n: number) => Array.from({ length: n }, (_, i) => `f${i + 1}`);
 
-/** Roda `vezes` trocas. `ultima` é a casa trocada e o filme que SAIU dela. */
-function girar(todos: string[], vezes: number, sorteio: () => number, aoTrocar: (troca: Troca, saiu: string, atuais: string[]) => void) {
+/** Roda `vezes` trocas, guardando em `ultima` a fita que correu e os filmes que saíram dela. */
+function girar(
+  todos: string[],
+  vezes: number,
+  sorteio: () => number,
+  aoTrocar: (troca: Troca, antes: string[], atuais: string[], ultima: UltimaTroca | null) => void,
+) {
   let atuais = cartazesIniciais(todos);
-  let ultima: Troca | null = null;
+  let ultima: UltimaTroca | null = null;
   for (let i = 0; i < vezes; i++) {
     const troca = proximaTroca(atuais, todos, sorteio, ultima);
     expect(troca).not.toBeNull();
-    const saiu = atuais[troca!.casa];
+    const antes = filmesDaFita(atuais, troca!.fita);
+    const anterior = ultima;
     atuais = aplicarTroca(atuais, troca!);
-    ultima = { casa: troca!.casa, id: saiu };
-    aoTrocar(troca!, saiu, atuais);
+    ultima = { fita: troca!.fita, saiu: antes.filter((id) => !troca!.ids.includes(id)) };
+    aoTrocar(troca!, antes, atuais, anterior);
   }
 }
 
@@ -51,15 +57,33 @@ describe("proximaTroca", () => {
     }
   });
 
-  it("não troca a mesma casa duas vezes seguidas nem devolve o filme que acabou de sair (havendo outro livre)", () => {
-    const todos = filmes(14);
-    let anterior: { casa: number; saiu: string } | null = null;
-    girar(todos, 1000, semente(7), (troca, saiu) => {
-      if (anterior) {
-        expect(troca.casa).not.toBe(anterior.casa);
-        expect(troca.id).not.toBe(anterior.saiu);
-      }
-      anterior = { casa: troca.casa, saiu };
+  it("com dois filmes livres ou mais, os dois quadros da fita mudam e só ela muda", () => {
+    for (const total of [8, 14, 40]) {
+      girar(filmes(total), 500, semente(total + 1), (troca, antes) => {
+        expect(troca.ids).toHaveLength(2);
+        expect(troca.ids.some((id) => antes.includes(id))).toBe(false);
+      });
+    }
+    const atuais = filmes(6);
+    const troca = proximaTroca(atuais, filmes(14), semente(2), null)!;
+    const depois = aplicarTroca(atuais, troca);
+    depois.forEach((id, i) => {
+      if (Math.floor(i / 2) !== troca.fita) expect(id).toBe(atuais[i]);
+    });
+  });
+
+  it("com um filme livre só, a fita anda um quadro: o de baixo sobe e o novo entra por baixo", () => {
+    const troca = proximaTroca(filmes(6), filmes(7), semente(3), null)!;
+    const [cima, baixo] = filmesDaFita(filmes(6), troca.fita);
+    expect(cima).toBeDefined();
+    expect(troca.ids).toEqual([baixo, "f7"]);
+  });
+
+  it("não corre a mesma fita duas vezes seguidas nem devolve filmes que acabaram de sair (havendo outros livres)", () => {
+    girar(filmes(14), 1000, semente(7), (troca, _, __, anterior) => {
+      if (!anterior) return;
+      expect(troca.fita).not.toBe(anterior.fita);
+      expect(troca.ids.some((id) => anterior.saiu.includes(id))).toBe(false);
     });
   });
 
@@ -68,20 +92,20 @@ describe("proximaTroca", () => {
     expect(proximaTroca(filmes(3), filmes(3), semente(1), null)).toBeNull();
   });
 
-  it("com um filme livre só, ele volta mesmo tendo acabado de sair (a rotação não trava)", () => {
-    const troca = proximaTroca(["f1", "f2", "f3", "f4", "f5", "f7"], filmes(7), semente(3), { casa: 5, id: "f6" });
-    expect(troca?.id).toBe("f6");
-    expect(troca?.casa).not.toBe(5);
+  it("com poucos filmes livres, os que acabaram de sair voltam (a rotação não trava)", () => {
+    const troca = proximaTroca(["f1", "f2", "f3", "f4", "f7", "f8"], filmes(8), semente(3), { fita: 2, saiu: ["f5", "f6"] });
+    expect(troca?.fita).not.toBe(2);
+    expect([...(troca?.ids ?? [])].sort()).toEqual(["f5", "f6"]);
   });
 
-  it("todas as casas e todos os filmes aparecem com o tempo", () => {
-    const casas = new Set<number>();
+  it("todas as fitas e todos os filmes aparecem com o tempo", () => {
+    const fitas = new Set<number>();
     const vistos = new Set(cartazesIniciais(filmes(14)));
     girar(filmes(14), 400, semente(11), (troca) => {
-      casas.add(troca.casa);
-      vistos.add(troca.id);
+      fitas.add(troca.fita);
+      troca.ids.forEach((id) => vistos.add(id));
     });
-    expect(casas.size).toBe(6);
+    expect(fitas.size).toBe(3);
     expect(vistos.size).toBe(14);
   });
 });

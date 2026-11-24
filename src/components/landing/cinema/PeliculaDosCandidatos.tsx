@@ -6,15 +6,15 @@ import { CASAS_DO_HERO } from "@/dominio/rotacaoCartazes";
 import type { Candidato } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 import { QuadroContagem } from "./DecoracoesCinema";
-import { DURACAO_TROCA_MS, type RotacaoCartazes } from "./useRotacaoCartazes";
+import { DURACAO_FITA_MS, DURACAO_TROCA_MS, type RotacaoCartazes } from "./useRotacaoCartazes";
 
 // Película do hero do estilo cinema (07/11/2026): os cartazes dos candidatos em quadros de filme. Cada cartaz leva ao
 // cartão dele na lista e o destaca (DestaqueCandidato), como o mosaico do estilo padrão. Sem cartaz, os quadros mostram a
 // contagem regressiva do começo do filme (6, 5, 4...) e a película inteira é decorativa.
 //
-// 23/11/2026: seis casas em três fitas. De tempos em tempos uma casa troca de filme (useRotacaoCartazes) com a película correndo:
-// o quadro velho sobe e sai pela fita, o novo entra de baixo com o clarão do projetor e os furos da fita passam. No celular a
-// fita é deitada e a película corre de lado.
+// 23/11/2026: seis casas em três fitas. De tempos em tempos uma fita troca de filmes (useRotacaoCartazes).
+// 24/11/2026: a fita inteira corre e os dois quadros mudam juntos: os velhos sobem e saem pela ponta da fita, os novos entram
+// por baixo com o brilho do projetor e os furos passam junto. No celular a fita é deitada e os dois quadros correm de lado.
 
 type Casa = { tipo: "cartaz"; candidato: Candidato } | { tipo: "contagem"; numero: number };
 
@@ -58,14 +58,15 @@ function Conteudo({ casa, tamanhos }: { casa: Casa; tamanhos: string }) {
 }
 
 /**
- * Uma casa da película. Quando o filme dela muda, o quadro que saía fica por cima (sem clique, escondido de leitor de tela)
- * enquanto a película corre: o velho sai, o novo entra, e um clarão de projetor cobre a emenda.
+ * Uma casa da película. Com `eixo`, a troca é do próprio quadro (película deitada): quando o filme muda, o quadro que saía
+ * fica por cima (sem clique, escondido de leitor de tela) enquanto a película corre, e um clarão cobre a emenda. Sem `eixo`,
+ * quem anima a troca é a fita (TiraDePe).
  */
-function Quadro({ casa, aoEscolher, tamanhos, eixo }: { casa: Casa; aoEscolher: (id: string) => void; tamanhos: string; eixo: Eixo }) {
+function Quadro({ casa, aoEscolher, tamanhos, eixo }: { casa: Casa; aoEscolher: (id: string) => void; tamanhos: string; eixo?: Eixo }) {
   const [visto, setVisto] = useState(casa);
   const [saindo, setSaindo] = useState<Casa | null>(null);
   // Ajuste no próprio render (padrão do React para "estado derivado do que veio por prop"): guarda o que saiu.
-  if (chaveDaCasa(casa) !== chaveDaCasa(visto)) {
+  if (eixo && chaveDaCasa(casa) !== chaveDaCasa(visto)) {
     setSaindo(visto);
     setVisto(casa);
   }
@@ -114,19 +115,56 @@ function Furos({ eixo, pulso, className }: { eixo: Eixo; pulso: number; classNam
   return <span key={pulso} aria-hidden className={cx(eixo === "v" ? "cine-furos-v" : "cine-furos-h", pulso > 0 && `cine-furos-correm-${eixo}`, className)} />;
 }
 
-/** Tira de pé, com os furos nas duas bordas: dois quadros. */
+type Corrida = { saindo: Casa[]; entrando: ReadonlySet<string> };
+
+/**
+ * Tira de pé, com os furos nas duas bordas: dois quadros. Quando os filmes dela mudam, a fita inteira corre: os quadros que
+ * saem ficam acima dos novos (fora da janela, sem clique e escondidos de leitor de tela) e tudo sobe junto, `--passos`
+ * quadros, até os novos ocuparem o lugar. Os que saem somem pela ponta de cima da fita (overflow-hidden).
+ */
 function TiraDePe({ lista, pulso, aoEscolher }: { lista: Casa[]; pulso: number; aoEscolher: (id: string) => void }) {
+  const [vista, setVista] = useState(lista);
+  const [corrida, setCorrida] = useState<Corrida | null>(null);
+  // Ajuste no próprio render, como no Quadro: guarda o que saiu e o que entrou.
+  if (lista.map(chaveDaCasa).join("|") !== vista.map(chaveDaCasa).join("|")) {
+    const ficam = new Set(lista.map(chaveDaCasa));
+    const estavam = new Set(vista.map(chaveDaCasa));
+    setCorrida({ saindo: vista.filter((c) => !ficam.has(chaveDaCasa(c))), entrando: new Set([...ficam].filter((k) => !estavam.has(k))) });
+    setVista(lista);
+  }
+  useEffect(() => {
+    if (!corrida) return;
+    const fim = setTimeout(() => setCorrida(null), DURACAO_FITA_MS + 80);
+    return () => clearTimeout(fim);
+  }, [corrida]);
+
+  const passos = corrida?.saindo.length ?? 0;
   return (
-    <div className="relative bg-cine-pelicula px-[1.125rem] py-3 shadow-2xl shadow-black/60 ring-1 ring-white/5">
+    <div
+      className="relative overflow-hidden bg-cine-pelicula px-[1.125rem] py-3 shadow-2xl shadow-black/60 ring-1 ring-white/5 [--passo-furos:132px] xl:[--passo-furos:154px]"
+      style={{ "--passos": passos } as CSSProperties}
+    >
       <Furos eixo="v" pulso={pulso} className="absolute inset-y-0 left-0 w-[1.125rem]" />
       <Furos eixo="v" pulso={pulso} className="absolute inset-y-0 right-0 w-[1.125rem]" />
-      <ul className="flex flex-col gap-3">
-        {lista.map((casa, i) => (
-          <li key={i}>
-            <Quadro casa={casa} aoEscolher={aoEscolher} tamanhos="9rem" eixo="v" />
+      <ul className="relative flex flex-col gap-3">
+        {corrida?.saindo.map((casa, j) => (
+          <li
+            key={`saindo-${chaveDaCasa(casa)}`}
+            aria-hidden
+            inert
+            className="cine-fita-sai pointer-events-none absolute inset-x-0 top-0"
+            style={{ translate: `0 calc(${j - passos} * (100% + 0.75rem))` }}
+          >
+            <Quadro casa={casa} aoEscolher={aoEscolher} tamanhos="9rem" />
+          </li>
+        ))}
+        {lista.map((casa) => (
+          <li key={chaveDaCasa(casa)} className={cx(passos > 0 && (corrida?.entrando.has(chaveDaCasa(casa)) ? "cine-fita-entra" : "cine-fita-passa"))}>
+            <Quadro casa={casa} aoEscolher={aoEscolher} tamanhos="9rem" />
           </li>
         ))}
       </ul>
+      {passos > 0 && <span key={pulso} aria-hidden className="cine-fita-clarao pointer-events-none absolute inset-0 bg-cine-luz" />}
     </div>
   );
 }
@@ -155,7 +193,7 @@ export function PeliculaTripla({ casas, trocas, decorativa, rotacao, aoEscolher 
           className={cx("marca-flutuar w-32 xl:w-36", fita.deslocamento)}
           style={{ "--atraso": `${-i * 2300}ms`, "--dur": `${fita.duracao}s` } as CSSProperties}
         >
-          <TiraDePe lista={fita.casas.map((c) => casas[c])} pulso={fita.casas.reduce((s, c) => s + (trocas[c] ?? 0), 0)} aoEscolher={aoEscolher} />
+          <TiraDePe lista={fita.casas.map((c) => casas[c])} pulso={trocas[i] ?? 0} aoEscolher={aoEscolher} />
         </div>
       ))}
     </div>

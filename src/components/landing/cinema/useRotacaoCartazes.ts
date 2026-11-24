@@ -1,24 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FocusEventHandler, type PointerEventHandler } from "react";
-import { aplicarTroca, cartazesIniciais, CASAS_DO_HERO, proximaTroca, type Troca } from "@/dominio/rotacaoCartazes";
+import { aplicarTroca, cartazesIniciais, CASAS_DO_HERO, filmesDaFita, FITAS_DO_HERO, proximaTroca, type UltimaTroca } from "@/dominio/rotacaoCartazes";
 
-/** De quanto em quanto tempo UMA casa troca de filme (com uma variação de ±35% para não parecer relógio). Cada casa troca, em média, a cada 6x isto. */
+/** De quanto em quanto tempo UMA fita corre (com uma variação de ±35% para não parecer relógio). Cada fita corre, em média, a cada 3x isto. */
 export const INTERVALO_TROCA_MS = 3500;
-/** Duração da corrida da película na troca (globals.css: `--cine-troca`). Tem de ser menor que o intervalo mínimo (~2,3 s). */
+/** Duração da troca de um quadro na película deitada (globals.css: `--cine-troca`). Menor que o intervalo mínimo (~2,3 s). */
 export const DURACAO_TROCA_MS = 1000;
+/** Duração da corrida da fita de pé, que anda dois quadros (globals.css: `--cine-fita`). Também menor que o intervalo mínimo. */
+export const DURACAO_FITA_MS = 1400;
 const VARIACAO = 0.35;
 
-type Estado = { chave: string; ids: string[]; trocas: number[]; ultima: Troca | null };
+type Estado = { chave: string; ids: string[]; trocas: number[]; ultima: UltimaTroca | null };
 
 function inicial(chave: string, todos: readonly string[]): Estado {
-  return { chave, ids: cartazesIniciais(todos), trocas: Array(CASAS_DO_HERO).fill(0), ultima: null };
+  return { chave, ids: cartazesIniciais(todos), trocas: Array(FITAS_DO_HERO).fill(0), ultima: null };
 }
 
 export type RotacaoCartazes = {
   /** Os filmes de cada casa (até seis), na ordem das casas. Sem sorteio até o navegador começar a girar: servidor e navegador batem. */
   ids: readonly string[];
-  /** Quantas vezes cada casa já trocou: a fita que corre usa isto para recomeçar a corrida. */
+  /** Quantas vezes cada fita já correu: os furos usam isto para recomeçar a corrida. */
   trocas: readonly number[];
   /** Espalhe no elemento que contém os cartazes: parado sob o mouse e o foco, ninguém perde o cartaz na hora do clique. */
   pausa: {
@@ -30,8 +32,8 @@ export type RotacaoCartazes = {
 };
 
 /**
- * Rotação dos cartazes do hero (23/11/2026): seis casas e, a cada intervalo, uma delas troca por um filme que não está em
- * nenhuma casa (src/dominio/rotacaoCartazes.ts garante que o mesmo filme nunca aparece em duas fitas). Não gira com seis filmes
+ * Rotação dos cartazes do hero (23/11/2026): seis casas em três fitas e, a cada intervalo, uma fita corre e os dois quadros
+ * dela trocam por filmes que não estão em nenhuma casa (24/11/2026; antes trocava uma casa só) (src/dominio/rotacaoCartazes.ts garante que o mesmo filme nunca aparece em duas fitas). Não gira com seis filmes
  * ou menos, com a aba escondida, sob o mouse ou o foco, nem com prefers-reduced-motion (movimento que ninguém pode pausar).
  */
 export function useRotacaoCartazes(todos: readonly string[]): RotacaoCartazes {
@@ -51,7 +53,7 @@ export function useRotacaoCartazes(todos: readonly string[]): RotacaoCartazes {
       relogio = setTimeout(() => {
         if (!document.hidden) {
           // O acaso é sorteado fora do atualizador: ele pode rodar duas vezes (modo estrito) e tem de dar a mesma troca.
-          const sorteios = [Math.random(), Math.random()];
+          const sorteios = [Math.random(), Math.random(), Math.random()];
           setEstado((anterior) => {
             const base = anterior.chave === chave ? anterior : inicial(chave, lista);
             let k = 0;
@@ -60,8 +62,8 @@ export function useRotacaoCartazes(todos: readonly string[]): RotacaoCartazes {
             return {
               chave,
               ids: aplicarTroca(base.ids, troca),
-              trocas: base.trocas.map((n, i) => (i === troca.casa ? n + 1 : n)),
-              ultima: { casa: troca.casa, id: base.ids[troca.casa] },
+              trocas: base.trocas.map((n, i) => (i === troca.fita ? n + 1 : n)),
+              ultima: { fita: troca.fita, saiu: filmesDaFita(base.ids, troca.fita).filter((id) => !troca.ids.includes(id)) },
             };
           });
         }

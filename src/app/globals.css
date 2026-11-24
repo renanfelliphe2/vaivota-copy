@@ -260,35 +260,66 @@ dialog::backdrop {
 
 /*
  * Troca de cartaz na película (23/11/2026): o quadro velho é puxado para fora da fita, o novo entra pelo outro lado com o
- * brilho do projetor, um clarão cobre a emenda e os furos da fita correm um passo de quadro (6 furos). -v: fita de pé
- * (celular não usa); -h: fita deitada. A duração é --cine-troca = DURACAO_TROCA_MS (useRotacaoCartazes.ts).
+ * brilho do projetor, um clarão cobre a emenda e os furos da fita correm um passo de quadro (6 furos). -h: fita deitada,
+ * quadro a quadro; a duração é --cine-troca = DURACAO_TROCA_MS (useRotacaoCartazes.ts).
+ *
+ * Fita de pé (24/11/2026): a fita inteira corre. Todos os quadros (os que saem, por cima, e os que ficam) sobem juntos
+ * --passos quadros (cada passo é a altura do quadro mais o vão de 0.75rem, gap-3 da TiraDePe); os novos acendem com o
+ * projetor e os que saem apagam. Os furos andam --passo-furos por quadro (múltiplo dos 22px do desenho, para não pular no
+ * fim). A duração é --cine-fita = DURACAO_FITA_MS.
  */
 .marca-evento {
   --cine-troca: 1000ms;
+  --cine-fita: 1400ms;
 }
 
-@keyframes cine-quadro-entra-v {
+@keyframes cine-fita-corre {
   from {
-    transform: translateY(104%);
+    transform: translateY(calc(var(--passos, 1) * (100% + 0.75rem)));
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes cine-fita-acende {
+  from {
     filter: brightness(1.9) sepia(0.6) contrast(0.8);
   }
   60% {
     filter: brightness(1.2) sepia(0.2);
   }
   to {
-    transform: translateY(0);
     filter: none;
   }
 }
 
-@keyframes cine-quadro-sai-v {
+@keyframes cine-fita-apaga {
   from {
-    transform: translateY(0);
+    filter: none;
   }
   to {
-    transform: translateY(-104%);
     filter: brightness(0.45) blur(1px);
   }
+}
+
+.cine-fita-passa,
+.cine-fita-entra,
+.cine-fita-sai {
+  animation: cine-fita-corre var(--cine-fita) cubic-bezier(0.65, 0, 0.25, 1) both;
+}
+
+.cine-fita-entra {
+  animation-name: cine-fita-corre, cine-fita-acende;
+}
+
+.cine-fita-sai {
+  animation-name: cine-fita-corre, cine-fita-apaga;
+}
+
+.cine-fita-clarao {
+  animation: cine-quadro-clarao var(--cine-fita) ease-out both;
+  mix-blend-mode: overlay;
 }
 
 @keyframes cine-quadro-entra-h {
@@ -332,7 +363,7 @@ dialog::backdrop {
     background-position: center 0;
   }
   to {
-    background-position: center -132px;
+    background-position: center calc(var(--passos, 1) * -1 * var(--passo-furos, 132px));
   }
 }
 
@@ -345,8 +376,6 @@ dialog::backdrop {
   }
 }
 
-.cine-quadro-entra-v,
-.cine-quadro-sai-v,
 .cine-quadro-entra-h,
 .cine-quadro-sai-h {
   animation-duration: var(--cine-troca);
@@ -354,12 +383,6 @@ dialog::backdrop {
   animation-fill-mode: both;
 }
 
-.cine-quadro-entra-v {
-  animation-name: cine-quadro-entra-v;
-}
-.cine-quadro-sai-v {
-  animation-name: cine-quadro-sai-v;
-}
 .cine-quadro-entra-h {
   animation-name: cine-quadro-entra-h;
 }
@@ -373,7 +396,7 @@ dialog::backdrop {
 }
 
 .cine-furos-correm-v {
-  animation: cine-furos-correm-v var(--cine-troca) cubic-bezier(0.6, 0, 0.2, 1) both;
+  animation: cine-furos-correm-v var(--cine-fita) cubic-bezier(0.65, 0, 0.25, 1) both;
 }
 
 .cine-furos-correm-h {
