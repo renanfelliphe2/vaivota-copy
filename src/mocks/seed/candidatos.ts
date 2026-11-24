@@ -1,4 +1,4 @@
-import type { Candidato } from "@/dominio/tipos";
+import type { Candidato, Categoria } from "@/dominio/tipos";
 import { ID_FESTIVAL } from "./eventos";
 
 // Casos de borda (Etapa 0, seção 5.6). Títulos e descrições fictícios; imagens por D16.
@@ -6,6 +6,13 @@ import { ID_FESTIVAL } from "./eventos";
 //           02 sem `duracao`.
 
 const CRIADO_FV = "2026-09-25T10:00:00-03:00";
+
+/** 25/11/2026: todo evento tem ao menos uma categoria; o do protótipo tem a categoria única, votada na página. */
+export const ID_CATEGORIA_UNICA_FV = "cat-fv-melhor-curta";
+
+export const seedCategorias: Categoria[] = [
+  { id: ID_CATEGORIA_UNICA_FV, eventoId: ID_FESTIVAL, slug: "melhor-curta", nome: "Melhor Curta", premio: null, descricao: null, canal: "ONLINE", ordem: 1 },
+];
 
 type Base = Pick<Candidato, "id" | "titulo" | "imagemUrl" | "camposExtras"> &
   Partial<Pick<Candidato, "publicado" | "desqualificado" | "usuarioVinculadoId">>;
@@ -16,7 +23,7 @@ function candidato(eventoId: string, criadoEm: string, ordem: number, base: Base
     publicado: true,
     desqualificado: false,
     usuarioVinculadoId: null,
-    categoriaId: null,
+    categoriaId: ID_CATEGORIA_UNICA_FV,
     ordem,
     criadoEm,
     atualizadoEm: criadoEm,

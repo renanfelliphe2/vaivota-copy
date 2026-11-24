@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { categoriasDoCanal } from "@/dominio/categorias";
 import type { Categoria } from "@/dominio/tipos";
 import { useCandidatosParaVotacao, type ItemLista } from "./candidatos";
 import { useEventoAtivo } from "./evento";
@@ -20,11 +21,12 @@ export type CategoriaComItens = {
  */
 export function useCategoriasDoEvento(): CategoriaComItens[] | null {
   const ativo = useEventoAtivo();
-  const lista = useCandidatosParaVotacao();
+  const lista = useCandidatosParaVotacao("ONLINE");
   const { categoriasVotadas } = useSessao();
   return useMemo(() => {
     if (!ativo || !lista) return null;
-    return ativo.categorias.map((categoria) => ({
+    // 25/11/2026: só as categorias da página; as do totem são votadas só nos totens.
+    return categoriasDoCanal(ativo.categorias, "ONLINE").map((categoria) => ({
       categoria,
       itens: lista.itens.filter((i) => i.candidato.categoriaId === categoria.id),
       votou: categoriasVotadas.includes(categoria.id),

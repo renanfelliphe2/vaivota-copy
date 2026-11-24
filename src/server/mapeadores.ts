@@ -110,7 +110,7 @@ export function convitePublicoParaDominio(c: P.ConviteJurado, fuso: string): Con
 }
 
 /** Totem para o admin no estado público: nunca o hash do token nem o do PIN. */
-export function dispositivoPublicoParaDominio(d: P.Dispositivo, fuso: string): DispositivoPublico {
+export function dispositivoPublicoParaDominio(d: P.Dispositivo & { categorias?: { categoriaId: string }[] }, fuso: string): DispositivoPublico {
   return {
     id: d.id,
     eventoId: d.eventoId,
@@ -118,6 +118,7 @@ export function dispositivoPublicoParaDominio(d: P.Dispositivo, fuso: string): D
     estado: d.estado,
     ultimoUsoEm: instanteOuNulo(d.ultimoUsoEm, fuso),
     criadoEm: instante(d.criadoEm, fuso),
+    categoriaIds: d.categorias?.map((c) => c.categoriaId) ?? [],
   };
 }
 
@@ -140,7 +141,7 @@ export function apresentacaoParaDominio(c: P.ConfigApresentacao, fuso: string): 
 }
 
 export function categoriaParaDominio(c: P.Categoria): Categoria {
-  return { id: c.id, eventoId: c.eventoId, slug: c.slug, nome: c.nome, premio: c.premio, descricao: c.descricao, ordem: c.ordem };
+  return { id: c.id, eventoId: c.eventoId, slug: c.slug, nome: c.nome, premio: c.premio, descricao: c.descricao, canal: c.canal, ordem: c.ordem };
 }
 
 export function campoParaDominio(c: P.CampoCandidato): CampoCandidato {

@@ -1,5 +1,6 @@
 import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
+import { gerarSlugCategoria, nomeCategoriaUnica } from "@/dominio/categorias";
 import { PRESETS_TEMA } from "@/dominio/presetsTema";
 import { db } from "./db";
 import { normalizarEmailAdmin } from "./participacao";
@@ -177,6 +178,10 @@ async function semearEvento(def: DefinicaoEvento): Promise<{ eventoId: string; c
   }
 
   if (!existia) {
+    // 25/11/2026: todo evento tem ao menos uma categoria. O evento nasce com a categoria única "Melhor <item>"; o admin renomeia,
+    // cria outras ou a exclui depois de criar as dele (seção Categorias).
+    const nomeUnica = nomeCategoriaUnica(def.tema.rotuloCandidato);
+    await db().categoria.create({ data: { eventoId: evento.id, nome: nomeUnica, slug: gerarSlugCategoria(nomeUnica, []), ordem: 1 } });
     if (def.criterios.length)
       await db().criterioJuri.createMany({ data: def.criterios.map((nome, i) => ({ eventoId: evento.id, nome, ordem: i + 1 })) });
     if (def.parceiros.length)

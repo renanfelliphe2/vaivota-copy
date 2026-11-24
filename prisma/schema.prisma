@@ -93,6 +93,13 @@ enum OrdemCandidatos {
   ALFABETICA
 }
 
+// Onde a categoria é votada (25/11/2026): ONLINE (página do evento, celular do público) ou TOTEM (só nos totens que a exibem).
+// Uma categoria fica num canal só: a do totem não aparece na página, e a da página não aparece no totem.
+enum CanalCategoria {
+  ONLINE
+  TOTEM
+}
+
 // Como os votos do júri viram o placar do júri (Festival). VOTO_UNICO: um candidato por jurado (`voto_juri`).
 // NOTAS_POR_CRITERIO: nota inteira de 0 a 10 por candidato e critério (`nota_juri`); o placar é a média simples das notas.
 // MELHOR_POR_CRITERIO: um candidato por critério (`escolha_criterio_juri`); cada escolha vale 1 voto. Só o modo ativo
@@ -330,6 +337,7 @@ model Categoria {
   premio       String?  @db.VarChar(80)
   // Descrição opcional (23/11/2026): aparece no topo da página da categoria.
   descricao    String?  @db.VarChar(600)
+  canal        CanalCategoria @default(ONLINE)
   ordem        Int      @default(0)
   criadoEm     DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
   atualizadoEm DateTime @updatedAt @map("atualizado_em") @db.Timestamptz(3)
@@ -338,6 +346,7 @@ model Categoria {
 
   candidatos Candidato[]
   votantes   ParticipacaoCategoria[]
+  totens     DispositivoCategoria[]
 
   @@unique([eventoId, slug])
   // Alvo das FKs compostas (mesmo evento).
@@ -603,11 +612,27 @@ model Dispositivo {
   votosInfantis VotoInfantil[]
   codigos       CodigoPareamento[]
   auditorias    Auditoria[]
+  categorias    DispositivoCategoria[]
 
   // Alvo da FK composta do voto infantil.
   @@unique([id, eventoId])
   @@index([eventoId, estado])
   @@map("dispositivo")
+}
+
+// Categorias que um totem exibe (25/11/2026): só categorias TOTEM do mesmo evento. Totens diferentes podem exibir categorias
+// diferentes; o voto do totem só entra numa categoria que ele exibe.
+model DispositivoCategoria {
+  dispositivoId String @map("dispositivo_id")
+  categoriaId   String @map("categoria_id")
+  eventoId      String @map("evento_id")
+
+  dispositivo Dispositivo @relation(fields: [dispositivoId, eventoId], references: [id, eventoId], onDelete: Cascade)
+  categoria   Categoria   @relation(fields: [categoriaId, eventoId], references: [id, eventoId], onDelete: Restrict)
+
+  @@id([dispositivoId, categoriaId])
+  @@index([eventoId, categoriaId])
+  @@map("dispositivo_categoria")
 }
 
 // Código de uso único para parear um totem (só o hash do código é guardado: HMAC com o segredo do servidor, por evento).
@@ -618,6 +643,8 @@ model CodigoPareamento {
   hashCodigo    String                 @map("hash_codigo") @db.VarChar(64)
   nome          String?                @db.VarChar(120)
   hashPin       String?                @map("hash_pin") @db.VarChar(255)
+  // Categorias que o totem vai exibir (25/11/2026), escolhidas ao gerar o código; passam ao totem no pareamento.
+  categoriaIds  String[]               @default([]) @map("categoria_ids")
   validadeAte   DateTime               @map("validade_ate") @db.Timestamptz(3)
   estado        EstadoCodigoPareamento @default(DISPONIVEL)
   dispositivoId String?                @map("dispositivo_id")

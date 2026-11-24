@@ -57,7 +57,7 @@ export function SecaoVotacao() {
   const estado = useEstadoVotar();
   const ativo = useEventoAtivo();
   const sessao = useSessao();
-  const lista = useCandidatosParaVotacao();
+  const lista = useCandidatosParaVotacao("ONLINE");
   const eventoId = ativo?.evento.id ?? null;
   const votacao = useSelecaoVoto(eventoId);
   const params = useSearchParams();

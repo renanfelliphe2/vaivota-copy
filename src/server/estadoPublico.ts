@@ -79,7 +79,11 @@ export async function montarEstadoPublico(usuario: UsuarioSessao | null, agoraMs
         db().candidato.findMany({ where: { eventoId: { in: [...adminDe] } }, orderBy: [{ ordem: "asc" }, { id: "asc" }] }),
         carregarEventos([...adminDe]),
         db().conviteJurado.findMany({ where: { eventoId: { in: [...adminDe] } }, orderBy: [{ criadoEm: "asc" }, { id: "asc" }] }),
-        db().dispositivo.findMany({ where: { eventoId: { in: [...adminDe] } }, orderBy: [{ criadoEm: "asc" }, { id: "asc" }] }),
+        db().dispositivo.findMany({
+          where: { eventoId: { in: [...adminDe] } },
+          orderBy: [{ criadoEm: "asc" }, { id: "asc" }],
+          include: { categorias: { select: { categoriaId: true } } },
+        }),
       ])
     : [[], [], [], []];
   const frescos = new Map(eventosDoAdmin.map((e) => [e.id, e]));

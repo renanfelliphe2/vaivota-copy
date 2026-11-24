@@ -18,6 +18,8 @@ export type RegraDesempate = "JURI" | "PUBLICO";
 export type ModoAvanco = "AUTOMATICO" | "MANUAL";
 /** Ordem dos candidatos na votação (19/10/2026): ALEATORIA embaralha a cada carga da página; ALFABETICA, sempre A–Z. */
 export type OrdemCandidatos = "ALEATORIA" | "ALFABETICA";
+/** Onde a categoria é votada (25/11/2026): na página do evento (ONLINE) ou só nos totens que a exibem (TOTEM). */
+export type CanalCategoria = "ONLINE" | "TOTEM";
 /**
  * Como o jurado vota (08/10/2026). VOTO_UNICO: um candidato (Etapa 5). NOTAS_POR_CRITERIO: nota de 0 a 10 a cada
  * candidato em cada critério. MELHOR_POR_CRITERIO: um candidato por critério. O público sempre vota em um só.
@@ -202,7 +204,7 @@ export type CampoCandidato = {
 /**
  * Categoria de premiação do evento (Festival, 09/11/2026), ex.: "Mostra Infantil", prêmio "Melhor filme". Cada uma tem os seus
  * itens, a sua página (/e/[slug]/categoria/[slug]), o seu QR Code e o seu voto popular: a pessoa vota uma vez em CADA categoria.
- * Evento sem categorias segue com a urna única de sempre.
+ * 25/11/2026: todo evento tem ao menos uma categoria, e cada categoria é votada num canal só (página ou totem).
  */
 export type Categoria = {
   id: string;
@@ -213,6 +215,7 @@ export type Categoria = {
   premio: string | null;
   /** Descrição opcional (23/11/2026), no topo da página da categoria. */
   descricao: string | null;
+  canal: CanalCategoria;
   ordem: number;
 };
 
@@ -336,6 +339,8 @@ export type Dispositivo = {
   estado: EstadoDispositivo;
   ultimoUsoEm: Instante | null;
   criadoEm: Instante;
+  /** Categorias TOTEM que o aparelho exibe (25/11/2026). Ausente em dado antigo de teste = nenhuma. */
+  categoriaIds?: string[];
 };
 
 /** Voto infantil: candidato, horário e dispositivo. Nenhum dado da criança. */

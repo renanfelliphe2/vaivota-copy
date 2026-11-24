@@ -71,12 +71,13 @@ export async function votarPopular(
     const [candidato, categorias] = await Promise.all([
       db().candidato.findFirst({
         where: { id: entrada.candidatoId, eventoId: evento.id, publicado: true, desqualificado: false },
-        select: { id: true, usuarioVinculadoId: true, categoriaId: true },
+        select: { id: true, usuarioVinculadoId: true, categoriaId: true, categoria: { select: { canal: true } } },
       }),
       db().categoria.count({ where: { eventoId: evento.id } }),
     ]);
-    // Com categorias, item sem categoria não é votável (não aparece em página nenhuma).
-    if (!candidato || (categorias > 0 && !candidato.categoriaId))
+    // Com categorias, item sem categoria não é votável (não aparece em página nenhuma). 25/11/2026: item de categoria do totem
+    // só é votado no totem.
+    if (!candidato || (categorias > 0 && !candidato.categoriaId) || candidato.categoria?.canal === "TOTEM")
       return falha("CANDIDATO_INDISPONIVEL", { detalhe: `candidato ${entrada.candidatoId} não votável em ${evento.id}` });
     const categoriaId = categorias > 0 ? candidato.categoriaId : null;
     if (categoriaId) {

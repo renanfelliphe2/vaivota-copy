@@ -44,7 +44,8 @@ export function useSessao(): Sessao {
     let jaVotou = participacao?.votou ?? false;
     if (participacao?.papel === "PUBLICO" && categorias && categorias.length > 0 && candidatos) {
       const comItens = new Set(votaveis(candidatos).flatMap((c) => (c.categoriaId ? [c.categoriaId] : [])));
-      const pendentes = categorias.filter((c) => comItens.has(c.id) && !categoriasVotadas.includes(c.id));
+      // Só as da página contam (25/11/2026): as do totem não são votadas pelo celular.
+      const pendentes = categorias.filter((c) => c.canal !== "TOTEM" && comItens.has(c.id) && !categoriasVotadas.includes(c.id));
       jaVotou = comItens.size > 0 && pendentes.length === 0;
     }
     return {

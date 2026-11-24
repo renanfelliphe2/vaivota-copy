@@ -85,10 +85,13 @@ describe("votações encerradas na landing", () => {
 
   it("o vencedor é o da maior versão do resultado oficial (a desqualificação gera uma versão nova)", async () => {
     const atual = await db().resultadoOficial.findFirstOrThrow({ where: { eventoId }, orderBy: { versao: "desc" } });
-    const dados = atual.dados as { ranking: { candidatoId: string; posicao: number; pontuacao: number }[] };
-    const invertido = dados.ranking.map((r) => (r.candidatoId === ids[0] ? { ...r, posicao: 1, pontuacao: 99 } : { ...r, posicao: r.posicao + 1 }));
+    type Ranking = { candidatoId: string; posicao: number; pontuacao: number }[];
+    const dados = atual.dados as { ranking: Ranking; porCategoria?: { dados: { ranking: Ranking } }[] };
+    const inverter = (ranking: Ranking) => ranking.map((r) => (r.candidatoId === ids[0] ? { ...r, posicao: 1, pontuacao: 99 } : { ...r, posicao: r.posicao + 1 }));
+    // 25/11/2026: todo evento tem categoria; o vencedor da vitrine vem do resultado de cada categoria.
+    const porCategoria = dados.porCategoria?.map((c) => ({ ...c, dados: { ...c.dados, ranking: inverter(c.dados.ranking) } }));
     await db().resultadoOficial.create({
-      data: { eventoId, versao: atual.versao + 1, motivo: "DESQUALIFICACAO", pesoPopular: 60, pesoJuri: 20, pesoInfantil: 20, dados: { ...dados, ranking: invertido } },
+      data: { eventoId, versao: atual.versao + 1, motivo: "DESQUALIFICACAO", pesoPopular: 60, pesoJuri: 20, pesoInfantil: 20, dados: { ...dados, ranking: inverter(dados.ranking), porCategoria } },
     });
     expect((await daVitrine())?.vencedores?.map((v) => v.id)).toEqual([ids[0]]);
   });

@@ -1,5 +1,5 @@
 import { hashMock } from "@/lib/hash";
-import type { Dispositivo, Evento, Instante } from "./tipos";
+import type { Candidato, Categoria, Dispositivo, Evento, Instante } from "./tipos";
 
 // Totem (rev. 4, A7; Base/VotoInfantil.md §6 e §9): regras puras do modo quiosque.
 
@@ -54,14 +54,39 @@ export const VALIDADE_CODIGO_PAREAMENTO_MS = 15 * 60_000;
 /** Códigos de pareamento ainda não usados nem vencidos que um evento pode ter ao mesmo tempo. */
 export const MAX_CODIGOS_PENDENTES = 20;
 
-/** O que o próprio totem sabe de si: nunca o hash do token nem o do PIN. */
-export type DispositivoDoTotem = Pick<Dispositivo, "id" | "eventoId" | "nome" | "estado">;
+/**
+ * O que o próprio totem sabe de si: nunca o hash do token nem o do PIN. `categoriaIds` (25/11/2026): as categorias TOTEM que ele
+ * exibe; só os itens delas aparecem no totem.
+ */
+export type DispositivoDoTotem = Pick<Dispositivo, "id" | "eventoId" | "nome" | "estado"> & { categoriaIds: string[] };
 
-/** Linha da lista de totens do admin (§4): nome, estado, último uso e votos. O PIN só aparece como "tem ou não tem". */
+/** Linha da lista de totens do admin (§4): nome, estado, último uso, votos e categorias. O PIN só aparece como "tem ou não tem". */
 export type DispositivoListado = Pick<Dispositivo, "id" | "nome" | "estado" | "ultimoUsoEm" | "criadoEm"> & {
   votos: number;
   temPin: boolean;
+  categoriaIds: string[];
 };
+
+/**
+ * Categorias escolhidas para um totem (25/11/2026): ao menos uma, todas TOTEM e do evento. Devolve a mensagem do erro ou null.
+ * O servidor confere de novo dentro da transação.
+ */
+export function validarCategoriasTotem(categoriaIds: readonly string[], categorias: readonly Pick<Categoria, "id" | "canal">[]): string | null {
+  if (categoriaIds.length === 0) return "Escolha ao menos uma categoria para o totem.";
+  const doTotem = new Set(categorias.filter((c) => c.canal === "TOTEM").map((c) => c.id));
+  if (categoriaIds.some((id) => !doTotem.has(id))) return "Escolha só categorias votadas no totem.";
+  return null;
+}
+
+/** Itens que o totem mostra: os votáveis das categorias que ele exibe (e que seguem sendo do totem), na ordem das categorias. */
+export function itensDoTotem<T extends Pick<Candidato, "categoriaId">>(
+  candidatos: readonly T[],
+  categorias: readonly Pick<Categoria, "id" | "canal">[],
+  categoriaIds: readonly string[],
+): T[] {
+  const exibidas = categorias.filter((c) => c.canal === "TOTEM" && categoriaIds.includes(c.id)).map((c) => c.id);
+  return exibidas.flatMap((id) => candidatos.filter((c) => c.categoriaId === id));
+}
 
 /** Resposta da geração do código: o código legível sai UMA vez (só o hash vai ao banco). */
 export type CodigoPareamentoGerado = { codigo: string; nome: string; validadeAte: Instante };

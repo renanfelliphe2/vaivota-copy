@@ -120,8 +120,11 @@ const servicos = {
     dispositivos.alternarModuloInfantil(u, a.eventoId, a.ligado, { ip: ctx.ip }),
   ),
   listarDispositivos: definir(z.object({ eventoId: id }), (_c, u, a) => dispositivos.listarDispositivos(u, a.eventoId)),
-  gerarCodigoPareamento: definir(z.object({ eventoId: id, nome: texto(100), pin: texto(20) }), (ctx, u, a) =>
-    dispositivos.gerarCodigoPareamento(u, a.eventoId, { nome: a.nome, pin: a.pin }, { ip: ctx.ip }),
+  gerarCodigoPareamento: definir(z.object({ eventoId: id, nome: texto(100), pin: texto(20), categoriaIds: z.array(id).max(30) }), (ctx, u, a) =>
+    dispositivos.gerarCodigoPareamento(u, a.eventoId, { nome: a.nome, pin: a.pin, categoriaIds: a.categoriaIds }, { ip: ctx.ip }),
+  ),
+  alterarCategoriasDispositivo: definir(z.object({ eventoId: id, dispositivoId: id, categoriaIds: z.array(id).max(30) }), (ctx, u, a) =>
+    dispositivos.alterarCategoriasDispositivo(u, a.eventoId, a.dispositivoId, a.categoriaIds, { ip: ctx.ip }),
   ),
   pausarDispositivo: definir(z.object({ eventoId: id, dispositivoId: id }), (ctx, u, a) =>
     dispositivos.pausarDispositivo(u, a.eventoId, a.dispositivoId, { ip: ctx.ip }),
@@ -234,7 +237,11 @@ const servicos = {
   salvarCategorias: definir(
     z.object({
       eventoId: id,
-      lista: z.array(z.object({ id: id.nullable(), nome: texto(100), premio: texto(100), descricao: texto(1000).optional() })).max(30),
+      lista: z
+        .array(
+          z.object({ id: id.nullable(), nome: texto(100), premio: texto(100), descricao: texto(1000).optional(), canal: z.enum(["ONLINE", "TOTEM"]).optional() }),
+        )
+        .max(30),
     }),
     (ctx, u, a) => categorias.salvarCategorias(u, a.eventoId, a.lista, { ip: ctx.ip }),
   ),

@@ -35,7 +35,7 @@ export function TelaTotem() {
   }, []);
 
   if (!visao) return null;
-  const { ativo, dispositivo, candidatos, situacao } = visao;
+  const { ativo, dispositivo, candidatos, grupos, situacao } = visao;
   const { tema, evento, configApresentacao } = ativo;
   const nome = tema.nomeExibicao ?? evento.nome;
 
@@ -96,6 +96,7 @@ export function TelaTotem() {
           <FluxoTotem
             eventoId={evento.id}
             candidatos={candidatos}
+            grupos={grupos}
             rotuloCategoria={configApresentacao.rotuloCategoriaInfantil}
             logo={logo}
             logoPequeno={<LogoEvento nome={nome} logoUrl={tema.logoUrl} className="h-9 sm:h-10" />}

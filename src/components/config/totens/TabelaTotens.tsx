@@ -1,9 +1,9 @@
 "use client";
 
-import { CircleCheck, CirclePause, CircleSlash, KeyRound, Pause, Pencil, Play } from "lucide-react";
+import { CircleCheck, CirclePause, CircleSlash, KeyRound, Layers, Pause, Pencil, Play } from "lucide-react";
 import { useState } from "react";
 import type { DispositivoListado } from "@/dominio/totem";
-import type { EstadoDispositivo } from "@/dominio/tipos";
+import type { Categoria, EstadoDispositivo } from "@/dominio/tipos";
 import { Botao } from "@/components/ui/Botao";
 import { Input } from "@/components/ui/Campo";
 import { Selo } from "@/components/ui/Selo";
@@ -22,6 +22,7 @@ const SELOS: Record<EstadoDispositivo, { texto: string; variante: "sucesso" | "a
  */
 export function TabelaTotens({
   totens,
+  categorias,
   fuso,
   podeGerir,
   aoRenomear,
@@ -29,8 +30,10 @@ export function TabelaTotens({
   aoReativar,
   aoTrocarPin,
   aoRevogar,
+  aoCategorias,
 }: {
   totens: DispositivoListado[];
+  categorias: readonly Categoria[];
   fuso: string;
   podeGerir: boolean;
   aoRenomear: (id: string, nome: string) => Promise<boolean>;
@@ -38,8 +41,10 @@ export function TabelaTotens({
   aoReativar: (totem: DispositivoListado) => void;
   aoTrocarPin: (totem: DispositivoListado) => void;
   aoRevogar: (totem: DispositivoListado) => void;
+  aoCategorias: (totem: DispositivoListado) => void;
 }) {
   const [editando, setEditando] = useState<{ id: string; nome: string } | null>(null);
+  const nomeDe = new Map(categorias.map((c) => [c.id, c.nome]));
 
   return (
     <ul className="flex flex-col gap-2">
@@ -90,6 +95,14 @@ export function TabelaTotens({
                 {t.votos === 1 ? "voto" : "votos"}
                 {!t.temPin && !revogado && " · sem PIN"}
               </p>
+              <p className="text-sm">
+                <span className="text-tema-texto-suave">Categorias: </span>
+                {t.categoriaIds.length ? (
+                  t.categoriaIds.map((id) => nomeDe.get(id) ?? "(removida)").join(", ")
+                ) : (
+                  <span className="font-semibold text-tema-aviso">nenhuma (o totem não mostra nada)</span>
+                )}
+              </p>
             </div>
             {podeGerir && !revogado && (
               <div className="flex flex-wrap gap-2">
@@ -102,6 +115,9 @@ export function TabelaTotens({
                     Retomar
                   </Botao>
                 )}
+                <Botao variante="contorno" tamanho="pequeno" aria-label={`Categorias de ${t.nome}`} onClick={() => aoCategorias(t)} icone={<Layers aria-hidden className="size-4" />}>
+                  Categorias
+                </Botao>
                 <Botao variante="contorno" tamanho="pequeno" aria-label={`Trocar o PIN de ${t.nome}`} onClick={() => aoTrocarPin(t)} icone={<KeyRound aria-hidden className="size-4" />}>
                   PIN
                 </Botao>

@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 import { ordenarParaVotacao } from "@/dominio/ordemVotacao";
-import type { CampoCandidato, Candidato } from "@/dominio/tipos";
+import { itensDoCanal } from "@/dominio/categorias";
+import type { CampoCandidato, Candidato, CanalCategoria } from "@/dominio/tipos";
 import { candidatoBloqueadoParaVoto } from "@/dominio/votoProprio";
 import { useSementeOrdem } from "../AppProvider";
 import { useEventoAtivo } from "./evento";
@@ -22,7 +23,7 @@ export type CandidatosParaVotacao = {
  * Lista da votação (Etapa 4, seção 5.4; 08/10/2026: na entrada do evento, também para o visitante). Memoizada
  * no hook (D11 da Etapa 0): o tique de 1 s do relógio não muda a referência, e os cartões não re-renderizam.
  */
-export function useCandidatosParaVotacao(): CandidatosParaVotacao | null {
+export function useCandidatosParaVotacao(canal?: CanalCategoria): CandidatosParaVotacao | null {
   const ativo = useEventoAtivo();
   const usuarioId = useSessao().usuario?.id ?? null;
   const semente = useSementeOrdem();
@@ -30,10 +31,12 @@ export function useCandidatosParaVotacao(): CandidatosParaVotacao | null {
   return useMemo(() => {
     if (!ativo) return null;
     const { evento } = ativo;
-    const itens = ordenarParaVotacao(ativo.candidatos, evento, semente).map((candidato) => ({
+    // `canal` (25/11/2026): a página do evento pede só os ONLINE; o júri avalia todos.
+    const base = canal ? itensDoCanal(ativo.candidatos, ativo.categorias, canal) : ativo.candidatos;
+    const itens = ordenarParaVotacao(base, evento, semente).map((candidato) => ({
       candidato,
       bloqueadoVotoProprio: usuarioId ? candidatoBloqueadoParaVoto(candidato, usuarioId, evento) : false,
     }));
     return { itens, campos: ativo.camposCandidato, total: itens.length };
-  }, [ativo, usuarioId, semente]);
+  }, [ativo, usuarioId, semente, canal]);
 }

@@ -41,12 +41,17 @@ function tablet(cookies: string[], ip: string): ContextoTotem {
   return { headers: new Headers({ cookie: cookieDe(cookies) }), ip, cookies: [] };
 }
 
+/** As categorias do totem do evento (25/11/2026): o totem exibe ao menos uma. */
+async function categoriasTotem(eventoId: string): Promise<string[]> {
+  return (await db().categoria.findMany({ where: { eventoId, canal: "TOTEM" }, select: { id: true } })).map((c) => c.id);
+}
+
 /** Gera o código como admin e pareia um tablet novo. Devolve o contexto do tablet (com o cookie do totem). */
 async function criarTotem(admin: UsuarioSessao, eventoId: string, opcoes: { nome?: string; pin?: string } = {}) {
   const ip = novoIp();
   const nome = opcoes.nome ?? `Totem ${randomUUID().slice(0, 8)}`;
   const pin = opcoes.pin ?? PIN;
-  const gerado = await gerarCodigoPareamento(admin, eventoId, { nome, pin }, { ip });
+  const gerado = await gerarCodigoPareamento(admin, eventoId, { nome, pin, categoriaIds: await categoriasTotem(eventoId) }, { ip });
   if (!gerado.ok) throw new Error(`gerarCodigoPareamento falhou: ${gerado.erro.codigo} ${gerado.erro.mensagem}`);
   const cookies: string[] = [];
   const pareado = await parearTotem({ headers: new Headers(), ip, cookies }, { eventoId, codigo: gerado.dados.codigo });
@@ -68,6 +73,8 @@ function codigoQueNaoExiste(n: number): string {
 async function eventoComTotens(slug: string, opcoes: { urna?: "NAO_INICIADA" | "ABERTA" | "ENCERRADA"; ativo?: boolean; pesoInfantil?: number } = {}) {
   const eventoId = await semearEvento(slug, { ativo: opcoes.ativo ?? true, urna: opcoes.urna });
   await ligarInfantil(eventoId, { pesoInfantil: opcoes.pesoInfantil });
+  // 25/11/2026: a categoria única do seed passa a ser votada no totem (os itens criados nos testes caem nela).
+  await db().categoria.updateMany({ where: { eventoId }, data: { canal: "TOTEM" } });
   const admin = await criarAdminDireto(eventoId);
   return { eventoId, admin };
 }
@@ -179,10 +186,10 @@ describe("código de pareamento: geração", () => {
     const { eventoId, admin } = await eventoComTotens("teste-totem-codigo");
     const publico = await criarUsuarioDireto(eventoId);
     for (const quem of [publico, null])
-      expect(await gerarCodigoPareamento(quem, eventoId, { nome: "Totem Hall", pin: PIN }, ctx)).toMatchObject({ ok: false, erro: { codigo: "NAO_AUTORIZADO" } });
+      expect(await gerarCodigoPareamento(quem, eventoId, { nome: "Totem Hall", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).toMatchObject({ ok: false, erro: { codigo: "NAO_AUTORIZADO" } });
 
     const antes = Date.now();
-    const r = await gerarCodigoPareamento(admin, eventoId, { nome: "  Totem Hall  ", pin: PIN }, ctx);
+    const r = await gerarCodigoPareamento(admin, eventoId, { nome: "  Totem Hall  ", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.dados.nome).toBe("Totem Hall");
@@ -204,37 +211,38 @@ describe("código de pareamento: geração", () => {
 
   it("valida nome e PIN; nome repetido (também contra código pendente); módulo desligado e urna encerrada travam", async () => {
     const { eventoId, admin } = await eventoComTotens("teste-totem-codigo-valida");
-    expect(await gerarCodigoPareamento(admin, eventoId, { nome: "A", pin: PIN }, ctx)).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO", campos: { nome: expect.any(String) } } });
+    expect(await gerarCodigoPareamento(admin, eventoId, { nome: "A", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO", campos: { nome: expect.any(String) } } });
     for (const pin of ["123", "123456789", "12ab", "", "12 34"])
-      expect(await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Ok", pin }, ctx)).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO", campos: { pin: expect.any(String) } } });
+      expect(await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Ok", pin, categoriaIds: await categoriasTotem(eventoId) }, ctx)).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO", campos: { pin: expect.any(String) } } });
 
-    expect((await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Pátio", pin: PIN }, ctx)).ok).toBe(true);
-    expect(await gerarCodigoPareamento(admin, eventoId, { nome: "totem pátio", pin: PIN }, ctx)).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO", campos: { nome: "Já existe um totem com este nome." } } });
+    expect((await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Pátio", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).ok).toBe(true);
+    expect(await gerarCodigoPareamento(admin, eventoId, { nome: "totem pátio", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO", campos: { nome: "Já existe um totem com este nome." } } });
 
     const semModulo = await semearEvento("teste-totem-codigo-sem-modulo", { ativo: true });
     const adminSem = await criarAdminDireto(semModulo);
-    expect(await gerarCodigoPareamento(adminSem, semModulo, { nome: "Totem", pin: PIN }, ctx)).toMatchObject({ ok: false, erro: { codigo: "TRAVADO" } });
+    expect(await gerarCodigoPareamento(adminSem, semModulo, { nome: "Totem", pin: PIN, categoriaIds: await categoriasTotem(semModulo) }, ctx)).toMatchObject({ ok: false, erro: { codigo: "TRAVADO" } });
 
     const encerrado = await eventoComTotens("teste-totem-codigo-encerrado", { urna: "ENCERRADA" });
-    expect(await gerarCodigoPareamento(encerrado.admin, encerrado.eventoId, { nome: "Totem", pin: PIN }, ctx)).toMatchObject({ ok: false, erro: { codigo: "TRAVADO" } });
+    expect(await gerarCodigoPareamento(encerrado.admin, encerrado.eventoId, { nome: "Totem", pin: PIN, categoriaIds: await categoriasTotem(encerrado.eventoId) }, ctx)).toMatchObject({ ok: false, erro: { codigo: "TRAVADO" } });
     await db().evento.update({ where: { id: encerrado.eventoId }, data: { estado: "CONCLUIDO" } });
-    expect(await gerarCodigoPareamento(encerrado.admin, encerrado.eventoId, { nome: "Totem", pin: PIN }, ctx)).toMatchObject({ ok: false, erro: { codigo: "EVENTO_CONCLUIDO" } });
+    expect(await gerarCodigoPareamento(encerrado.admin, encerrado.eventoId, { nome: "Totem", pin: PIN, categoriaIds: await categoriasTotem(encerrado.eventoId) }, ctx)).toMatchObject({ ok: false, erro: { codigo: "EVENTO_CONCLUIDO" } });
   });
 
   it("no rascunho já gera (o tablet é preparado antes da urna abrir)", async () => {
     const eventoId = await semearEvento("teste-totem-codigo-rascunho");
     await ligarInfantil(eventoId);
+    await db().categoria.updateMany({ where: { eventoId }, data: { canal: "TOTEM" } });
     const admin = await criarAdminDireto(eventoId);
-    expect((await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Cedo", pin: PIN }, ctx)).ok).toBe(true);
+    expect((await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Cedo", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).ok).toBe(true);
   });
 
   it("no máximo 20 códigos pendentes por evento; os vencidos viram EXPIRADO e liberam vaga", async () => {
     const { eventoId, admin } = await eventoComTotens("teste-totem-codigo-limite");
-    for (let i = 1; i <= 20; i++) expect((await gerarCodigoPareamento(admin, eventoId, { nome: `Totem ${i}`, pin: PIN }, ctx)).ok).toBe(true);
-    expect(await gerarCodigoPareamento(admin, eventoId, { nome: "Totem 21", pin: PIN }, ctx)).toMatchObject({ ok: false, erro: { codigo: "CONFLITO" } });
+    for (let i = 1; i <= 20; i++) expect((await gerarCodigoPareamento(admin, eventoId, { nome: `Totem ${i}`, pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).ok).toBe(true);
+    expect(await gerarCodigoPareamento(admin, eventoId, { nome: "Totem 21", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).toMatchObject({ ok: false, erro: { codigo: "CONFLITO" } });
 
     await db().codigoPareamento.updateMany({ where: { eventoId }, data: { validadeAte: new Date(Date.now() - 60_000) } });
-    expect((await gerarCodigoPareamento(admin, eventoId, { nome: "Totem 21", pin: PIN }, ctx)).ok).toBe(true);
+    expect((await gerarCodigoPareamento(admin, eventoId, { nome: "Totem 21", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).ok).toBe(true);
     expect(await db().codigoPareamento.count({ where: { eventoId, estado: "EXPIRADO" } })).toBe(20);
   });
 });
@@ -247,7 +255,7 @@ describe("pareamento do tablet", () => {
   it("troca o código por um token: cookie HttpOnly no tablet, só o hash no banco, nome e PIN do admin", async () => {
     const { eventoId, admin } = await eventoComTotens("teste-totem-parear");
     const ip = novoIp();
-    const gerado = await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Hall", pin: PIN }, { ip });
+    const gerado = await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Hall", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, { ip });
     if (!gerado.ok) throw new Error("não gerou");
 
     const cookies: string[] = [];
@@ -294,7 +302,7 @@ describe("pareamento do tablet", () => {
 
   it("cinco pareamentos simultâneos com o mesmo código: só um passa", async () => {
     const { eventoId, admin } = await eventoComTotens("teste-totem-parear-corrida");
-    const gerado = await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Corrida", pin: PIN }, { ip: novoIp() });
+    const gerado = await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Corrida", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, { ip: novoIp() });
     if (!gerado.ok) throw new Error("não gerou");
     const rs = await Promise.all(
       Array.from({ length: 5 }, () => parearTotem({ headers: new Headers(), ip: novoIp(), cookies: [] }, { eventoId, codigo: gerado.dados.codigo })),
@@ -310,12 +318,12 @@ describe("pareamento do tablet", () => {
     const ip = novoIp();
     const contexto = () => ({ headers: new Headers(), ip, cookies: [] as string[] });
 
-    const vencido = await gerarCodigoPareamento(admin, eventoId, { nome: "Vencido", pin: PIN }, { ip });
+    const vencido = await gerarCodigoPareamento(admin, eventoId, { nome: "Vencido", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, { ip });
     if (!vencido.ok) throw new Error("não gerou");
     await db().codigoPareamento.updateMany({ where: { eventoId }, data: { validadeAte: new Date(Date.now() - 1000) } });
     expect(await parearTotem(contexto(), { eventoId, codigo: vencido.dados.codigo })).toMatchObject({ ok: false, erro: { codigo: "CODIGO_EXPIRADO" } });
 
-    const deOutro = await gerarCodigoPareamento(outro.admin, outro.eventoId, { nome: "De outro", pin: PIN }, { ip });
+    const deOutro = await gerarCodigoPareamento(outro.admin, outro.eventoId, { nome: "De outro", pin: PIN, categoriaIds: await categoriasTotem(outro.eventoId) }, { ip });
     if (!deOutro.ok) throw new Error("não gerou");
     expect(await parearTotem(contexto(), { eventoId, codigo: deOutro.dados.codigo })).toMatchObject({ ok: false, erro: { codigo: "CODIGO_INVALIDO" } });
 
@@ -327,7 +335,7 @@ describe("pareamento do tablet", () => {
   it("cinco códigos errados bloqueiam o IP por 60 s, inclusive para o código certo; o bloqueio é auditado uma vez", async () => {
     const { eventoId, admin } = await eventoComTotens("teste-totem-parear-bloqueio");
     const ip = novoIp();
-    const gerado = await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Bloq", pin: PIN }, { ip });
+    const gerado = await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Bloq", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, { ip });
     if (!gerado.ok) throw new Error("não gerou");
     const contexto = () => ({ headers: new Headers(), ip, cookies: [] as string[] });
 
@@ -343,7 +351,7 @@ describe("pareamento do tablet", () => {
 
   it("não pareia com o módulo desligado nem com o evento concluído ou a urna encerrada", async () => {
     const { eventoId, admin } = await eventoComTotens("teste-totem-parear-estado");
-    const gerado = await gerarCodigoPareamento(admin, eventoId, { nome: "Totem", pin: PIN }, { ip: novoIp() });
+    const gerado = await gerarCodigoPareamento(admin, eventoId, { nome: "Totem", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, { ip: novoIp() });
     if (!gerado.ok) throw new Error("não gerou");
     const tentar = () => parearTotem({ headers: new Headers(), ip: novoIp(), cookies: [] }, { eventoId, codigo: gerado.dados.codigo });
 
@@ -364,7 +372,7 @@ describe("pareamento do tablet", () => {
     const falso = randomBytes(32).toString("base64url");
     expect(await obterEstadoTotem({ headers: new Headers({ cookie: `${COOKIE_TOTEM}=${falso}` }), ip, cookies: [] })).toEqual({ ok: true, dados: { dispositivo: null } });
 
-    expect(await obterEstadoTotem(t.ctx)).toEqual({ ok: true, dados: { dispositivo: { id: t.id, eventoId, nome: "Totem Estado", estado: "ATIVO" } } });
+    expect(await obterEstadoTotem(t.ctx)).toEqual({ ok: true, dados: { dispositivo: { id: t.id, eventoId, nome: "Totem Estado", estado: "ATIVO", categoriaIds: await categoriasTotem(eventoId) } } });
     await pausarDispositivo(admin, eventoId, t.id, { ip });
     expect(await obterEstadoTotem(t.ctx)).toMatchObject({ ok: true, dados: { dispositivo: { estado: "PAUSADO" } } });
     await revogarDispositivo(admin, eventoId, t.id, {}, { ip });
@@ -684,7 +692,7 @@ describe("gestão dos totens pelo admin", () => {
       expect(await revogarDispositivo(quem, eventoId, t.id, {}, ctx)).toMatchObject(nao);
       expect(await renomearDispositivo(quem, eventoId, t.id, "Invasor")).toMatchObject(nao);
       expect(await alterarPinDispositivo(quem, eventoId, t.id, "11112222", ctx)).toMatchObject(nao);
-      expect(await gerarCodigoPareamento(quem, eventoId, { nome: "Invasor", pin: PIN }, ctx)).toMatchObject(nao);
+      expect(await gerarCodigoPareamento(quem, eventoId, { nome: "Invasor", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).toMatchObject(nao);
     }
     // O admin do outro evento não alcança este totem pelo id dele.
     const nada = { ok: false, erro: { codigo: "NAO_ENCONTRADO" } };
@@ -732,7 +740,7 @@ describe("gestão dos totens pelo admin", () => {
     expect(renomeados).toHaveLength(1);
     expect(renomeados[0].detalhes).toEqual({ de: "Totem Pátio", para: "Totem Entrada" });
     // O nome de um totem já pareado também barra um código novo com o mesmo nome.
-    expect(await gerarCodigoPareamento(admin, eventoId, { nome: "totem entrada", pin: PIN }, { ip: a.ip })).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
+    expect(await gerarCodigoPareamento(admin, eventoId, { nome: "totem entrada", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, { ip: a.ip })).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO" } });
   });
 
   it("trocar o PIN audita sem o PIN, valida o formato e só vale para o totem certo", async () => {
@@ -910,7 +918,7 @@ describe("fronteira RPC do totem", () => {
     const { eventoId, admin } = await eventoComTotens("teste-totem-rpc", { urna: "ABERTA" });
     const [candidatoId] = await criarCandidatos(eventoId, 2);
     const ip = novoIp();
-    const gerado = await gerarCodigoPareamento(admin, eventoId, { nome: "Totem RPC", pin: PIN }, { ip });
+    const gerado = await gerarCodigoPareamento(admin, eventoId, { nome: "Totem RPC", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, { ip });
     if (!gerado.ok) throw new Error("não gerou");
     const outro = await criarTotem(admin, eventoId);
 
@@ -951,7 +959,7 @@ describe("fronteira RPC do totem", () => {
 
     for (const ctx of [semSessao, comCookieDoTotem]) {
       expect(await executarServico("listarDispositivos", { eventoId }, ctx)).toMatchObject(nao);
-      expect(await executarServico("gerarCodigoPareamento", { eventoId, nome: "Invasor", pin: PIN }, ctx)).toMatchObject(nao);
+      expect(await executarServico("gerarCodigoPareamento", { eventoId, nome: "Invasor", pin: PIN, categoriaIds: [] }, ctx)).toMatchObject(nao);
       expect(await executarServico("pausarDispositivo", { eventoId, dispositivoId: t.id }, ctx)).toMatchObject(nao);
       expect(await executarServico("revogarDispositivo", { eventoId, dispositivoId: t.id }, ctx)).toMatchObject(nao);
       expect(await executarServico("renomearDispositivo", { eventoId, dispositivoId: t.id, nome: "Invasor" }, ctx)).toMatchObject(nao);

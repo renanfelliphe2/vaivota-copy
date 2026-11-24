@@ -31,7 +31,7 @@ const atraso = (ms: number) => ({ "--atraso": `${ms}ms` }) as CSSProperties;
 export function HeroCinema() {
   const ativo = useEventoAtivo();
   const situacao = useSituacaoEvento();
-  const lista = useCandidatosParaVotacao();
+  const lista = useCandidatosParaVotacao("ONLINE");
   const { organizador } = useIdentidadePagina();
   const { destacar } = useDestaqueCandidato();
   const router = useRouter();

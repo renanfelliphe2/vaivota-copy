@@ -27,8 +27,13 @@ const CONSULTAS_POR_TOTEM_POR_MINUTO = 60;
 type LinhaDispositivo = { id: string; evento_id: string; estado: string };
 type LinhaEvento = { id: string; estado: string; estado_urna: string; modulo_infantil: boolean };
 
-function doTotem(d: { id: string; eventoId: string; nome: string; estado: DispositivoDoTotem["estado"] }): DispositivoDoTotem {
-  return { id: d.id, eventoId: d.eventoId, nome: d.nome, estado: d.estado };
+type LinhaTotem = { id: string; eventoId: string; nome: string; estado: DispositivoDoTotem["estado"]; categorias: { categoriaId: string }[] };
+
+/** Leitura do totem com as categorias que ele exibe. */
+const SELECAO_TOTEM = { id: true, eventoId: true, nome: true, estado: true, categorias: { select: { categoriaId: true } } } as const;
+
+function doTotem(d: LinhaTotem): DispositivoDoTotem {
+  return { id: d.id, eventoId: d.eventoId, nome: d.nome, estado: d.estado, categoriaIds: d.categorias.map((c) => c.categoriaId) };
 }
 
 // ─────────────────────────────────────────────
@@ -113,10 +118,24 @@ export async function parearTotem(ctx: ContextoTotem, entrada: { eventoId: strin
 
         const codigo = await tx.codigoPareamento.findUniqueOrThrow({
           where: { eventoId_hashCodigo: { eventoId: evento.id, hashCodigo: hash } },
-          select: { id: true, nome: true, hashPin: true },
+          select: { id: true, nome: true, hashPin: true, categoriaIds: true },
         });
+        // As categorias escolhidas ao gerar o código, que ainda sejam do totem (o admin pode ter mudado o canal depois).
+        const categorias = await tx.categoria.findMany({
+          where: { eventoId: evento.id, canal: "TOTEM", id: { in: codigo.categoriaIds } },
+          select: { id: true },
+        });
+        if (categorias.length === 0) throw new PareamentoRecusado("CODIGO_INVALIDO");
         const criado = await tx.dispositivo.create({
-          data: { eventoId: evento.id, nome: codigo.nome ?? "Totem", hashToken: hashDoToken(token), hashPin: codigo.hashPin, estado: "ATIVO" },
+          data: {
+            eventoId: evento.id,
+            nome: codigo.nome ?? "Totem",
+            hashToken: hashDoToken(token),
+            hashPin: codigo.hashPin,
+            estado: "ATIVO",
+            categorias: { create: categorias.map((c) => ({ categoriaId: c.id })) },
+          },
+          select: SELECAO_TOTEM,
         });
         await tx.codigoPareamento.update({ where: { id: codigo.id }, data: { dispositivoId: criado.id } });
         await registrarAuditoria(tx, {
@@ -167,7 +186,7 @@ export async function obterEstadoTotem(ctx: ContextoTotem): Promise<Resultado<{ 
   if (!consumirEmMemoria(`totem-estado:${hash}`, CONSULTAS_POR_TOTEM_POR_MINUTO, 60_000) || !consumirEmMemoria(`totem-estado-ip:${ctx.ip}`, REQUISICOES_POR_IP_POR_MINUTO, 60_000))
     return falha("LIMITE_TENTATIVAS", { parametros: { n: 60 } });
   try {
-    const d = await db().dispositivo.findUnique({ where: { hashToken: hash }, select: { id: true, eventoId: true, nome: true, estado: true } });
+    const d = await db().dispositivo.findUnique({ where: { hashToken: hash }, select: SELECAO_TOTEM });
     return sucesso({ dispositivo: d ? doTotem(d) : null });
   } catch (e) {
     return falhaInterna(e, "obterEstadoTotem");
@@ -244,8 +263,15 @@ export async function votarInfantil(
       const recusaEstado = estadoDaUrna(evento.estado, evento.estado_urna, evento.modulo_infantil);
       if (recusaEstado) throw new VotoRecusado(recusaEstado);
 
+      // 25/11/2026: só item de uma categoria TOTEM que este aparelho exibe. O item da página do evento nunca entra pelo totem.
       const candidato = await tx.candidato.findFirst({
-        where: { id: entrada.candidatoId, eventoId: evento.id, publicado: true, desqualificado: false },
+        where: {
+          id: entrada.candidatoId,
+          eventoId: evento.id,
+          publicado: true,
+          desqualificado: false,
+          categoria: { canal: "TOTEM", totens: { some: { dispositivoId: aparelho.id } } },
+        },
         select: { id: true },
       });
       if (!candidato) throw new VotoRecusado("CANDIDATO_INDISPONIVEL");

@@ -83,6 +83,8 @@ export async function criarCandidato(usuario: UsuarioSessao | null, eventoId: st
   const chaves = await chavesDosCampos(eventoId);
   const r = await comEventoTravado(eventoId, "CANDIDATOS_PUBLICACAO", async (tx) => {
     const maior = await tx.candidato.aggregate({ where: { eventoId }, _max: { ordem: true } });
+    // 25/11/2026: no evento de categoria única (ex.: "Melhor Projeto"), o item novo já entra nela; com várias, o admin escolhe.
+    const categorias = dados.categoriaId ? [] : await tx.categoria.findMany({ where: { eventoId }, select: { id: true }, take: 2 });
     const novo = await tx.candidato.create({
       data: {
         eventoId,
@@ -91,7 +93,7 @@ export async function criarCandidato(usuario: UsuarioSessao | null, eventoId: st
         publicado: false, // sempre nasce como rascunho
         ordem: (maior._max.ordem ?? 0) + 1,
         camposExtras: limparCampos(chaves, dados.camposExtras),
-        categoriaId: dados.categoriaId ?? null,
+        categoriaId: dados.categoriaId ?? (categorias.length === 1 ? categorias[0].id : null),
       },
       select: { id: true },
     });

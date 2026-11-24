@@ -3,6 +3,7 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useId, useState, type FormEvent } from "react";
+import { categoriasDoCanal } from "@/dominio/categorias";
 import type { DispositivoListado } from "@/dominio/totem";
 import type { Travas } from "@/dominio/travas";
 import { validarNomeDispositivo, validarPinTotem } from "@/dominio/validacoesConfig";
@@ -14,6 +15,7 @@ import { DialogoConfirmacao } from "@/components/ui/DialogoConfirmacao";
 import { Selo } from "@/components/ui/Selo";
 import { useConsulta } from "@/lib/useConsulta";
 import {
+  alterarCategoriasDispositivo,
   alterarPinDispositivo,
   alternarModuloInfantil,
   gerarCodigoPareamento,
@@ -30,6 +32,8 @@ import { DialogoMotivo } from "../DialogoMotivo";
 import { DicaTrava } from "../DicaTrava";
 import { useServico } from "../useServico";
 import { AlterarPinDialog } from "./AlterarPinDialog";
+import { CategoriasTotemDialog } from "./CategoriasTotemDialog";
+import { EscolhaCategoriasTotem } from "./EscolhaCategoriasTotem";
 import { CodigoPareamentoDialog, type CodigoParaMostrar } from "./CodigoPareamentoDialog";
 import { TabelaTotens } from "./TabelaTotens";
 
@@ -48,6 +52,8 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
   const idForm = useId();
   const [nome, setNome] = useState("");
   const [pin, setPin] = useState("");
+  const [categoriaIds, setCategoriaIds] = useState<string[]>([]);
+  const [editandoCategorias, setEditandoCategorias] = useState<DispositivoListado | null>(null);
   const [tentou, setTentou] = useState(false);
   const [codigo, setCodigo] = useState<CodigoParaMostrar | null>(null);
   const [desligando, setDesligando] = useState(false);
@@ -63,16 +69,21 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
   const podeGerir = travas.permite("DISPOSITIVOS_GERIR");
   const erroNome = validarNomeDispositivo(nome);
   const erroPin = validarPinTotem(pin);
+  // 25/11/2026: o totem exibe só categorias votadas no totem; ao menos uma.
+  const categoriasTotem = categoriasDoCanal(ativo.categorias, "TOTEM");
+  const marcadas = categoriaIds.filter((id) => categoriasTotem.some((c) => c.id === id));
+  const erroCategorias = marcadas.length === 0 ? "Escolha ao menos uma categoria para o totem." : null;
 
   async function gerar(e: FormEvent) {
     e.preventDefault();
     setTentou(true);
-    if (erroNome || erroPin || servico.carregando) return;
-    const r = await servico.executar(() => gerarCodigoPareamento(eventoId, { nome, pin }), null);
+    if (erroNome || erroPin || erroCategorias || servico.carregando) return;
+    const r = await servico.executar(() => gerarCodigoPareamento(eventoId, { nome, pin, categoriaIds: marcadas }), null);
     if (!r.ok) return;
     setCodigo({ ...r.dados, url: `${window.location.origin}/e/${slug}/totem/parear` });
     setNome("");
     setPin("");
+    setCategoriaIds([]);
     setTentou(false);
     consulta.recarregar();
   }
@@ -133,7 +144,7 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
           <form onSubmit={(e) => void gerar(e)} noValidate className="flex flex-col gap-4 rounded-2xl border border-tema-borda p-5">
             <h3 className="text-lg font-bold">Parear um novo totem</h3>
             <p className="text-sm text-tema-texto-suave">
-              Defina o nome e o PIN de saída do modo totem e gere o código. No tablet, abra a página de pareamento e digite o código uma vez.
+              Defina o nome, o PIN de saída do modo totem e as categorias que ele exibe, e gere o código. No tablet, abra a página de pareamento e digite o código uma vez.
             </p>
             <DicaTrava motivo={podeParear ? null : travas.motivo("DISPOSITIVOS_PAREAR")} />
             <div className="grid gap-4 sm:grid-cols-2">
@@ -152,7 +163,14 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
                 />
               </Campo>
             </div>
-            <Botao type="submit" disabled={!podeParear} carregando={servico.carregando} icone={<Plus aria-hidden className="size-4" />} className="self-start">
+            <EscolhaCategoriasTotem
+              categorias={categoriasTotem}
+              marcadas={marcadas}
+              aoMudar={setCategoriaIds}
+              erro={servico.erro?.campos?.categorias ?? (tentou ? erroCategorias : null)}
+              desabilitado={!podeParear}
+            />
+            <Botao type="submit" disabled={!podeParear || categoriasTotem.length === 0} carregando={servico.carregando} icone={<Plus aria-hidden className="size-4" />} className="self-start">
               Gerar código de pareamento
             </Botao>
           </form>
@@ -172,6 +190,7 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
         <>
           <TabelaTotens
             totens={totens}
+            categorias={ativo.categorias}
             fuso={evento.fusoHorario}
             podeGerir={podeGerir}
             aoRenomear={(id, novo) => agir(() => renomearDispositivo(eventoId, id, novo), "Nome salvo")}
@@ -182,6 +201,10 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
               setTrocandoPin(t);
             }}
             aoRevogar={setRevogando}
+            aoCategorias={(t) => {
+              servico.limparErro();
+              setEditandoCategorias(t);
+            }}
           />
           <p className="text-sm text-tema-texto-suave">Votos de totens pausados ou revogados continuam contando: foram registrados antes da pausa ou da revogação.</p>
         </>
@@ -198,6 +221,20 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
         aoConfirmar={async (novo) => {
           if (!trocandoPin) return;
           if (await agir(() => alterarPinDispositivo(eventoId, trocandoPin.id, novo), "PIN alterado")) setTrocandoPin(null);
+        }}
+      />
+      <CategoriasTotemDialog
+        key={editandoCategorias?.id ?? "fechado"}
+        nome={editandoCategorias?.nome ?? null}
+        aberto={editandoCategorias !== null}
+        categorias={categoriasTotem}
+        iniciais={editandoCategorias?.categoriaIds ?? []}
+        carregando={servico.carregando}
+        erroServidor={servico.erro?.campos?.categorias ?? null}
+        aoFechar={() => setEditandoCategorias(null)}
+        aoConfirmar={async (ids) => {
+          if (!editandoCategorias) return;
+          if (await agir(() => alterarCategoriasDispositivo(eventoId, editandoCategorias.id, ids), "Categorias do totem salvas")) setEditandoCategorias(null);
         }}
       />
       <DialogoMotivo

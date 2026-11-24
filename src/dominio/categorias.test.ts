@@ -82,7 +82,7 @@ describe("validarCategorias", () => {
   });
 });
 
-const cat = (id: string, ordem: number, eventoId = "e1"): Categoria => ({ id, eventoId, slug: id, nome: `Categoria ${id}`, premio: null, descricao: null, ordem });
+const cat = (id: string, ordem: number, eventoId = "e1"): Categoria => ({ id, eventoId, slug: id, nome: `Categoria ${id}`, premio: null, descricao: null, canal: "ONLINE", ordem });
 
 describe("auxiliares", () => {
   it("categoriasDoEvento ordena e filtra pelo evento", () => {
@@ -123,9 +123,10 @@ describe("checklist das categorias", () => {
   };
   const item = (e: EntradaChecklist) => avaliarChecklist(e).find((i) => i.id === "CATEGORIAS")!;
 
-  it("sem categorias, não se aplica", () => {
+  it("sem categorias, bloqueia (25/11/2026: todo evento tem ao menos uma)", () => {
     expect(contarCategorias([], [null, null])).toEqual({ total: 0, semItens: 0, itensSemCategoria: 0 });
-    expect(item(base).estado).toBe("NAO_SE_APLICA");
+    expect(item(base).estado).toBe("PENDENTE");
+    expect(item(base).secao).toBe("categorias");
   });
 
   it("toda categoria com item e todo item com categoria: OK; senão, bloqueia", () => {

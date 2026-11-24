@@ -134,7 +134,9 @@ describe("consultarEstadoVoto", () => {
     const eu = await criarUsuarioDireto(eventoId);
     expect(await consultarEstadoVoto(eu, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: false, candidatoAtualId: null, categoriasVotadas: [] } });
     await votarPopular(eu, { eventoId, candidatoId: candidatos[4] }, ctx);
-    expect(await consultarEstadoVoto(eu, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: true, candidatoAtualId: null, categoriasVotadas: [] } });
+    // Só em quais categorias (a única do evento), nunca em quem.
+    const categoria = await db().categoria.findFirstOrThrow({ where: { eventoId }, select: { id: true } });
+    expect(await consultarEstadoVoto(eu, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: true, candidatoAtualId: null, categoriasVotadas: [categoria.id] } });
   });
 });
 

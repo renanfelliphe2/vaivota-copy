@@ -3,6 +3,7 @@
 import { ArrowUp, Eye, Lock, Trophy, Vote } from "lucide-react";
 import type { CSSProperties } from "react";
 import { votaveis } from "@/dominio/candidatos";
+import { itensDoCanal } from "@/dominio/categorias";
 import { minusculas } from "@/lib/rotulos";
 import { tokensCinema } from "@/lib/tema";
 import { useEventoAtivo } from "@/store/seletores/evento";
@@ -16,7 +17,7 @@ export function ComoFuncionaCinema() {
   const ativo = useEventoAtivo();
   if (!ativo) return null;
   const rotulos = minusculas(ativo.tema.rotuloCandidatos);
-  const temCandidatos = votaveis(ativo.candidatos).length > 0;
+  const temCandidatos = itensDoCanal(votaveis(ativo.candidatos), ativo.categorias, "ONLINE").length > 0;
   // Evento com categorias (09/11/2026): um voto em cada categoria, e o atalho leva às categorias.
   const comCategorias = ativo.categorias.length > 0;
   const passos = [

@@ -1,6 +1,7 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { enderecosDasCategorias, validarCategorias } from "@/dominio/categorias";
+import type { CanalCategoria } from "@/dominio/tipos";
 import { exigirAcao } from "@/dominio/travas";
 import { registrarAuditoria } from "./auditoria";
 import { invalidarEstadoPublico } from "./estadoPublico";
@@ -19,7 +20,7 @@ import { exigirAdmin, type UsuarioSessao } from "./sessao";
  * `id` null: categoria nova. `premio`/`descricao` vazios: sem prêmio/descrição. `descricao` ausente: mantém a salva. `slug`, se
  * vier (clientes antigos), é ignorado.
  */
-export type CategoriaEditadaServidor = { id: string | null; nome: string; premio: string; descricao?: string; slug?: string };
+export type CategoriaEditadaServidor = { id: string | null; nome: string; premio: string; descricao?: string; canal?: CanalCategoria; slug?: string };
 
 export async function salvarCategorias(
   usuario: UsuarioSessao | null,
@@ -32,7 +33,7 @@ export async function salvarCategorias(
   const { usuarioId } = admin.dados;
   const trava = exigirAcao(admin.dados.evento, "CATEGORIAS_ROTULO");
   if (!trava.ok) return trava;
-  const limpa = lista.map((c) => ({ id: c.id, nome: c.nome.trim(), premio: c.premio.trim(), descricao: c.descricao?.trim() }));
+  const limpa = lista.map((c) => ({ id: c.id, nome: c.nome.trim(), premio: c.premio.trim(), descricao: c.descricao?.trim(), canal: c.canal }));
   const campos = validarCategorias(limpa);
   if (Object.keys(campos).length > 0) return falha("VALIDACAO", { campos });
   const ids = limpa.flatMap((c) => (c.id ? [c.id] : []));
@@ -50,15 +51,34 @@ export async function salvarCategorias(
     const manter = new Map<number, string>();
     if (!estruturaLivre) limpa.forEach((c, i) => c.id && manter.set(i, porId.get(c.id)!.slug));
     const slugs = enderecosDasCategorias(limpa.map((c) => c.nome), manter);
-    const comSlug = limpa.map((c, i) => ({ ...c, slug: slugs[i] }));
+    // Canal (25/11/2026): ausente, a salva mantém o dela e a nova nasce ONLINE.
+    const comSlug = limpa.map((c, i) => ({ ...c, slug: slugs[i], canal: c.canal ?? (c.id ? porId.get(c.id)!.canal : "ONLINE") }));
 
     const mantidas = new Set(ids);
     const removidas = atuais.filter((c) => !mantidas.has(c.id));
     const novas = comSlug.filter((c) => c.id === null);
     const enderecoTrocado = comSlug.filter((c) => c.id !== null && porId.get(c.id)!.slug !== c.slug);
-    if (removidas.length || novas.length || enderecoTrocado.length) {
+    const canalTrocado = comSlug.filter((c) => c.id !== null && porId.get(c.id)!.canal !== c.canal);
+    if (removidas.length || novas.length || enderecoTrocado.length || canalTrocado.length) {
       const estrutura = exigirAcao(evento, "CATEGORIAS_ESTRUTURA");
       if (!estrutura.ok) return estrutura;
+    }
+
+    // Categoria que deixa o totem (removida ou passada para a página) não pode estar num totem em uso: ele ficaria sem ela.
+    const saemDoTotem = [...removidas, ...canalTrocado.map((c) => porId.get(c.id!)!)].filter((c) => c.canal === "TOTEM");
+    if (saemDoTotem.length) {
+      const idsSaem = saemDoTotem.map((c) => c.id);
+      const emUso = await tx.dispositivoCategoria.findMany({
+        where: { categoriaId: { in: idsSaem }, dispositivo: { estado: { not: "REVOGADO" } } },
+        select: { categoria: { select: { nome: true } }, dispositivo: { select: { nome: true } } },
+      });
+      if (emUso.length)
+        return falha("CONFLITO", {
+          mensagem: `${emUso[0].categoria.nome} está no totem ${emUso[0].dispositivo.nome}. Tire a categoria do totem (seção Totens) antes.`,
+          detalhe: `categorias em totens: ${emUso.length}`,
+        });
+      // Totens revogados não votam mais: a ligação deles some junto.
+      await tx.dispositivoCategoria.deleteMany({ where: { categoriaId: { in: idsSaem } } });
     }
 
     if (removidas.length) {
@@ -77,7 +97,7 @@ export async function salvarCategorias(
     // Troca de endereço em duas etapas: dois endereços trocados entre si não colidem no índice único (evento, endereço).
     for (const c of enderecoTrocado) await tx.categoria.update({ where: { id: c.id! }, data: { slug: `x${randomBytes(8).toString("hex")}` } });
     for (const [i, c] of comSlug.entries()) {
-      const dados = { nome: c.nome, premio: c.premio || null, ...(c.descricao !== undefined && { descricao: c.descricao || null }), slug: c.slug, ordem: i + 1 };
+      const dados = { nome: c.nome, premio: c.premio || null, ...(c.descricao !== undefined && { descricao: c.descricao || null }), slug: c.slug, canal: c.canal, ordem: i + 1 };
       if (c.id) await tx.categoria.update({ where: { id: c.id }, data: dados });
       else await tx.categoria.create({ data: { eventoId, ...dados } });
     }
@@ -93,6 +113,7 @@ export async function salvarCategorias(
         adicionadas: novas.map((c) => c.nome),
         removidas: removidas.map((c) => c.nome),
         enderecosTrocados: enderecoTrocado.map((c) => ({ de: porId.get(c.id!)!.slug, para: c.slug })),
+        canaisTrocados: canalTrocado.map((c) => ({ categoria: c.nome, para: c.canal })),
       },
       ipHash: hashDoIp(ctx.ip),
     });

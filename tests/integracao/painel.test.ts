@@ -149,9 +149,10 @@ describe("depois do encerramento", () => {
 
     const classificacao = await prepararExportacao(admin, eventoId, "resultado_candidatos", ctx);
     if (!classificacao.ok) throw new Error("sem classificação");
-    expect(classificacao.dados.cabecalho).toEqual(["posicao", "candidato", "situacao", "votos_popular", "pontos_popular", "pontuacao_final", "empate"]);
-    expect(classificacao.dados.linhas[0].slice(0, 2)).toEqual([1, "Projeto 1"]);
-    expect(classificacao.dados.linhas[0][5]).toBe("60,00"); // 3 de 5 votos
+    // 25/11/2026: todo evento tem categoria, então a planilha sai por categoria (a única, "Melhor Projeto").
+    expect(classificacao.dados.cabecalho).toEqual(["categoria", "posicao", "candidato", "situacao", "votos_popular", "pontos_popular", "pontuacao_final", "empate"]);
+    expect(classificacao.dados.linhas[0].slice(0, 3)).toEqual(["Melhor Projeto", 1, "Projeto 1"]);
+    expect(classificacao.dados.linhas[0][6]).toBe("60,00"); // 3 de 5 votos
   });
 
   it("relatório gera auditoria com a versão", async () => {

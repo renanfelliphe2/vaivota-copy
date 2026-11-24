@@ -1,16 +1,17 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check, Copy, Download, ExternalLink, Film, Layers, Lock, MonitorPlay, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Copy, Download, ExternalLink, Film, Globe, Layers, Lock, MonitorPlay, Pencil, Plus, Search, Tablet, Trash2 } from "lucide-react";
 import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import { useRef, useState, type ReactNode } from "react";
-import { enderecosDasCategorias, LIMITES_CATEGORIA, rotaCategoria, validarCategorias } from "@/dominio/categorias";
-import type { Candidato, Categoria } from "@/dominio/tipos";
+import { categoriasDoCanal, enderecosDasCategorias, LIMITES_CATEGORIA, ROTULOS_CANAL, rotaCategoria, validarCategorias } from "@/dominio/categorias";
+import type { Candidato, CanalCategoria, Categoria } from "@/dominio/tipos";
 import type { Travas } from "@/dominio/travas";
 import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Campo, Input, Textarea } from "@/components/ui/Campo";
 import { Dialogo } from "@/components/ui/Dialogo";
+import { Selo } from "@/components/ui/Selo";
 import { DialogoConfirmacao } from "@/components/ui/DialogoConfirmacao";
 import { useToast } from "@/components/ui/Toast";
 import { cx } from "@/lib/classes";
@@ -47,7 +48,8 @@ export function SecaoCategoriasConfig({ travas }: { travas: Travas }) {
   const podeEstrutura = travas.permite("CATEGORIAS_ESTRUTURA");
   const itensDa = (id: string) => candidatos.filter((c) => c.categoriaId === id);
   const semCategoria = candidatos.filter((c) => !c.categoriaId);
-  const comoEdicao = (c: Categoria): CategoriaEditada => ({ id: c.id, nome: c.nome, premio: c.premio ?? "", descricao: c.descricao ?? "" });
+  const comoEdicao = (c: Categoria): CategoriaEditada => ({ id: c.id, nome: c.nome, premio: c.premio ?? "", descricao: c.descricao ?? "", canal: c.canal });
+  const daPagina = categoriasDoCanal(categorias, "ONLINE");
   const salvarLista = (lista: CategoriaEditada[], sucesso: string) => servico.executar(() => salvarCategorias(ativo.evento.id, lista), sucesso);
 
   function mover(i: number, delta: -1 | 1) {
@@ -65,7 +67,8 @@ export function SecaoCategoriasConfig({ travas }: { travas: Travas }) {
           </h2>
           <p className="text-sm text-tema-texto-suave">
             Cada categoria tem a sua página, o seu QR Code e o seu voto: quem vota escolhe um {ativo.tema.rotuloCandidato.toLocaleLowerCase("pt-BR")} em cada
-            categoria. Aqui você cria as categorias e escolhe os {rotuloMin} de cada uma. Sem categorias, a votação é única.
+            categoria. Aqui você cria as categorias e escolhe os {rotuloMin} de cada uma. Cada categoria é votada num lugar só: na página do evento
+            ou nos totens.
           </p>
         </div>
         {podeEstrutura && categorias.length < LIMITES_CATEGORIA.maximo && (
@@ -79,9 +82,7 @@ export function SecaoCategoriasConfig({ travas }: { travas: Travas }) {
 
       {categorias.length === 0 ? (
         <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-tema-borda p-6">
-          <p className="text-tema-texto-suave">
-            Nenhuma categoria. Sem categorias, todos os {rotuloMin} ficam numa votação única, na página do evento.
-          </p>
+          <p className="text-tema-texto-suave">Nenhuma categoria. O evento precisa de ao menos uma para a votação.</p>
           {podeEstrutura && (
             <Botao variante="contorno" onClick={() => setEditando("nova")} icone={<Plus aria-hidden className="size-4" />}>
               Criar a primeira categoria
@@ -101,6 +102,7 @@ export function SecaoCategoriasConfig({ travas }: { travas: Travas }) {
                 ultima={i === categorias.length - 1}
                 pode={pode && !servico.carregando}
                 podeEstrutura={podeEstrutura}
+                unica={categorias.length === 1}
                 aoMover={(delta) => mover(i, delta)}
                 aoEditar={() => setEditando(c)}
                 aoExcluir={() => setExcluindo(c)}
@@ -113,7 +115,8 @@ export function SecaoCategoriasConfig({ travas }: { travas: Travas }) {
 
       {categorias.length > 0 && semCategoria.length > 0 && <SemCategoria itens={semCategoria} rotulo={rotulo} />}
 
-      {categorias.length > 0 && <QrCodes slugEvento={ativo.slug} categorias={categorias} />}
+      {/* As do totem não têm página nem QR Code: são votadas só nos totens. */}
+      {daPagina.length > 0 && <QrCodes slugEvento={ativo.slug} categorias={daPagina} />}
 
       <ModalCategoria
         aberto={editando !== null}
@@ -166,6 +169,7 @@ function CartaoCategoria({
   ultima,
   pode,
   podeEstrutura,
+  unica,
   aoMover,
   aoEditar,
   aoExcluir,
@@ -179,6 +183,8 @@ function CartaoCategoria({
   ultima: boolean;
   pode: boolean;
   podeEstrutura: boolean;
+  /** A única do evento: não sai (todo evento tem ao menos uma categoria). */
+  unica: boolean;
   aoMover: (delta: -1 | 1) => void;
   aoEditar: () => void;
   aoExcluir: () => void;
@@ -195,6 +201,9 @@ function CartaoCategoria({
             {categoria.nome}
           </h3>
           {categoria.premio && <p className="text-sm font-medium text-tema-primaria-texto">{categoria.premio}</p>}
+          <Selo variante={categoria.canal === "TOTEM" ? "info" : "neutro"} icone={categoria.canal === "TOTEM" ? Tablet : Globe} className="mt-1 self-start">
+            {categoria.canal === "TOTEM" ? "Votada no totem" : "Votada na página"}
+          </Selo>
         </div>
         <div className="-mr-2 -mt-1 flex shrink-0">
           <BotaoIcone rotulo={`Mover ${categoria.nome} para antes`} disabled={!pode || primeira} onClick={() => aoMover(-1)}>
@@ -207,8 +216,14 @@ function CartaoCategoria({
             <Pencil aria-hidden className="size-4" />
           </BotaoIcone>
           <BotaoIcone
-            rotulo={itens.length > 0 ? `${categoria.nome} tem ${rotulo.toLocaleLowerCase("pt-BR")}: tire-os antes de excluir` : `Excluir ${categoria.nome}`}
-            disabled={!podeEstrutura || itens.length > 0}
+            rotulo={
+              unica
+                ? "O evento precisa de ao menos uma categoria"
+                : itens.length > 0
+                  ? `${categoria.nome} tem ${rotulo.toLocaleLowerCase("pt-BR")}: tire-os antes de excluir`
+                  : `Excluir ${categoria.nome}`
+            }
+            disabled={!podeEstrutura || itens.length > 0 || unica}
             perigo
             onClick={aoExcluir}
           >
@@ -249,7 +264,9 @@ function CartaoCategoria({
             {itens.length} {itens.length === 1 ? singular : rotulo.toLocaleLowerCase("pt-BR")}
             {itens.length > 0 && <span className="font-normal text-tema-texto-suave"> · {naVotacao} na votação</span>}
           </span>
-          <span className="truncate text-tema-texto-suave">{rotaCategoria(slugEvento, categoria.slug)}</span>
+          <span className="truncate text-tema-texto-suave">
+            {categoria.canal === "TOTEM" ? "Sem página: só nos totens que a exibem" : rotaCategoria(slugEvento, categoria.slug)}
+          </span>
         </div>
         <Botao variante="contorno" tamanho="pequeno" onClick={aoSelecionar} icone={<Film aria-hidden className="size-4" />}>
           Selecionar {rotulo.toLocaleLowerCase("pt-BR")}
@@ -337,14 +354,21 @@ function FormCategoria({
   aoSalvar: (lista: CategoriaEditada[], nova: boolean) => Promise<{ ok: boolean; erro?: { campos?: Record<string, string>; mensagem: string } }>;
 }) {
   const { marcarSujo, confirmarSaida } = useFormularioSujo();
-  const [d, setD] = useState({ nome: categoria?.nome ?? "", premio: categoria?.premio ?? "", descricao: categoria?.descricao ?? "" });
+  const [d, setD] = useState<{ nome: string; premio: string; descricao: string; canal: CanalCategoria }>({
+    nome: categoria?.nome ?? "",
+    premio: categoria?.premio ?? "",
+    descricao: categoria?.descricao ?? "",
+    canal: categoria?.canal ?? "ONLINE",
+  });
   const [tentou, setTentou] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erroServidor, setErroServidor] = useState<{ campos?: Record<string, string>; mensagem: string } | null>(null);
 
   const lista: CategoriaEditada[] = todas.map((c) =>
-    c.id === categoria?.id ? { id: c.id, ...d } : { id: c.id, nome: c.nome, premio: c.premio ?? "", descricao: c.descricao ?? "" },
+    c.id === categoria?.id ? { id: c.id, ...d } : { id: c.id, nome: c.nome, premio: c.premio ?? "", descricao: c.descricao ?? "", canal: c.canal },
   );
+  // Trocar o canal é estrutura (trava com a votação aberta), como criar e excluir.
+  const travaCanal = categoria !== null && !podeEstrutura;
   if (!categoria) lista.push({ id: null, ...d });
   const indice = categoria ? todas.findIndex((c) => c.id === categoria.id) : lista.length - 1;
   const erros = validarCategorias(lista);
@@ -409,6 +433,31 @@ function FormCategoria({
           onChange={(e) => mudar({ descricao: e.target.value })}
         />
       </Campo>
+      {/* 25/11/2026: cada categoria é votada num lugar só. */}
+      <fieldset className="flex flex-col gap-2" disabled={travaCanal}>
+        <legend className="mb-1 font-semibold">Onde é votada</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {(["ONLINE", "TOTEM"] as const).map((canal) => (
+            <label
+              key={canal}
+              className={cx(
+                "flex cursor-pointer gap-3 rounded-xl border-2 p-3 has-focus-visible:outline-3 has-focus-visible:outline-tema-foco",
+                d.canal === canal ? "border-tema-primaria bg-tema-superficie" : "border-tema-borda",
+                travaCanal && "cursor-not-allowed opacity-60",
+              )}
+            >
+              <input type="radio" name="categoria-canal" value={canal} checked={d.canal === canal} onChange={() => mudar({ canal })} className="mt-1 size-4 accent-tema-primaria" />
+              <span className="flex flex-col gap-0.5">
+                <span className="font-semibold">{ROTULOS_CANAL[canal]}</span>
+                <span className="text-sm text-tema-texto-suave">
+                  {canal === "ONLINE" ? "No celular do público, com página e QR Code." : "Só nos totens que exibem esta categoria. Não aparece na página do evento."}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+        {travaCanal && <span className="text-sm text-tema-texto-suave">Com a votação aberta, o lugar da votação não muda.</span>}
+      </fieldset>
       {/* 24/11/2026: o endereço não é digitado; é o do evento seguido do nome da categoria. */}
       <div className="flex flex-col gap-1 rounded-xl border border-tema-borda bg-tema-superficie px-4 py-3 text-sm">
         <span className="font-semibold">Endereço da página</span>

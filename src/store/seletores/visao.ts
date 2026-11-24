@@ -1,6 +1,7 @@
 "use client";
 
 import { votaveis } from "@/dominio/candidatos";
+import { itensDoCanal } from "@/dominio/categorias";
 import { resolverVisaoEvento, type SaidaVisao } from "@/dominio/visaoEvento";
 import { useAgora } from "../AppProvider";
 import { useEventoAtivo } from "./evento";
@@ -22,6 +23,7 @@ export function useVisaoEvento(): SaidaVisao | null {
       emailVerificado: sessao.emailVerificado,
       jaVotou: sessao.jaVotou,
     },
-    qtdVotaveis: votaveis(ativo.candidatos).length,
+    // Só os da página: os itens das categorias do totem não são votados aqui (25/11/2026).
+    qtdVotaveis: itensDoCanal(votaveis(ativo.candidatos), ativo.categorias, "ONLINE").length,
   });
 }

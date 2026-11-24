@@ -8,6 +8,7 @@ import type { Candidato } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 import { TEXTOS_TOTEM } from "@/lib/textosTotem";
 import { votarInfantil } from "@/servicos/totem";
+import type { GrupoTotem } from "@/store/seletores/totem";
 
 // Totem (§6): toque para votar → cartazes → "Você escolheu X? Sim / Não" → sucesso → volta ao início.
 // Inatividade na escolha ou na confirmação também volta ao início. Um toque confirmado = um voto (trava síncrona).
@@ -37,6 +38,8 @@ function limiteDoPasso(passo: Passo["tipo"]): number | null {
 export type FluxoTotemProps = {
   eventoId: string;
   candidatos: Candidato[];
+  /** Os itens por categoria (25/11/2026): com mais de uma, a escolha mostra o nome de cada uma acima dos seus itens. */
+  grupos: GrupoTotem[];
   rotuloCategoria: string;
   logo: ReactNode;
   logoPequeno: ReactNode;
@@ -46,7 +49,7 @@ export type FluxoTotemProps = {
   aoFalhar: () => void;
 };
 
-export function FluxoTotem({ eventoId, candidatos, rotuloCategoria, logo, logoPequeno, aoComecar, aoFalhar }: FluxoTotemProps) {
+export function FluxoTotem({ eventoId, candidatos, grupos, rotuloCategoria, logo, logoPequeno, aoComecar, aoFalhar }: FluxoTotemProps) {
   const [passo, setPasso] = useState<Passo>(INICIO);
   const enviando = useRef(false);
   const raiz = useRef<HTMLDivElement>(null);
@@ -96,7 +99,7 @@ export function FluxoTotem({ eventoId, candidatos, rotuloCategoria, logo, logoPe
         />
       )}
       {passo.tipo === "ESCOLHA" && (
-        <TelaEscolha logo={logoPequeno} candidatos={candidatos} aoEscolher={(id) => setPasso({ tipo: "CONFIRMAR", candidatoId: id })} />
+        <TelaEscolha logo={logoPequeno} grupos={grupos} aoEscolher={(id) => setPasso({ tipo: "CONFIRMAR", candidatoId: id })} />
       )}
       {(passo.tipo === "CONFIRMAR" || passo.tipo === "ENVIANDO") && escolhido && (
         <TelaConfirmar
@@ -115,7 +118,7 @@ export function FluxoTotem({ eventoId, candidatos, rotuloCategoria, logo, logoPe
       )}
       {/* Candidato sumiu no meio (desqualificado ou despublicado): volta para a escolha. */}
       {(passo.tipo === "CONFIRMAR" || passo.tipo === "ENVIANDO") && !escolhido && (
-        <TelaEscolha logo={logoPequeno} candidatos={candidatos} aoEscolher={(id) => setPasso({ tipo: "CONFIRMAR", candidatoId: id })} />
+        <TelaEscolha logo={logoPequeno} grupos={grupos} aoEscolher={(id) => setPasso({ tipo: "CONFIRMAR", candidatoId: id })} />
       )}
     </div>
   );
@@ -169,13 +172,26 @@ function TelaInicio({
   );
 }
 
-function TelaEscolha({ logo, candidatos, aoEscolher }: { logo: ReactNode; candidatos: Candidato[]; aoEscolher: (id: string) => void }) {
+function TelaEscolha({ logo, grupos, aoEscolher }: { logo: ReactNode; grupos: GrupoTotem[]; aoEscolher: (id: string) => void }) {
+  const varias = grupos.length > 1;
   return (
     <div className="palco-entrada flex flex-1 flex-col gap-6 px-5 py-6 sm:px-10 sm:py-8">
       <header className="flex flex-col items-center gap-3 text-center">
         {logo}
         <h1 className="text-4xl font-extrabold sm:text-5xl">{TEXTOS_TOTEM.pergunta}</h1>
       </header>
+      {grupos.map(({ categoria, itens }) => (
+        <section key={categoria.id} aria-label={varias ? categoria.nome : undefined} className="flex flex-col gap-4">
+          {varias && <h2 className="mx-auto w-full max-w-6xl text-3xl font-bold sm:text-4xl">{categoria.nome}</h2>}
+          <GradeEscolha candidatos={itens} aoEscolher={aoEscolher} />
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function GradeEscolha({ candidatos, aoEscolher }: { candidatos: Candidato[]; aoEscolher: (id: string) => void }) {
+  return (
       <ul className={cx("mx-auto grid w-full max-w-6xl gap-5 sm:gap-8", candidatos.length <= 4 ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-3")}>
         {candidatos.map((c) => (
           <li key={c.id} className="flex">
@@ -190,7 +206,6 @@ function TelaEscolha({ logo, candidatos, aoEscolher }: { logo: ReactNode; candid
           </li>
         ))}
       </ul>
-    </div>
   );
 }
 

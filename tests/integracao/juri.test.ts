@@ -461,7 +461,8 @@ describe("voto único do júri", () => {
     expect(await consultarEstadoVoto(jurado, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: true, candidatoAtualId: c[2], categoriasVotadas: [] } });
     const publico = await criarUsuarioDireto(eventoId);
     await votarPopular(publico, { eventoId, candidatoId: c[2] }, ctx);
-    expect(await consultarEstadoVoto(publico, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: true, candidatoAtualId: null, categoriasVotadas: [] } });
+    const categoria = await db().categoria.findFirstOrThrow({ where: { eventoId }, select: { id: true } });
+    expect(await consultarEstadoVoto(publico, { eventoId }, ctx)).toEqual({ ok: true, dados: { votou: true, candidatoAtualId: null, categoriasVotadas: [categoria.id] } });
   });
 
   it("só jurado vota como jurado, e jurado não vota como público", async () => {

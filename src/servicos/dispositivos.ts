@@ -14,8 +14,16 @@ export function listarDispositivos(eventoId: string): Promise<Resultado<Disposit
 }
 
 /** Gera o código de pareamento; o admin já define o nome e o PIN de saída do quiosque do totem. */
-export async function gerarCodigoPareamento(eventoId: string, entrada: { nome: string; pin: string }): Promise<Resultado<CodigoPareamentoGerado>> {
+export async function gerarCodigoPareamento(
+  eventoId: string,
+  entrada: { nome: string; pin: string; categoriaIds: readonly string[] },
+): Promise<Resultado<CodigoPareamentoGerado>> {
   return chamar<CodigoPareamentoGerado>("gerarCodigoPareamento", { eventoId, ...entrada });
+}
+
+/** As categorias que o totem exibe (ao menos uma, todas do totem). */
+export async function alterarCategoriasDispositivo(eventoId: string, dispositivoId: string, categoriaIds: readonly string[]): Promise<Resultado<null>> {
+  return aoMudar(await chamar<null>("alterarCategoriasDispositivo", { eventoId, dispositivoId, categoriaIds }));
 }
 
 async function aoMudar(r: Resultado<null>): Promise<Resultado<null>> {

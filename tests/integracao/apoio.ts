@@ -94,7 +94,15 @@ export async function ligarInfantil(eventoId: string, opcoes: { pesoInfantil?: n
   await db().configPlacar.update({ where: { eventoId }, data: { pesoPopular: 100 - peso, pesoJuri: 0, pesoInfantil: peso } });
 }
 
-export async function criarCandidatos(eventoId: string, quantidade: number, opcoes: { publicados?: boolean } = {}) {
+/**
+ * Itens publicados (ou não) do evento. 25/11/2026: todo evento tem categoria; sem `categoriaId`, os itens vão para a primeira
+ * categoria do evento (a categoria única do seed). `categoriaId: null` cria o item sem categoria.
+ */
+export async function criarCandidatos(eventoId: string, quantidade: number, opcoes: { publicados?: boolean; categoriaId?: string | null } = {}) {
+  const categoriaId =
+    opcoes.categoriaId !== undefined
+      ? opcoes.categoriaId
+      : ((await db().categoria.findFirst({ where: { eventoId }, orderBy: [{ ordem: "asc" }, { id: "asc" }], select: { id: true } }))?.id ?? null);
   const ids: string[] = [];
   for (let i = 1; i <= quantidade; i++) {
     const c = await db().candidato.create({
@@ -104,6 +112,7 @@ export async function criarCandidatos(eventoId: string, quantidade: number, opco
         imagemUrl: IMAGEM_FALSA,
         publicado: opcoes.publicados ?? true,
         ordem: i,
+        categoriaId,
       },
     });
     ids.push(c.id);

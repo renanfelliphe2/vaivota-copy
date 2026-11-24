@@ -32,7 +32,8 @@ export function TelaQrCategoria() {
 
   if (!ativo) return null;
   const { slug, evento, tema, parceiros } = ativo;
-  const categoria = ativo.categorias.find((c) => c.slug === slugCategoria);
+  // A categoria do totem não tem página nem QR Code (25/11/2026).
+  const categoria = ativo.categorias.find((c) => c.slug === slugCategoria && c.canal === "ONLINE");
   const nome = tema.nomeExibicao ?? evento.nome;
 
   if (!categoria)

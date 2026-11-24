@@ -1,8 +1,33 @@
-import type { Candidato, Categoria, Participacao } from "./tipos";
+import type { Candidato, CanalCategoria, Categoria, Participacao } from "./tipos";
 
 // Categorias do evento (Festival, 09/11/2026): cada uma tem os seus itens, a sua página (/e/[slug]/[categoria]), o seu QR
-// Code e o seu voto popular (uma pessoa vota uma vez em CADA categoria). Evento sem categorias segue com a urna única de sempre.
-// Funções puras: a tela e o servidor usam as mesmas regras.
+// Code e o seu voto popular (uma pessoa vota uma vez em CADA categoria). Funções puras: a tela e o servidor usam as mesmas regras.
+// 25/11/2026: todo evento tem ao menos uma categoria (o evento "sem categorias" virou a categoria única "Melhor <item>"), e cada
+// categoria é votada num canal só: ONLINE (a página do evento) ou TOTEM (só nos totens que a exibem).
+
+/** Nome da categoria única de um evento novo: "Melhor Projeto", "Melhor Curta". */
+export function nomeCategoriaUnica(rotuloCandidato: string): string {
+  return `Melhor ${rotuloCandidato.trim() || "Candidato"}`.slice(0, LIMITES_CATEGORIA.nome[1]);
+}
+
+/** Categorias de um canal, na ordem em que vieram. */
+export function categoriasDoCanal<T extends Pick<Categoria, "canal">>(categorias: readonly T[], canal: CanalCategoria): T[] {
+  return categorias.filter((c) => c.canal === canal);
+}
+
+/**
+ * Itens votados num canal: os que estão numa categoria desse canal. Item sem categoria (ou numa categoria que não existe) fica
+ * fora dos dois canais.
+ */
+export function itensDoCanal<T extends Pick<Candidato, "categoriaId">>(candidatos: readonly T[], categorias: readonly Pick<Categoria, "id" | "canal">[], canal: CanalCategoria): T[] {
+  // Dado antigo sem nenhuma categoria (cenários de teste anteriores à categoria única): tudo é da página.
+  if (categorias.length === 0) return canal === "ONLINE" ? [...candidatos] : [];
+  const ids = new Set(categoriasDoCanal(categorias, canal).map((c) => c.id));
+  return candidatos.filter((c) => c.categoriaId !== null && ids.has(c.categoriaId));
+}
+
+/** Rótulo do canal, para o admin. */
+export const ROTULOS_CANAL: Record<CanalCategoria, string> = { ONLINE: "Página do evento", TOTEM: "Totem" };
 
 export const LIMITES_CATEGORIA = {
   nome: [2, 60],
@@ -39,8 +64,11 @@ export function gerarSlugCategoria(nome: string, existentes: readonly string[]):
   return `${base}-${n}`;
 }
 
-/** `descricao` ausente conta como vazia (opcional). O endereço não vem de quem edita: é gerado do nome (enderecosDasCategorias). */
-export type CategoriaEditada = { nome: string; premio: string; descricao?: string };
+/**
+ * `descricao` ausente conta como vazia (opcional). `canal` ausente: a categoria salva mantém o dela, a nova nasce ONLINE. O
+ * endereço não vem de quem edita: é gerado do nome (enderecosDasCategorias).
+ */
+export type CategoriaEditada = { nome: string; premio: string; descricao?: string; canal?: CanalCategoria };
 
 /**
  * Endereço de cada categoria (24/11/2026): sempre gerado do nome, nunca digitado. As que estão em `manter` (índice → endereço
@@ -61,6 +89,7 @@ export function enderecosDasCategorias(nomes: readonly string[], manter: Readonl
 /** Erros por posição (`nome-<i>`, `premio-<i>`, `descricao-<i>`) e o geral (`categorias`). */
 export function validarCategorias(lista: readonly CategoriaEditada[]): Record<string, string> {
   const erros: Record<string, string> = {};
+  if (lista.length === 0) erros.categorias = "O evento precisa de ao menos uma categoria.";
   if (lista.length > LIMITES_CATEGORIA.maximo) erros.categorias = `Use até ${LIMITES_CATEGORIA.maximo} categorias.`;
   const nomes = new Set<string>();
   lista.forEach((c, i) => {

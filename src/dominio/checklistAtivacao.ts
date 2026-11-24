@@ -27,6 +27,11 @@ export type EntradaChecklist = {
    * categoria (esses não aparecem em página nenhuma). Sem categorias, o item do checklist não se aplica.
    */
   categorias: { total: number; semItens: number; itensSemCategoria: number };
+  /**
+   * Categorias do totem (25/11/2026): quantas existem e quantas nenhum totem ativo exibe (ninguém conseguiria votar nelas).
+   * Ausente = nenhuma.
+   */
+  totem?: { categorias: number; semTotemAtivo: number };
 };
 
 export type IdItemChecklist = "ITENS" | "CATEGORIAS" | "PESOS" | "JANELA" | "CONVITES" | "TEMA" | "TOTEM" | "TRAILER";
@@ -75,7 +80,7 @@ export function avaliarChecklist(e: EntradaChecklist): ItemChecklist[] {
   const categoriasOk = categorias.semItens === 0 && categorias.itensSemCategoria === 0;
   const detalheCategorias =
     categorias.total === 0
-      ? "Evento sem categorias (votação única)."
+      ? "O evento precisa de ao menos uma categoria."
       : categoriasOk
         ? `${categorias.total} categoria(s), todas com itens na votação.`
         : [
@@ -85,9 +90,23 @@ export function avaliarChecklist(e: EntradaChecklist): ItemChecklist[] {
             .filter(Boolean)
             .join("; ") + ".";
 
+  // Totem (25/11/2026): com o módulo ligado ou com alguma categoria do totem. Cada categoria do totem precisa de um totem ativo que a exiba.
+  const totem = e.totem ?? { categorias: 0, semTotemAtivo: 0 };
+  const totemAplica = e.moduloInfantil || totem.categorias > 0;
+  const totemOk = e.moduloInfantil && e.dispositivosAtivos >= 1 && totem.categorias > 0 && totem.semTotemAtivo === 0;
+  const detalheTotem = !totemAplica
+    ? "Módulo infantil desligado."
+    : !e.moduloInfantil
+      ? "Há categoria votada no totem, mas a votação infantil está desligada."
+      : totem.categorias === 0
+        ? "Nenhuma categoria é votada no totem."
+        : totem.semTotemAtivo > 0
+          ? `${totem.semTotemAtivo} categoria(s) do totem sem totem ativo que a exiba.`
+          : `${e.dispositivosAtivos} totem(ns) ativo(s).`;
+
   return [
     item("ITENS", "Itens na votação", e.qtdVotaveis >= 2, `${e.qtdVotaveis} na votação (mínimo 2).`, "candidatos"),
-    item("CATEGORIAS", "Categorias", categorias.total > 0 ? categoriasOk : null, detalheCategorias, categorias.semItens > 0 ? "categorias" : "candidatos"),
+    item("CATEGORIAS", "Categorias", categorias.total > 0 && categoriasOk, detalheCategorias, categorias.semItens > 0 || categorias.total === 0 ? "categorias" : "candidatos"),
     item(
       "PESOS",
       "Pesos do placar",
@@ -110,14 +129,7 @@ export function avaliarChecklist(e: EntradaChecklist): ItemChecklist[] {
       "juri",
     ),
     item("TEMA", "Contraste do tema", e.temaAprovado, e.temaAprovado ? "Todos os pares aprovados." : "Há pares de cor reprovados.", "tema"),
-    item(
-      "TOTEM",
-      "Totem ativo",
-      e.moduloInfantil ? e.dispositivosAtivos >= 1 : null,
-      e.moduloInfantil ? `${e.dispositivosAtivos} totem(ns) ativo(s).` : "Módulo infantil desligado.",
-      "totens",
-      "AVISO",
-    ),
+    item("TOTEM", "Totem ativo", totemAplica ? totemOk : null, detalheTotem, "totens", "AVISO"),
     item(
       "TRAILER",
       "Trailer",
@@ -156,7 +168,21 @@ export function montarEntradaChecklist(estado: Pick<EstadoApp, "banco">, eventoI
       banco.categorias.filter((c) => c.eventoId === eventoId).map((c) => c.id),
       votaveis(banco.candidatos.filter((c) => c.eventoId === eventoId)).map((c) => c.categoriaId),
     ),
+    totem: contarCategoriasTotem(
+      banco.categorias.filter((c) => c.eventoId === eventoId),
+      banco.dispositivos.filter((d) => d.eventoId === eventoId),
+    ),
   };
+}
+
+/** Categorias do totem e quantas delas nenhum totem ATIVO exibe. */
+export function contarCategoriasTotem(
+  categorias: readonly { id: string; canal: "ONLINE" | "TOTEM" }[],
+  dispositivos: readonly { estado: string; categoriaIds?: readonly string[] }[],
+): NonNullable<EntradaChecklist["totem"]> {
+  const doTotem = categorias.filter((c) => c.canal === "TOTEM").map((c) => c.id);
+  const exibidas = new Set(dispositivos.filter((d) => d.estado === "ATIVO").flatMap((d) => d.categoriaIds ?? []));
+  return { categorias: doTotem.length, semTotemAtivo: doTotem.filter((id) => !exibidas.has(id)).length };
 }
 
 /** Item do checklist das categorias: `categoriasDosVotaveis` = a categoria de cada item na votação (null = sem categoria). */

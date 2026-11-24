@@ -47,6 +47,13 @@ async function nomesEmUso(cliente: Banco | Transacao, eventoId: string, agora: D
   return [...dispositivos.map((d) => d.nome), ...pendentes.flatMap((c) => (c.nome ? [c.nome] : []))];
 }
 
+/** As categorias escolhidas para um totem existem no evento e são TOTEM? Devolve a mensagem do erro ou null. */
+async function conferirCategoriasTotem(cliente: Banco | Transacao, eventoId: string, categoriaIds: readonly string[]): Promise<string | null> {
+  if (categoriaIds.length === 0) return "Escolha ao menos uma categoria para o totem.";
+  const validas = await cliente.categoria.count({ where: { eventoId, canal: "TOTEM", id: { in: [...categoriaIds] } } });
+  return validas === categoriaIds.length ? null : "Escolha só categorias votadas no totem. Atualize a tela e tente de novo.";
+}
+
 // ─────────────────────────────────────────────
 // Leitura
 // ─────────────────────────────────────────────
@@ -67,7 +74,11 @@ export async function listarDispositivos(usuario: UsuarioSessao | null, eventoId
   const fuso = admin.dados.evento.fusoHorario;
   try {
     const [linhas, votos] = await Promise.all([
-      db().dispositivo.findMany({ where: { eventoId }, orderBy: [{ criadoEm: "asc" }, { id: "asc" }] }),
+      db().dispositivo.findMany({
+        where: { eventoId },
+        orderBy: [{ criadoEm: "asc" }, { id: "asc" }],
+        include: { categorias: { select: { categoriaId: true } } },
+      }),
       db().votoInfantil.groupBy({ by: ["dispositivoId"], where: { eventoId }, _count: { _all: true } }),
     ]);
     const porTotem = new Map(votos.map((v) => [v.dispositivoId, v._count._all]));
@@ -80,6 +91,7 @@ export async function listarDispositivos(usuario: UsuarioSessao | null, eventoId
         criadoEm: instante(d.criadoEm, fuso),
         votos: porTotem.get(d.id) ?? 0,
         temPin: d.hashPin !== null,
+        categoriaIds: d.categorias.map((c) => c.categoriaId),
       })),
     );
   } catch (e) {
@@ -98,7 +110,7 @@ export async function listarDispositivos(usuario: UsuarioSessao | null, eventoId
 export async function gerarCodigoPareamento(
   usuario: UsuarioSessao | null,
   eventoId: string,
-  entrada: { nome: string; pin: string },
+  entrada: { nome: string; pin: string; categoriaIds: readonly string[] },
   ctx: { ip: string },
 ): Promise<Resultado<CodigoPareamentoGerado>> {
   const admin = await exigirAdmin(usuario, eventoId);
@@ -114,6 +126,8 @@ export async function gerarCodigoPareamento(
   if (erroNome) campos.nome = erroNome;
   const erroPin = validarPinTotem(entrada.pin);
   if (erroPin) campos.pin = erroPin;
+  const categoriaIds = [...new Set(entrada.categoriaIds)];
+  if (categoriaIds.length === 0) campos.categorias = "Escolha ao menos uma categoria para o totem.";
   if (Object.keys(campos).length) return falha("VALIDACAO", { campos });
 
   // O scrypt é caro: fora da transação, que segura a linha do evento.
@@ -121,6 +135,8 @@ export async function gerarCodigoPareamento(
 
   return comEventoTravado(eventoId, "DISPOSITIVOS_PAREAR", async (tx, atual) => {
     if (!atual.moduloInfantil) return falha("TRAVADO", { mensagem: MSG_INFANTIL_DESLIGADO });
+    const erroCategorias = await conferirCategoriasTotem(tx, eventoId, categoriaIds);
+    if (erroCategorias) return falha("VALIDACAO", { campos: { categorias: erroCategorias } });
     const agora = new Date();
     // Arrumação: o que venceu sem uso passa a EXPIRADO.
     await tx.codigoPareamento.updateMany({ where: { eventoId, estado: "DISPONIVEL", validadeAte: { lt: agora } }, data: { estado: "EXPIRADO" } });
@@ -137,14 +153,14 @@ export async function gerarCodigoPareamento(
       hash = hashDoCodigoPareamento(eventoId, codigo);
     }
     const validadeAte = new Date(agora.getTime() + VALIDADE_CODIGO_PAREAMENTO_MS);
-    const criado = await tx.codigoPareamento.create({ data: { eventoId, hashCodigo: hash, nome, hashPin, validadeAte } });
+    const criado = await tx.codigoPareamento.create({ data: { eventoId, hashCodigo: hash, nome, hashPin, categoriaIds, validadeAte } });
     await registrarAuditoria(tx, {
       eventoId,
       usuarioId,
       acao: "CODIGO_PAREAMENTO_GERADO",
       entidade: "codigo_pareamento",
       entidadeId: criado.id,
-      detalhes: { validadeAte: validadeAte.toISOString() },
+      detalhes: { validadeAte: validadeAte.toISOString(), categorias: categoriaIds.length },
       ipHash: hashDoIp(ctx.ip),
     });
     return sucesso({ codigo, nome, validadeAte: instante(validadeAte, atual.fusoHorario) });
@@ -242,6 +258,51 @@ export async function renomearDispositivo(usuario: UsuarioSessao | null, eventoI
       entidade: "dispositivo",
       entidadeId: dispositivoId,
       detalhes: { de: atual.nome, para: nome },
+    });
+    return sucesso(null);
+  });
+}
+
+/**
+ * Troca as categorias que um totem exibe (25/11/2026): ao menos uma, todas TOTEM. Vale com a votação aberta (como pausar): o voto
+ * seguinte do aparelho já usa a lista nova, e o quiosque a recebe na próxima consulta.
+ */
+export async function alterarCategoriasDispositivo(
+  usuario: UsuarioSessao | null,
+  eventoId: string,
+  dispositivoId: string,
+  categoriaIdsBrutas: readonly string[],
+  ctx: { ip: string },
+): Promise<Resultado<null>> {
+  const admin = await exigirAdmin(usuario, eventoId);
+  if (!admin.ok) return admin;
+  const trava = exigirAcao(admin.dados.evento, "DISPOSITIVOS_GERIR");
+  if (!trava.ok) return trava;
+  const { usuarioId } = admin.dados;
+  const categoriaIds = [...new Set(categoriaIdsBrutas)];
+
+  return comEventoTravado(eventoId, "DISPOSITIVOS_GERIR", async (tx) => {
+    const erro = await conferirCategoriasTotem(tx, eventoId, categoriaIds);
+    if (erro) return falha("VALIDACAO", { campos: { categorias: erro } });
+    // Trava a linha do aparelho: o voto em andamento dele termina antes, e o seguinte já vê a lista nova.
+    const linhas = await tx.$queryRaw<{ estado: string }[]>`
+      SELECT estado::text AS estado FROM dispositivo WHERE id = ${dispositivoId} AND evento_id = ${eventoId} FOR NO KEY UPDATE`;
+    if (!linhas[0]) return falha("NAO_ENCONTRADO", { detalhe: `totem ${dispositivoId} não existe em ${eventoId}` });
+    if (linhas[0].estado === "REVOGADO") return falha("CONFLITO", { mensagem: MSG_REVOGADO });
+    const antes = await tx.dispositivoCategoria.findMany({ where: { dispositivoId }, select: { categoriaId: true } });
+    const de = antes.map((c) => c.categoriaId).sort();
+    const para = [...categoriaIds].sort();
+    if (de.join() === para.join()) return sucesso(null);
+    await tx.dispositivoCategoria.deleteMany({ where: { dispositivoId } });
+    await tx.dispositivoCategoria.createMany({ data: categoriaIds.map((categoriaId) => ({ dispositivoId, categoriaId, eventoId })) });
+    await registrarAuditoria(tx, {
+      eventoId,
+      usuarioId,
+      acao: "CONFIG_ALTERADA",
+      entidade: "dispositivo",
+      entidadeId: dispositivoId,
+      detalhes: { campos: ["categorias"], de, para },
+      ipHash: hashDoIp(ctx.ip),
     });
     return sucesso(null);
   });
