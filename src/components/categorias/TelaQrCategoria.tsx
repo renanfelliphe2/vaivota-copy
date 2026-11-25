@@ -69,7 +69,7 @@ export function TelaQrCategoria() {
         {telaCheia ? "Sair da tela cheia" : "Tela cheia"}
       </button>
 
-      <div className="mx-auto grid w-full max-w-7xl flex-1 items-center gap-10 px-6 py-10 md:grid-cols-[minmax(0,1fr)_auto] md:gap-16 md:px-12">
+      <div className="mx-auto grid w-full max-w-7xl flex-1 items-center gap-10 px-6 pb-10 pt-20 md:grid-cols-[minmax(0,1fr)_auto] md:gap-16 md:px-12 md:pt-10">
         <div className="flex min-w-0 flex-col items-start gap-5">
           {tema.logoUrl ? (
             <LogoEvento nome={nome} logoUrl={tema.logoUrl} className="h-16 md:h-24" prioridade />
@@ -80,7 +80,7 @@ export function TelaQrCategoria() {
             <Heart aria-hidden className="size-5 md:size-6" fill="currentColor" />
             Vote no seu favorito
           </p>
-          <h1 className="font-cine text-[clamp(2.75rem,7vw,7rem)] font-bold leading-[0.98] tracking-tight text-balance">{categoria.nome}</h1>
+          <h1 className="max-w-full font-cine text-[clamp(2.75rem,7vw,7rem)] font-bold leading-[0.98] tracking-tight text-balance wrap-anywhere">{categoria.nome}</h1>
           {categoria.premio && <p className="text-2xl font-semibold text-white/85 md:text-4xl">{categoria.premio}</p>}
           <p className="max-w-xl text-lg text-white/75 md:text-2xl">Aponte a câmera do celular para o código e vote.</p>
         </div>
@@ -113,7 +113,7 @@ export function TelaQrCategoria() {
           <ul className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-12 gap-y-4">
             {parceiros.map((p) => (
               <li key={p.id} className="flex h-14 items-center">
-                <LogoParceiro parceiro={p} className="max-h-12 max-w-36" classeNome="text-lg font-bold text-neutral-700" />
+                <LogoParceiro parceiro={p} className="max-h-12 max-w-36" classeNome="whitespace-normal! text-center text-lg font-bold text-neutral-700" />
               </li>
             ))}
           </ul>

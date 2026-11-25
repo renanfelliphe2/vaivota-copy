@@ -80,8 +80,8 @@ export function Dialogo({
       {aberto && (
         <div className="flex max-h-[90dvh] flex-col">
           <div className="flex items-start justify-between gap-4 border-b border-tema-borda px-5 py-4">
-            <div className="flex flex-col gap-1">
-              <h2 id={tituloId} className="text-lg font-bold">
+            <div className="flex min-w-0 flex-col gap-1">
+              <h2 id={tituloId} className="text-lg font-bold wrap-anywhere">
                 {titulo}
               </h2>
               {descricao && (
@@ -99,9 +99,9 @@ export function Dialogo({
               <X aria-hidden className="size-5" />
             </button>
           </div>
-          {children && <div className="overflow-y-auto px-5 py-4">{children}</div>}
+          {children && <div className={cx("min-h-0 overflow-y-auto px-5 py-4", !rodape && "pb-area-segura-4")}>{children}</div>}
           {rodape && (
-            <div className="flex flex-col-reverse gap-2 border-t border-tema-borda px-5 py-4 sm:flex-row sm:justify-end">
+            <div className="pb-area-segura-4 flex flex-col-reverse gap-2 border-t border-tema-borda px-5 pt-4 sm:flex-row sm:justify-end">
               {rodape}
             </div>
           )}

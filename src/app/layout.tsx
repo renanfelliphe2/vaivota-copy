@@ -57,7 +57,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         {estado ? (
           <AppProvider estadoInicial={estado} sementeOrdem={sementeOrdem}>
             <LiveRegionProvider>
-              <TemaEvento className="marca-evento flex min-h-dvh flex-col">
+              <TemaEvento className="marca-evento flex min-h-dvh flex-col overflow-x-clip">
                 <ToastProvider>
                   <SkipLink />
                   {children}

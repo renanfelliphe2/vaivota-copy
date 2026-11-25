@@ -67,7 +67,7 @@ function NumerosDaPlataforma({ totais }: { totais: TotaisDaVitrine }) {
         {numeros.map(({ rotulo, valor }) => (
           <div key={rotulo} className="flex flex-col-reverse gap-0.5">
             <dt className="text-sm text-tema-texto-suave">{rotulo}</dt>
-            <dd className="text-2xl font-bold tabular-nums tracking-tight sm:text-3xl">{formatarNumero(valor)}</dd>
+            <dd className="text-xl font-bold tabular-nums tracking-tight min-[25rem]:text-2xl sm:text-3xl">{formatarNumero(valor)}</dd>
           </div>
         ))}
       </dl>

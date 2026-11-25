@@ -61,7 +61,7 @@ export function PreviaTema({ cores, nome, logoUrl, rotuloCandidato, rotuloCandid
                     Sua escolha
                   </Selo>
                   <p className="font-bold">{rotuloCandidato} de exemplo</p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Botao variante="contorno" tamanho="pequeno">
                       Ver detalhes
                     </Botao>

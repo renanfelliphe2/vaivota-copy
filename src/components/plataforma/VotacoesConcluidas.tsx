@@ -69,7 +69,7 @@ function CartaoVotacao({ votacao, destaque }: { votacao: VotacaoComResultado; de
         <header className="flex items-center gap-4">
           <MarcaDoEvento nome={nome} corPrimaria={tema.corPrimaria} logoUrl={tema.logoUrl} />
           <div className="min-w-0">
-            <h3 id={tituloId} className="text-xl font-bold leading-tight sm:text-2xl">
+            <h3 id={tituloId} className="text-xl font-bold leading-tight wrap-anywhere sm:text-2xl">
               {nome}
             </h3>
             <p className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-tema-texto-suave">

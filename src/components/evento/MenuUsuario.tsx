@@ -117,10 +117,10 @@ export function MenuUsuario() {
       {menuAberto && (
         <div
           id={painelId}
-          className="absolute right-0 z-30 mt-2 flex w-72 flex-col gap-1 rounded-xl border border-tema-borda bg-tema-fundo p-2 shadow-xl"
+          className="absolute right-0 z-30 mt-2 flex w-72 max-w-[calc(100vw-2rem)] flex-col gap-1 rounded-xl border border-tema-borda bg-tema-fundo p-2 shadow-xl"
         >
           <div className="px-3 py-2 text-sm">
-            <p className="font-semibold">{usuario.nome}</p>
+            <p className="font-semibold wrap-anywhere">{usuario.nome}</p>
             <p className="break-all text-tema-texto-suave">{usuario.email}</p>
             <p className="mt-1 text-tema-texto-suave">
               Papel neste evento: <strong className="text-tema-texto">{papel}</strong>

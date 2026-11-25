@@ -33,6 +33,11 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* O mesmo, com um respiro mínimo de 1rem (rodapé do diálogo em bottom sheet, avisos no pé da tela). */
+.pb-area-segura-4 {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
 @theme inline {
   --color-tema-primaria: var(--tema-primaria);
   --color-tema-secundaria: var(--tema-secundaria);

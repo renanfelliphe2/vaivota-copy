@@ -90,7 +90,7 @@ export function HeroCinema() {
             Votação popular
           </p>
 
-          <h1 id="titulo-evento" className="marca-subir mt-6 font-cine uppercase" style={atraso(80)}>
+          <h1 id="titulo-evento" className="marca-subir mt-6 max-w-full font-cine uppercase wrap-anywhere" style={atraso(80)}>
             {chamada && (
               <span className="block text-[clamp(1.15rem,4.5vw,1.6rem)] font-bold tracking-[0.14em] text-cine-primaria-clara">{chamada}</span>
             )}

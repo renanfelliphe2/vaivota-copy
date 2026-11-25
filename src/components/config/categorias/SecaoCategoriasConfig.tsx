@@ -230,9 +230,10 @@ function CartaoCategoria({
   const MOSTRAR = 8;
   return (
     <article aria-labelledby={`cat-${categoria.id}`} className="flex w-full flex-col gap-4 rounded-2xl border border-tema-borda bg-tema-superficie p-5">
-      <div className="flex items-start gap-3">
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h3 id={`cat-${categoria.id}`} className="text-lg font-bold">
+      {/* Celular: os quatro botões descem para a linha de baixo quando o nome não cabe ao lado. */}
+      <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
+        <div className="flex min-w-48 flex-1 flex-col gap-0.5">
+          <h3 id={`cat-${categoria.id}`} className="text-lg font-bold wrap-anywhere">
             {categoria.nome}
           </h3>
           {categoria.premio && <p className="text-sm font-medium text-tema-primaria-texto">{categoria.premio}</p>}
@@ -240,7 +241,7 @@ function CartaoCategoria({
             {categoria.canal === "TOTEM" ? "Votada no totem" : "Votada na página"}
           </Selo>
         </div>
-        <div className="-mr-2 -mt-1 flex shrink-0">
+        <div className="-mr-2 -mt-1 ml-auto flex shrink-0">
           <BotaoIcone rotulo={`Mover ${categoria.nome} para antes`} disabled={!pode || primeira} onClick={() => aoMover(-1)}>
             <ArrowLeft aria-hidden className="size-4" />
           </BotaoIcone>
@@ -739,7 +740,7 @@ function ModalItens({
         {visiveis.length === 0 ? (
           <p className="rounded-xl border border-dashed border-tema-borda p-6 text-center text-tema-texto-suave">Nenhum {singular} neste filtro.</p>
         ) : (
-          <ul className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-3">
+          <ul className="grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-3">
             {visiveis.map((c) => {
               const marcado = marcados.has(c.id);
               const estavaAqui = original.has(c.id);
@@ -842,8 +843,9 @@ function CartaoQr({ categoria, url, hrefTelao }: { categoria: Categoria; url: st
   }
 
   return (
-    <div className="flex gap-4 rounded-2xl border border-tema-borda bg-tema-superficie p-4">
-      <div className="shrink-0 rounded-xl bg-white p-2">
+    // Celular: o QR em cima e os botões com a largura toda embaixo (ao lado do QR, o texto ficava com ~100 px).
+    <div className="flex flex-col gap-4 rounded-2xl border border-tema-borda bg-tema-superficie p-4 min-[30rem]:flex-row">
+      <div className="shrink-0 self-start rounded-xl bg-white p-2">
         {url ? (
           <QRCodeSVG value={url} size={112} level="M" marginSize={1} bgColor="#ffffff" fgColor="#000000" role="img" aria-label={`QR Code de ${categoria.nome}`} />
         ) : (

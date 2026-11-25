@@ -168,7 +168,7 @@ function TelaInicio({
           e.stopPropagation();
           aoTocar();
         }}
-        className="totem-pulso inline-flex min-h-24 items-center gap-4 rounded-full bg-tema-primaria px-12 text-3xl font-extrabold text-tema-sobre-primaria shadow-xl sm:text-4xl"
+        className="totem-pulso inline-flex min-h-24 max-w-full items-center justify-center gap-4 rounded-full bg-tema-primaria px-8 text-3xl font-extrabold text-tema-sobre-primaria shadow-xl sm:px-12 sm:text-4xl"
       >
         <Hand aria-hidden className="size-10" />
         {TEXTOS_TOTEM.toqueParaVotar}
@@ -232,7 +232,7 @@ function TelaConfirmar({
       </div>
       <div className="flex w-full max-w-md flex-col items-center gap-6 text-center md:items-start md:text-left">
         <p className="text-2xl text-tema-texto-suave sm:text-3xl">{TEXTOS_TOTEM.confirmar}</p>
-        <h1 className="line-clamp-3 text-4xl font-extrabold leading-tight sm:text-5xl">{candidato.titulo}?</h1>
+        <h1 className="line-clamp-3 max-w-full text-4xl font-extrabold leading-tight wrap-anywhere sm:text-5xl">{candidato.titulo}?</h1>
         <div className="flex w-full flex-col gap-4">
           <button
             type="button"

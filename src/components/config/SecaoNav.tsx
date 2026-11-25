@@ -3,6 +3,7 @@
 import { Gavel, Layers, ListChecks, Monitor, Palette, Power, Scale, Settings2, Tablet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 import type { SecaoConfig } from "@/dominio/checklistAtivacao";
 import { cx } from "@/lib/classes";
 import { useFormularioSujo } from "./FormularioSujoProvider";
@@ -29,10 +30,24 @@ export const SECOES = TODAS_AS_SECOES;
 export function SecaoNav({ base, atual, rotuloCandidatos }: { base: string; atual: SecaoConfig; rotuloCandidatos: string }) {
   const { sujo, confirmarSaida } = useFormularioSujo();
   const router = useRouter();
+  const faixa = useRef<HTMLElement>(null);
+
+  // 25/11/2026: no celular a faixa rola na horizontal; a seção atual vem para o meio dela (antes podia ficar fora da vista).
+  useEffect(() => {
+    const caixa = faixa.current;
+    const ativa = caixa?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!caixa || !ativa || caixa.scrollWidth <= caixa.clientWidth) return;
+    caixa.scrollLeft = ativa.offsetLeft - (caixa.clientWidth - ativa.offsetWidth) / 2;
+  }, [atual]);
 
   return (
-    <nav aria-label="Seções da configuração" className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:overflow-visible lg:px-0">
-      <ul className="flex gap-1 lg:flex-col">
+    // Celular: uma linha que rola. Do sm ao lg: as seções quebram em linhas (todas à vista). lg: coluna ao lado do conteúdo.
+    <nav
+      ref={faixa}
+      aria-label="Seções da configuração"
+      className="carrossel-sem-barra relative -mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0"
+    >
+      <ul className="flex gap-1 sm:flex-wrap lg:flex-col">
         {SECOES.map(({ id, rotulo, icone: Icone }) => {
           const href = `${base}?secao=${id}`;
           const ativa = id === atual;
@@ -48,7 +63,7 @@ export function SecaoNav({ base, atual, rotuloCandidatos }: { base: string; atua
                   confirmarSaida(() => router.push(href, { scroll: false }));
                 }}
                 className={cx(
-                  "flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold lg:rounded-xl",
+                  "flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap lg:rounded-xl",
                   ativa ? "bg-tema-primaria text-tema-sobre-primaria" : "text-tema-texto hover:bg-tema-superficie",
                 )}
               >

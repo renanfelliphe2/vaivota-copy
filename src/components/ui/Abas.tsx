@@ -59,7 +59,7 @@ export function Abas({ abas, rotulo, valor, aoMudar, valorInicial, className }: 
 
   return (
     <div className={cx("flex flex-col gap-4", className)}>
-      <div role="tablist" aria-label={rotulo} className="flex gap-1 rounded-full bg-tema-superficie p-1">
+      <div role="tablist" aria-label={rotulo} className="carrossel-sem-barra flex gap-1 overflow-x-auto rounded-full bg-tema-superficie p-1">
         {abas.map((aba) => {
           const selecionada = aba.id === ativo;
           return (
@@ -80,7 +80,7 @@ export function Abas({ abas, rotulo, valor, aoMudar, valorInicial, className }: 
               onClick={() => !aba.desabilitada && selecionar(aba.id)}
               onKeyDown={aoTeclar}
               className={cx(
-                "min-h-11 flex-1 rounded-full px-4 text-sm font-semibold transition",
+                "min-h-11 flex-1 shrink-0 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition",
                 selecionada ? "bg-tema-fundo text-tema-texto shadow-sm" : "text-tema-texto-suave hover:text-tema-texto",
                 aba.desabilitada && "cursor-not-allowed opacity-60 hover:text-tema-texto-suave",
               )}

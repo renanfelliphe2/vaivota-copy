@@ -91,46 +91,48 @@ export function LineChart({ titulo, pontos, destaque = null, alt, rotuloY, tabel
           onBlur={() => setAtivo(null)}
           className="relative rounded-xl"
         >
-          <svg
-            role="img"
-            aria-label={alt}
-            viewBox={`0 0 ${LARGURA} ${ALTURA}`}
-            className="h-auto w-full text-tema-texto-suave"
-            onMouseMove={aoMover}
-            onMouseLeave={() => setAtivo(null)}
-          >
-            {[0, 0.5, 1].map((f) => (
-              <g key={f}>
-                <line
-                  x1={MARGEM.esquerda}
-                  x2={LARGURA - MARGEM.direita}
-                  y1={y(maximo * f)}
-                  y2={y(maximo * f)}
-                  stroke="currentColor"
-                  strokeOpacity={0.25}
-                  strokeDasharray={f === 0 ? undefined : "4 4"}
-                />
-                <text x={MARGEM.esquerda - 6} y={y(maximo * f) + 4} textAnchor="end" fontSize={12} fill="currentColor">
-                  {formatarNumero(Math.round(maximo * f))}
+          <div className="overflow-x-auto">
+            <svg
+              role="img"
+              aria-label={alt}
+              viewBox={`0 0 ${LARGURA} ${ALTURA}`}
+              className="h-auto w-full min-w-[34rem] text-tema-texto-suave"
+              onMouseMove={aoMover}
+              onMouseLeave={() => setAtivo(null)}
+            >
+              {[0, 0.5, 1].map((f) => (
+                <g key={f}>
+                  <line
+                    x1={MARGEM.esquerda}
+                    x2={LARGURA - MARGEM.direita}
+                    y1={y(maximo * f)}
+                    y2={y(maximo * f)}
+                    stroke="currentColor"
+                    strokeOpacity={0.25}
+                    strokeDasharray={f === 0 ? undefined : "4 4"}
+                  />
+                  <text x={MARGEM.esquerda - 6} y={y(maximo * f) + 4} textAnchor="end" fontSize={12} fill="currentColor">
+                    {formatarNumero(Math.round(maximo * f))}
+                  </text>
+                </g>
+              ))}
+              {marcasX.map(({ i, rotulo }) => (
+                <text key={i} x={x(i)} y={ALTURA - 8} textAnchor="middle" fontSize={12} fill="currentColor">
+                  {rotulo}
                 </text>
-              </g>
-            ))}
-            {marcasX.map(({ i, rotulo }) => (
-              <text key={i} x={x(i)} y={ALTURA - 8} textAnchor="middle" fontSize={12} fill="currentColor">
-                {rotulo}
+              ))}
+              <path d={caminho} fill="none" stroke="var(--tema-primaria-texto)" strokeWidth={2.5} strokeLinejoin="round" />
+              {foco !== null && pontos[foco] && (
+                <g>
+                  <line x1={x(foco)} x2={x(foco)} y1={MARGEM.topo} y2={MARGEM.topo + altura} stroke="currentColor" strokeOpacity={0.4} />
+                  <circle cx={x(foco)} cy={y(pontos[foco].valor)} r={6} fill="var(--tema-fundo)" stroke="var(--tema-primaria-texto)" strokeWidth={3} />
+                </g>
+              )}
+              <text x={MARGEM.esquerda} y={11} fontSize={11} fill="currentColor">
+                {rotuloY}
               </text>
-            ))}
-            <path d={caminho} fill="none" stroke="var(--tema-primaria-texto)" strokeWidth={2.5} strokeLinejoin="round" />
-            {foco !== null && pontos[foco] && (
-              <g>
-                <line x1={x(foco)} x2={x(foco)} y1={MARGEM.topo} y2={MARGEM.topo + altura} stroke="currentColor" strokeOpacity={0.4} />
-                <circle cx={x(foco)} cy={y(pontos[foco].valor)} r={6} fill="var(--tema-fundo)" stroke="var(--tema-primaria-texto)" strokeWidth={3} />
-              </g>
-            )}
-            <text x={MARGEM.esquerda} y={11} fontSize={11} fill="currentColor">
-              {rotuloY}
-            </text>
-          </svg>
+            </svg>
+          </div>
           {foco !== null && pontos[foco] && (
             <p
               aria-live="polite"

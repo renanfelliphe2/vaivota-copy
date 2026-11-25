@@ -340,11 +340,11 @@ function CabecaCategoria({ dados }: { dados: CategoriaComItens }) {
           <ArrowLeft aria-hidden className="size-4" />
           Todas as categorias
         </Link>
-        <div className="flex flex-col gap-2">
+        <div className="flex min-w-0 max-w-full flex-col gap-2">
           <p className="marca-subir text-xs font-bold uppercase tracking-[0.2em] text-cine-primaria-clara" style={atraso(0)}>
             {tema.nomeExibicao ?? evento.nome}
           </p>
-          <h1 id="titulo-categoria" className="marca-subir font-cine text-[clamp(2rem,8vw,3.75rem)] font-bold leading-[1.02] tracking-tight" style={atraso(80)}>
+          <h1 id="titulo-categoria" className="marca-subir font-cine text-[clamp(2rem,8vw,3.75rem)] font-bold leading-[1.02] tracking-tight wrap-anywhere" style={atraso(80)}>
             {categoria.nome}
           </h1>
           {categoria.premio && (

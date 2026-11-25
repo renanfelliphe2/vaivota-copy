@@ -50,7 +50,7 @@ export function classesBotao({
   className,
 }: Pick<Comum, "variante" | "tamanho" | "larguraTotal" | "className">) {
   return cx(
-    "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition select-none",
+    "inline-flex items-center justify-center gap-2 rounded-full text-center font-semibold transition select-none",
     "disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60",
     VARIANTES[variante],
     TAMANHOS[tamanho],

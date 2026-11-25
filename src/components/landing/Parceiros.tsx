@@ -52,7 +52,7 @@ function ListaLogos({ parceiros }: { parceiros: readonly Parceiro[] }) {
   return (
     <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-5 sm:gap-x-8">
       {parceiros.map((p) => {
-        const logo = <LogoParceiro parceiro={p} className="max-h-12 max-w-32 sm:max-h-14 sm:max-w-36" classeNome="font-display text-base font-extrabold text-tema-texto-suave" />;
+        const logo = <LogoParceiro parceiro={p} className="max-h-12 max-w-32 sm:max-h-14 sm:max-w-36" classeNome="line-clamp-2 whitespace-normal! text-center font-display text-base font-extrabold text-tema-texto-suave wrap-anywhere" />;
         return (
           <li key={p.id} className="flex h-14 w-32 items-center justify-center sm:h-16 sm:w-36">
             {p.linkUrl && /^https?:\/\//i.test(p.linkUrl) ? (

@@ -12,7 +12,7 @@ export type LogoEventoProps = {
 /** Logo do evento com altura fixa; sem logoUrl, o nome em texto. `blob:` usa <img> simples. */
 export function LogoEvento({ nome, logoUrl, className = "h-10 sm:h-12", prioridade }: LogoEventoProps) {
   if (!logoUrl) {
-    return <span className="text-lg font-bold leading-tight sm:text-xl">{nome}</span>;
+    return <span className="text-lg font-bold leading-tight wrap-anywhere sm:text-xl">{nome}</span>;
   }
   if (logoUrl.startsWith("blob:")) {
     // eslint-disable-next-line @next/next/no-img-element -- blob: não passa pelo next/image

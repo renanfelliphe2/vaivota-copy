@@ -62,14 +62,14 @@ export function LandingHero() {
 
           <h1
             id="titulo-evento"
-            className="marca-subir mt-8 font-display text-[clamp(2.5rem,11vw,3.75rem)] font-extrabold leading-[0.95] tracking-tight lg:text-6xl xl:text-7xl"
+            className="marca-subir mt-8 max-w-full font-display text-[clamp(2.5rem,11vw,3.75rem)] font-extrabold leading-[0.95] tracking-tight wrap-anywhere lg:text-6xl xl:text-7xl"
             style={atraso(80)}
           >
             {primeira}
             {resto && (
               <>
                 {" "}
-                <span className="block w-fit bg-linear-to-r from-marca-agua to-tema-secundaria bg-clip-text pb-[0.08em] text-transparent">
+                <span className="block w-fit max-w-full bg-linear-to-r from-marca-agua to-tema-secundaria bg-clip-text pb-[0.08em] text-transparent">
                   {resto}
                 </span>
               </>

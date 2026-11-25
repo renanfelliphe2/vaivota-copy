@@ -131,7 +131,7 @@ function Editor({ eventoId, categoria, categorias, campos, candidatos, travas, a
                   value={c.rotulo}
                   disabled={!podeRotulo}
                   onChange={(e) => mudar(lista.map((x, k) => (k === i ? { ...x, rotulo: e.target.value } : x)))}
-                  className="max-w-xs flex-1"
+                  className="min-w-40 max-w-xs flex-1"
                   maxLength={30}
                 />
                 <Select

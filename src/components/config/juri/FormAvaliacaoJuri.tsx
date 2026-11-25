@@ -129,7 +129,7 @@ export function FormAvaliacaoJuri({ eventoId, modo: modoSalvo, criterios: salvos
             <ol className="flex flex-col gap-3">
               {linhas.map((l, i) => (
                 <li key={l.chave} className="flex items-start gap-2">
-                  <Campo id={`criterio-${l.chave}`} rotulo={`Critério ${i + 1}`} erro={tentou || l.nome ? (erros[`criterio-${i}`] ?? null) : null} className="flex-1">
+                  <Campo id={`criterio-${l.chave}`} rotulo={`Critério ${i + 1}`} erro={tentou || l.nome ? (erros[`criterio-${i}`] ?? null) : null} className="min-w-0 flex-1">
                     <Input
                       value={l.nome}
                       maxLength={LIMITES.nomeCriterio[1]}

@@ -39,7 +39,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         data-print="ocultar"
-        className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex flex-col items-center gap-2 px-4"
+        className="pb-area-segura-4 pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-2 px-4"
       >
         {itens.map((t) => {
           const Icone = ICONES[t.tipo];
@@ -49,7 +49,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               className="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-xl border border-tema-borda bg-tema-fundo px-4 py-3 text-sm text-tema-texto shadow-lg"
             >
               <Icone aria-hidden className={cx("size-5 shrink-0", CORES[t.tipo])} />
-              <p className="flex-1">{t.mensagem}</p>
+              <p className="min-w-0 flex-1 wrap-anywhere">{t.mensagem}</p>
               <button
                 type="button"
                 onClick={() => remover(t.id)}

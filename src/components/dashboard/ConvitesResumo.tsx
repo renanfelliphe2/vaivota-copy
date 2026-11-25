@@ -23,7 +23,7 @@ export function ConvitesResumo({ convites, base }: { convites: OperacaoDados["co
       >
         Convites
       </TituloBloco>
-      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
         {itens.map(([rotulo, n]) => (
           <div key={rotulo} className="rounded-xl border border-tema-borda bg-tema-fundo p-3">
             <dt className="text-sm text-tema-texto-suave">{rotulo}</dt>

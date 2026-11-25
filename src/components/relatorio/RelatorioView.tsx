@@ -70,7 +70,7 @@ export function RelatorioView() {
 
       <section className="relatorio-secao flex flex-col gap-4">
         <LogoEvento nome={nome} logoUrl={tema.logoUrl} />
-        <h1 className="text-3xl font-bold">Relatório do resultado · {nome}</h1>
+        <h1 className="text-2xl font-bold wrap-anywhere sm:text-3xl">Relatório do resultado · {nome}</h1>
         <dl className="grid gap-2 text-sm sm:grid-cols-2">
           <div>
             <dt className="inline font-semibold">Período da votação: </dt>

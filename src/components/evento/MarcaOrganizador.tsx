@@ -50,7 +50,7 @@ export function LogoOrganizador({
       sizes="6rem"
       loading={prioridade ? "eager" : undefined}
       fetchPriority={prioridade ? "high" : undefined}
-      className={cx("w-auto", className)}
+      className={cx("w-auto max-w-full object-contain object-left", className)}
     />
   );
 }

@@ -115,7 +115,7 @@ export function ControleRemoto() {
   return (
     <TemaEvento
       data-print="ocultar"
-      className="fixed bottom-3 left-3 z-50 w-72 overflow-hidden rounded-2xl border border-tema-borda shadow-xl"
+      className="fixed bottom-3 left-3 z-50 max-h-[calc(100dvh-1.5rem)] w-72 max-w-[calc(100vw-1.5rem)] overflow-y-auto overscroll-contain rounded-2xl border border-tema-borda shadow-xl"
     >
       <aside aria-label="Controle remoto do telão" className="flex flex-col">
         <header className="flex items-center justify-between gap-2 bg-tema-primaria py-2 pl-4 pr-2 text-tema-sobre-primaria">

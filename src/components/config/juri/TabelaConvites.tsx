@@ -58,13 +58,13 @@ export function TabelaConvites({
               <div className="min-w-0">
                 {emEdicao ? (
                   <form
-                    className="flex gap-2"
+                    className="flex flex-wrap gap-2"
                     onSubmit={async (e) => {
                       e.preventDefault();
                       if (await aoRenomear(c.id, editando.rotulo)) setEditando(null);
                     }}
                   >
-                    <Input aria-label="Rótulo do convite" value={editando.rotulo} onChange={(e) => setEditando({ id: c.id, rotulo: e.target.value })} maxLength={40} autoFocus />
+                    <Input aria-label="Rótulo do convite" value={editando.rotulo} onChange={(e) => setEditando({ id: c.id, rotulo: e.target.value })} maxLength={40} autoFocus className="min-w-40 flex-1" />
                     <Botao type="submit" tamanho="pequeno">
                       Salvar
                     </Botao>
@@ -73,8 +73,8 @@ export function TabelaConvites({
                     </Botao>
                   </form>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{c.rotulo ?? "Sem rótulo"}</span>
+                  <div className="flex flex-wrap items-center gap-x-2">
+                    <span className="min-w-0 font-semibold wrap-anywhere">{c.rotulo ?? "Sem rótulo"}</span>
                     {podeRenomear && (
                       <Botao variante="fantasma" tamanho="pequeno" aria-label={`Renomear ${c.rotulo ?? "convite sem rótulo"}`} onClick={() => setEditando({ id: c.id, rotulo: c.rotulo ?? "" })} icone={<Pencil aria-hidden className="size-4" />}>
                         Renomear
