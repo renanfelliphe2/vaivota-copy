@@ -11,6 +11,7 @@ import { useEventoAtivo } from "@/store/seletores/evento";
  * 24/11/2026, refeito: cartão claro de revista, com fio nas cores do tema no topo e brilhos suaves ao fundo; a foto numa moldura
  * com uma placa em degradê deslocada atrás (no estilo cinema, um quadro de película com perfurações); sobrescrito "Sobre o
  * evento", título com traço de destaque, primeiro parágrafo maior (abertura) e os demais no tom suave. Sem foto, o texto centraliza.
+ * 25/11/2026: com foto, o texto contorna a foto (a partir do md); no celular, a foto vem em cima.
  */
 export function SobreEvento({ cinema = false }: { cinema?: boolean }) {
   const ativo = useEventoAtivo();
@@ -29,14 +30,11 @@ export function SobreEvento({ cinema = false }: { cinema?: boolean }) {
           <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 -z-10 size-80 rounded-full bg-tema-primaria/10 blur-3xl" />
           <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-24 -z-10 size-96 rounded-full bg-tema-secundaria/10 blur-3xl" />
 
-          <div
-            className={cx(
-              "grid items-center gap-10 p-6 sm:p-10 lg:gap-14 lg:p-14",
-              comImagem ? "md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]" : "justify-items-center text-center",
-            )}
-          >
+          {/* 25/11/2026: com foto, o texto a contorna (float em fluxo de bloco; grid ou flex deixariam um vão sob a foto quando o
+              texto é longo). `flow-root` contém o float. Sem foto, a coluna centralizada. */}
+          <div className={cx("p-6 sm:p-10 lg:p-14", comImagem ? "flow-root" : "grid justify-items-center text-center")}>
             {sobreImagemUrl && (
-              <div className="relative mr-3 mb-3 md:mr-4 md:mb-4">
+              <div className="relative mb-10 mr-3 md:float-left md:mb-8 md:mr-14 md:w-[44%] lg:mr-16 lg:w-[42%]">
                 {/* Placa em degradê deslocada atrás da foto. */}
                 <div
                   aria-hidden
@@ -67,8 +65,8 @@ export function SobreEvento({ cinema = false }: { cinema?: boolean }) {
               </div>
             )}
 
-            <div className={cx("flex flex-col gap-5", !comImagem && "max-w-3xl items-center")}>
-              <div className={cx("flex flex-col gap-3", !comImagem && "items-center")}>
+            <div className={cx(comImagem ? "block" : "flex max-w-3xl flex-col items-center gap-5")}>
+              <div className={cx("flex flex-col gap-3", !comImagem && "items-center", comImagem && "mb-6")}>
                 <p
                   {...(titulo ? {} : { id: "titulo-sobre-evento", role: "heading", "aria-level": 2 })}
                   className={cx(
@@ -94,12 +92,14 @@ export function SobreEvento({ cinema = false }: { cinema?: boolean }) {
                 <span aria-hidden className="mt-1 h-1 w-14 rounded-full bg-linear-to-r from-tema-primaria to-tema-secundaria" />
               </div>
 
-              <div className="flex flex-col gap-4">
+              {/* Parágrafos em bloco (não flex): só assim as linhas passam por baixo da foto quando o texto a ultrapassa. */}
+              <div className={comImagem ? "block" : "flex flex-col gap-4"}>
                 {paragrafos.map((trechos, i) => (
                   <p
                     key={i}
                     className={cx(
                       "text-pretty",
+                      comImagem && i > 0 && "mt-4",
                       i === 0 ? "text-lg leading-relaxed text-tema-texto sm:text-xl" : "text-base leading-relaxed text-tema-texto-suave sm:text-lg",
                     )}
                   >
