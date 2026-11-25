@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useReducer, useState } from "react";
+import { MENSAGEM_TOTEM_PADRAO } from "@/dominio/apresentacao/cerimonia";
 import { DURACOES } from "@/dominio/apresentacao/duracoes";
 import { estadoInicialMotor, reduzirMotor } from "@/dominio/apresentacao/motor";
 import { montarRoteiro } from "@/dominio/apresentacao/roteiro";
@@ -10,8 +11,8 @@ import { formatarContagem } from "@/lib/tempo";
 import { useDev } from "@/store/seletores/dev";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { CenaAtual, nomeDaCena } from "./CenaAtual";
-import { CenaAoVivo } from "./cenas/CenasFase";
-import { FaixaParceiros } from "./Pecas";
+import { CenaAoVivo } from "./telao/CenasVotacao";
+import { creditosDosParceiros } from "./telao/creditos";
 import { usePalcoTeclado, useTemporizadorDoPasso, useTique } from "./hooks";
 import { Palco } from "./Palco";
 
@@ -43,7 +44,7 @@ export function PalcoEnsaio({
   const dev = useDev();
   const nome = ativo.tema.nomeExibicao ?? ativo.evento.nome;
   const roteiro = useMemo(
-    () => montarRoteiro(dados.dados, { classificacaoCompleta: dados.config.classificacaoCompleta, modo: "ENSAIO", candidatosNaDisputa: dados.candidatosNaDisputa }),
+    () => montarRoteiro(dados, { modo: "ENSAIO" }),
     [dados],
   );
   const [estado, despachar] = useReducer((e: EstadoMotor, a: AcaoMotor) => reduzirMotor(e, a, roteiro), modoInicial, (modo) => ({
@@ -77,16 +78,28 @@ export function PalcoEnsaio({
   const curva = dados.votosPorMinutoSimulados;
   const pontos = Math.floor(progresso * curva.length);
   const totalAoVivo = curva.slice(0, pontos).reduce((s, n) => s + n, 0);
-  const candidatos = dados.candidatos.filter((c) => !dados.dados.desqualificados.includes(c.id));
+  const naDisputa = dados.candidatos.filter((c) => !dados.dados.desqualificados.includes(c.id));
+  // O ao vivo simulado mostra a primeira categoria com itens (como o telão faz no começo do ciclo).
+  const primeira = dados.categorias.find((c) => naDisputa.some((x) => x.categoriaId === c.id)) ?? null;
+  const candidatos = primeira ? naDisputa.filter((c) => c.categoriaId === primeira.id) : naDisputa;
+  const categoriaCompleta = primeira ? ativo.categorias.find((c) => c.id === primeira.id) : undefined;
+  const categoriaEnsaio = primeira
+    ? {
+        nome: primeira.nome,
+        premio: primeira.premio,
+        soTotem: primeira.canal === "TOTEM",
+        mensagem: categoriaCompleta?.mensagemTelao ?? MENSAGEM_TOTEM_PADRAO,
+        posicao: null,
+      }
+    : null;
 
   return (
     <Palco
       ensaio
-      nomeCena={nomeDaCena(cena)}
+      nomeCena={nomeDaCena(cena, dados.categorias)}
       progresso={{ cena: estado.cena + 1, total: roteiro.length }}
       proximoAvancoEm={proximoAvancoEm}
       aoDesligar={aoDesligar}
-      rodape={cena?.tipo === "AO_VIVO_ENSAIO" || cena?.tipo === "ENCERRADA_ENSAIO" ? <FaixaParceiros parceiros={ativo.parceiros} /> : null}
       chaveTransicao={cena?.tipo === "TRAILER" ? "trailer" : "cena"}
       mensagem={null}
       ajudaVisivel={ajuda}
@@ -109,17 +122,23 @@ export function PalcoEnsaio({
         nome={nome}
         logoUrl={ativo.tema.logoUrl}
         dataEvento=""
+        rotuloCandidatos={ativo.tema.rotuloCandidatos}
+        creditos={creditosDosParceiros(ativo.parceiros, ativo.gruposParceiros)}
         simularTrailerFalha={dev.simularTrailerFalha}
         aoVivoEnsaio={
           <CenaAoVivo
             nome={nome}
             logoUrl={ativo.tema.logoUrl}
+            rotuloCandidato={ativo.tema.rotuloCandidato}
             candidatos={candidatos}
             urlQr={urlQr}
             contagem={<span>{formatarContagem(Math.max(0, SEGUNDOS_AO_VIVO - tiques) * 1000)}</span>}
+            fimTexto={null}
             totalGeral={totalAoVivo}
-            parcial={null}
             subestado={tiques === 0 ? "ABERTURA" : SEGUNDOS_AO_VIVO - tiques <= 5 ? "RETA_FINAL" : null}
+            intervaloSegundos={ativo.configApresentacao.telaoIntervaloSegundos}
+            mostrar={ativo.configApresentacao.telaoMostrar}
+            categoria={categoriaEnsaio}
           />
         }
       />

@@ -8,6 +8,7 @@ import { DURACOES } from "@/dominio/apresentacao/duracoes";
 import { resolverFasePalco, ROTULO_FASE_PALCO } from "@/dominio/apresentacao/fasePalco";
 import { estadoInicialMotor, reduzirMotor } from "@/dominio/apresentacao/motor";
 import { lerRevelacao } from "@/dominio/apresentacao/revelacao";
+import { MENSAGEM_TOTEM_PADRAO } from "@/dominio/apresentacao/cerimonia";
 import { montarFinal, montarRoteiro } from "@/dominio/apresentacao/roteiro";
 import type { AcaoMotor, DadosRevelacao, EstadoMotor, EstadoTrailer } from "@/dominio/apresentacao/tipos";
 import { votaveis } from "@/dominio/candidatos";
@@ -26,12 +27,20 @@ import { useEventoAtivo } from "@/store/seletores/evento";
 import { useAgora } from "@/store/seletores/relogio";
 import { useVersaoResultado } from "@/store/seletores/resultado";
 import { useSituacaoEvento } from "@/store/seletores/situacao";
-import { CenaAtual, nomeDaCena, useCatalogo } from "./CenaAtual";
-import { CenaAoVivo, CenaEncerrada, CenaMensagem, CenaPreVotacao, type SubestadoAoVivo } from "./cenas/CenasFase";
-import { FaixaParceiros } from "./Pecas";
-import { CenaFinal } from "./cenas/CenasRevelacao";
+import { CenaAtual, nomeDaCena, useContextoCerimonia } from "./CenaAtual";
+import { CenaAoVivo, CenaEncerrada, CenaMensagem, CenaPreVotacao, type SubestadoAoVivo } from "./telao/CenasVotacao";
+import { CenaFinal } from "./telao/CenasCerimonia";
+import { creditosDosParceiros } from "./telao/creditos";
 import { usePalcoTeclado, useTemporizadorDoPasso } from "./hooks";
 import { Palco } from "./Palco";
+
+/** "28 nov · 20h" no fuso do evento (o canhoto do ingresso). */
+function fimPorExtenso(ms: number, fuso: string): string {
+  const partes = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: fuso }).formatToParts(new Date(ms));
+  const p = (t: string) => partes.find((x) => x.type === t)?.value ?? "";
+  const minuto = p("minute");
+  return `${p("day")} ${p("month").replace(".", "")} · ${p("hour")}h${minuto === "00" ? "" : minuto}`;
+}
 
 /** Com a urna encerrada o telão pergunta de novo se há resultado (e qual a assinatura): ele pode surgir ou mudar de versão. */
 const INTERVALO_STATUS_MS = 10_000;
@@ -58,7 +67,8 @@ export function PalcoReal({
   // itens, o status e a revelação são só dela.
   const categoria = useCategoriaApresentada(eventoId);
   const categoriaId = categoria?.id ?? null;
-  const nome = categoria ? `${tema.nomeExibicao ?? evento.nome} · ${categoria.nome}` : (tema.nomeExibicao ?? evento.nome);
+  // Cerimônia (25/11/2026): a revelação é do evento inteiro; a categoria escolhida na sala só vale fora da votação aberta.
+  const nome = tema.nomeExibicao ?? evento.nome;
   const agora = useAgora();
   const anunciar = useAnunciar();
   const dev = useDev();
@@ -77,8 +87,8 @@ export function PalcoReal({
   // 08/10/2026: emSegundoPlano em todas: com uma tela só, o telão fica numa aba de fundo enquanto o controle comanda.
   // O resultado nasce no encerramento e pode ganhar versão nova (desqualificação) com o telão aberto, e o estado do navegador não
   // traz o resultado: a fase entra na chave e, com a urna encerrada, o status é perguntado de novo de tempos em tempos.
-  const status = useConsulta(() => obterStatusResultado(eventoId, categoriaId), {
-    chave: `${eventoId}:${versao}:${fase}:${categoriaId}`,
+  const status = useConsulta(() => obterStatusResultado(eventoId), {
+    chave: `${eventoId}:${versao}:${fase}`,
     intervaloMs: fase === "URNA_ENCERRADA" ? INTERVALO_STATUS_MS : undefined,
     emSegundoPlano: true,
   });
@@ -96,7 +106,7 @@ export function PalcoReal({
   });
 
   const precisaResultado = fasePalco === "REVELACAO" || fasePalco === "FINAL_ESTATICO";
-  const consultaResultado = useConsulta(() => carregarRevelacao(eventoId, categoriaId), {
+  const consultaResultado = useConsulta(() => carregarRevelacao(eventoId), {
     ativo: precisaResultado && carregado?.assinatura !== assinatura,
     chave: `${eventoId}:${assinatura}`,
     emSegundoPlano: true,
@@ -109,7 +119,7 @@ export function PalcoReal({
         : null;
 
   const roteiro = useMemo(
-    () => (dados ? montarRoteiro(dados.dados, { classificacaoCompleta: dados.config.classificacaoCompleta, modo: "REAL", candidatosNaDisputa: dados.candidatosNaDisputa }) : []),
+    () => (dados ? montarRoteiro(dados, { modo: "REAL" }) : []),
     [dados],
   );
   const modoAvanco = prefs.modoAvancoLocal ?? configApresentacao.modoAvanco;
@@ -151,7 +161,7 @@ export function PalcoReal({
   }
 
   async function iniciar(irParaFinal: boolean) {
-    const r = await carregarRevelacao(eventoId, categoriaId);
+    const r = await carregarRevelacao(eventoId);
     if (!r.ok) return setMensagemHud("Não foi possível carregar o resultado. Tente de novo.");
     setMensagemHud(null);
     setCarregado(r.dados);
@@ -159,7 +169,7 @@ export function PalcoReal({
     const versaoIniciada = r.dados.versao;
     let final: number | null = null;
     if (irParaFinal) {
-      final = montarRoteiro(r.dados.dados, { classificacaoCompleta: r.dados.config.classificacaoCompleta, modo: "REAL", candidatosNaDisputa: r.dados.candidatosNaDisputa }).length - 1;
+      final = montarRoteiro(r.dados, { modo: "REAL" }).length - 1;
       gravarProgresso(eventoId, { cena: final, passo: 0 });
       concluirRevelacao(eventoId, true);
     }
@@ -219,7 +229,7 @@ export function PalcoReal({
 
   // LiveRegion: só a fase e o nome da cena, nunca vencedores ou pontuações.
   const cenaAtual = fasePalco === "REVELACAO" ? roteiro[estadoMotor.cena] : undefined;
-  const anuncio = cenaAtual ? nomeDaCena(cenaAtual) : fasePalco === "ENCERRADA_AGUARDANDO" ? TEXTOS_PALCO.votacaoEncerrada : ROTULO_FASE_PALCO[fasePalco];
+  const anuncio = cenaAtual ? nomeDaCena(cenaAtual, dados?.categorias) : fasePalco === "ENCERRADA_AGUARDANDO" ? TEXTOS_PALCO.votacaoEncerrada : ROTULO_FASE_PALCO[fasePalco];
   const ultimoAnuncio = useRef("");
   useEffect(() => {
     if (anuncio && anuncio !== ultimoAnuncio.current) anunciar(anuncio);
@@ -229,7 +239,9 @@ export function PalcoReal({
   const candidatos = votaveis(ativo.candidatos)
     .filter((c) => !categoriaId || c.categoriaId === categoriaId)
     .map((c) => ({ id: c.id, titulo: c.titulo, imagemUrl: c.imagemUrl, ordem: c.ordem }));
-  const catalogo = useCatalogo(dados?.candidatos ?? candidatos);
+  const ctx = useContextoCerimonia(dados?.candidatos ?? candidatos, dados?.categorias ?? []);
+  const creditos = useMemo(() => creditosDosParceiros(ativo.parceiros, ativo.gruposParceiros), [ativo.parceiros, ativo.gruposParceiros]);
+  const todosVotaveis = votaveis(ativo.candidatos);
   const dataEvento = evento.janelaInicio ? formatarDataHora(paraMs(evento.janelaInicio), evento.fusoHorario) : "";
 
   let conteudo;
@@ -246,14 +258,13 @@ export function PalcoReal({
       fase !== "RASCUNHO" && evento.janelaInicio && situacao === "NAO_INICIADA" ? (
         <ContagemRegressiva alvoMs={paraMs(evento.janelaInicio)} rotulo={TEXTOS_PALCO.comecaEm} textoZerado={TEXTOS_PALCO.aguardandoAbertura} />
       ) : null;
-    conteudo = <CenaPreVotacao nome={nome} logoUrl={tema.logoUrl} candidatos={candidatos} chamada={chamada} contagem={contagem} />;
+    conteudo = <CenaPreVotacao nome={nome} logoUrl={tema.logoUrl} chamada={chamada} contagem={contagem} />;
   } else if (fasePalco === "AO_VIVO") {
     const abertaHa = evento.urnaAbertaEm ? agora - paraMs(evento.urnaAbertaEm) : Infinity;
     const subestado: SubestadoAoVivo =
       situacao === "TEMPO_ESGOTADO" ? "TEMPO_ESGOTADO" : situacao === "RETA_FINAL" ? "RETA_FINAL" : abertaHa <= DURACOES.mensagemAbertura ? "ABERTURA" : null;
     // B2 (25/11/2026): durante a votação, uma categoria por vez, trocando a cada n segundos (as do totem também, sem QR Code).
     // A escolha da sala continua valendo para a revelação. Sem nenhuma categoria com item, a de antes.
-    const todosVotaveis = votaveis(ativo.candidatos);
     const idsComItens = new Set(todosVotaveis.flatMap((c) => (c.categoriaId ? [c.categoriaId] : [])));
     const ciclo = categoriaDoTelao(ativo.categorias, idsComItens, agora, configApresentacao.telaoIntervaloSegundos);
     const emTela = ciclo?.categoria ?? categoria;
@@ -262,28 +273,45 @@ export function PalcoReal({
       : candidatos;
     conteudo = (
       <CenaAoVivo
-        nome={emTela ? `${tema.nomeExibicao ?? evento.nome} · ${emTela.nome}` : nome}
+        nome={nome}
+        rotuloCandidato={tema.rotuloCandidato}
+        fimTexto={evento.janelaFim ? fimPorExtenso(paraMs(evento.janelaFim), evento.fusoHorario) : null}
+        intervaloSegundos={configApresentacao.telaoIntervaloSegundos}
         logoUrl={tema.logoUrl}
         candidatos={candidatosEmTela}
         urlQr={emTela ? `${window.location.origin}${rotaCategoria(ativo.slug, emTela.slug)}` : urlQr}
         mostrar={configApresentacao.telaoMostrar}
         categoria={
           emTela
-            ? { nome: emTela.nome, premio: emTela.premio, soTotem: emTela.canal === "TOTEM", posicao: ciclo ? { indice: ciclo.indice, total: ciclo.total } : null }
+            ? {
+                nome: emTela.nome,
+                premio: emTela.premio,
+                soTotem: emTela.canal === "TOTEM",
+                mensagem: emTela.mensagemTelao ?? MENSAGEM_TOTEM_PADRAO,
+                posicao: ciclo ? { indice: ciclo.indice, total: ciclo.total } : null,
+              }
             : null
         }
         contagem={evento.janelaFim ? <ContagemRegressiva alvoMs={paraMs(evento.janelaFim)} rotulo="Encerra em" textoZerado={TEXTOS_PALCO.tempoEsgotado} /> : null}
         totalGeral={aoVivo.dados?.totalGeral ?? null}
-        parcial={aoVivo.dados?.parcial ?? null}
         subestado={subestado}
       />
     );
   } else if (fasePalco === "SEM_RESULTADO") {
     conteudo = <CenaMensagem nome={nome} logoUrl={tema.logoUrl} texto={TEXTOS_PALCO.semResultado} />;
   } else if (fasePalco === "ENCERRADA_AGUARDANDO" || !dados) {
-    conteudo = <CenaEncerrada nome={nome} logoUrl={tema.logoUrl} candidatos={candidatos} totalGeral={aoVivo.dados?.totalGeral ?? null} />;
+    conteudo = (
+      <CenaEncerrada
+        nome={nome}
+        logoUrl={tema.logoUrl}
+        totalGeral={aoVivo.dados?.totalGeral ?? null}
+        itens={todosVotaveis.length}
+        categorias={ativo.categorias.length}
+        rotuloCandidatos={tema.rotuloCandidatos}
+      />
+    );
   } else if (fasePalco === "FINAL_ESTATICO") {
-    conteudo = <CenaFinal final={montarFinal(dados.dados)} catalogo={catalogo} config={dados.config} direto />;
+    conteudo = <CenaFinal resultados={montarFinal(dados)} ctx={ctx} nome={nome} logoUrl={tema.logoUrl} creditos={creditos} />;
   } else {
     conteudo = (
       <CenaAtual
@@ -294,6 +322,8 @@ export function PalcoReal({
         nome={nome}
         logoUrl={tema.logoUrl}
         dataEvento={dataEvento}
+        rotuloCandidatos={tema.rotuloCandidatos}
+        creditos={creditos}
         simularTrailerFalha={dev.simularTrailerFalha}
       />
     );
@@ -301,17 +331,14 @@ export function PalcoReal({
 
   const erroLeitura = aoVivo.erro || status.erro || consultaResultado.erro;
   const revelando = fasePalco === "REVELACAO";
-  // Parceiros só enquanto a revelação não começou (08/10/2026).
-  const antesDaRevelacao = fasePalco !== "REVELACAO" && fasePalco !== "FINAL_ESTATICO";
   return (
     <>
       <Palco
         ensaio={false}
-        nomeCena={revelando ? nomeDaCena(cenaAtual) : anuncio}
+        nomeCena={revelando ? nomeDaCena(cenaAtual, dados?.categorias) : anuncio}
         progresso={revelando ? { cena: estadoMotor.cena + 1, total: roteiro.length } : null}
         proximoAvancoEm={revelando ? proximoAvancoEm : null}
         aoDesligar={desligar}
-        rodape={antesDaRevelacao ? <FaixaParceiros parceiros={ativo.parceiros} /> : null}
         chaveTransicao={cenaAtual?.tipo === "TRAILER" ? "trailer" : "cena"}
         mensagem={mensagemHud ?? (erroLeitura ? `Falha de leitura: ${erroLeitura.mensagem}. Mostrando o último dado.` : null)}
         ajudaVisivel={ajuda}

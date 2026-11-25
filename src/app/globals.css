@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./telao.css";
 
 /*
  * Tokens do tema do evento (Etapa 0, seção 5.5). Os valores reais são aplicados pelo <TemaEvento>

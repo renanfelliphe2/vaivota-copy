@@ -99,37 +99,6 @@ export function PalcoCinema({ children, className, fundo }: { children: ReactNod
   );
 }
 
-/** Raios girando atrás do vencedor. */
-export function Raios({ className, cor = "var(--cinema-luz)" }: { className?: string; cor?: string }) {
-  return (
-    <div aria-hidden className={cx("pointer-events-none absolute", className)}>
-      <div
-        className="cinema-raios cinema-surgir size-full rounded-full opacity-35"
-        style={{
-          background: `repeating-conic-gradient(from 0deg, ${cor} 0deg 5deg, transparent 5deg 18deg)`,
-          maskImage: "radial-gradient(circle, black 8%, transparent 68%)",
-        }}
-      />
-    </div>
-  );
-}
-
-/** Halo de luz (cone de cima) sobre um alvo. */
-export function Halo({ className }: { className?: string }) {
-  return (
-    <div
-      aria-hidden
-      className={cx("cinema-surgir pointer-events-none absolute", className)}
-      style={{ background: "radial-gradient(ellipse 50% 60% at 50% 40%, color-mix(in srgb, var(--cinema-luz) 45%, transparent), transparent 70%)" }}
-    />
-  );
-}
-
-/** Clarão da revelação. */
-export function Flash() {
-  return <div aria-hidden className="cinema-flash pointer-events-none absolute inset-0 z-30 bg-white" />;
-}
-
 /** Papel de uma camada na passagem pelo preto: em cena, saindo (escurece) ou entrando por baixo (ainda escondida). */
 export type PapelNaPassagem = "EM_CENA" | "SAINDO" | "ENTRANDO";
 
@@ -188,36 +157,6 @@ export function Cortina() {
   return <div aria-hidden className="cinema-cortina pointer-events-none absolute inset-0 z-40 bg-black" />;
 }
 
-const CORES_CONFETE = ["var(--medalha-ouro)", "var(--cinema-destaque)", "var(--tema-primaria)", "#ffffff", "var(--tema-secundaria)"];
-
-/** Chuva de confete (uma vez). */
-export function Confete({ quantidade = 110, atrasoMs = 0 }: { quantidade?: number; atrasoMs?: number }) {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
-      {Array.from({ length: quantidade }, (_, i) => {
-        const largura = 10 + ruido(i, 11) * 14;
-        return (
-          <span
-            key={i}
-            className="cinema-confete absolute top-0"
-            style={vars({
-              left: `${ruido(i, 12) * 100}%`,
-              width: largura,
-              height: largura * (ruido(i, 13) > 0.5 ? 0.45 : 1.6),
-              borderRadius: ruido(i, 14) > 0.7 ? "999px" : "2px",
-              background: CORES_CONFETE[i % CORES_CONFETE.length],
-              "--dur": `${2.8 + ruido(i, 15) * 2.4}s`,
-              "--atraso": `${atrasoMs + ruido(i, 16) * 900}ms`,
-              "--deriva": `${(ruido(i, 17) - 0.5) * 420}px`,
-              "--giro": `${(ruido(i, 18) > 0.5 ? 1 : -1) * (360 + ruido(i, 19) * 900)}deg`,
-            })}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
 /** Reticências que piscam em sequência ("E o vencedor é…"). */
 export function Reticencias() {
   return (
@@ -229,37 +168,3 @@ export function Reticencias() {
   );
 }
 
-/**
- * Índice da roleta de suspense: troca rápido e vai desacelerando, sem nunca "parar" num candidato (o vencedor só
- * entra no DOM no passo seguinte). A ordem é embaralhada de forma determinística.
- */
-export function useRoleta(quantidade: number, ativo: boolean): number {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    if (!ativo || quantidade < 2) return;
-    let intervalo = 70;
-    let timer: ReturnType<typeof setTimeout>;
-    const girar = () => {
-      setI((v) => v + 1);
-      intervalo = Math.min(420, intervalo * 1.09);
-      timer = setTimeout(girar, intervalo);
-    };
-    timer = setTimeout(girar, intervalo);
-    return () => clearTimeout(timer);
-  }, [quantidade, ativo]);
-  if (quantidade < 2) return 0;
-  // Salto primo: percorre todos sem repetir em sequência.
-  const salto = [7, 5, 3, 11, 13].find((p) => quantidade % p !== 0) ?? 1;
-  return (i * salto) % quantidade;
-}
-
-/** true depois de `ms` (ex.: o pódio do final passa aos cards de detalhe). Desligado = true na hora. */
-export function useDepoisDe(ms: number, ativo = true): boolean {
-  const [passou, setPassou] = useState(false);
-  useEffect(() => {
-    if (!ativo) return;
-    const timer = setTimeout(() => setPassou(true), ms);
-    return () => clearTimeout(timer);
-  }, [ms, ativo]);
-  return passou || !ativo;
-}

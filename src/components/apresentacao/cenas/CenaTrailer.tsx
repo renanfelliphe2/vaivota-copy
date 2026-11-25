@@ -11,6 +11,7 @@ import { TEXTOS_PALCO } from "@/lib/textosPalco";
 import { atraso, Cortina, FundoCinema, PalcoCinema, Reticencias, usePapelNaPassagem, vars } from "../Cinema";
 import { useMovimentoReduzido } from "../hooks";
 import { MaisNomes } from "../Pecas";
+import { ChamadaCerimonia } from "../telao/CenasCerimonia";
 
 // Etapa 8 (D11, 5.8): trailer único do evento por link/embed, com fallback gerado em CSS. Nunca armazena
 // vídeo. O iframe começa sem mudo (o clique em Apresentar liberou o áudio, C19).
@@ -141,34 +142,6 @@ function TituloAbertura() {
         <Reticencias />
       </p>
       <span className="cinema-barra h-[3px] w-[720px] bg-linear-to-r from-transparent via-white/70 to-transparent" style={atraso(700)} />
-    </div>
-  );
-}
-
-/**
- * "E os vencedores deste ano são…" (08/10/2026): segundo passo da cena do trailer. O trailer escurece por baixo
- * (e o som baixa); a frase sobe sob os holofotes. A passagem pelo preto leva à primeira categoria.
- */
-function ChamadaVencedores() {
-  const escurecer = DURACOES.passagemPreto;
-  return (
-    <div className="absolute inset-0 z-20">
-      <div aria-hidden className="cinema-escurecer absolute inset-0 bg-black" style={vars({ "--dur": `${escurecer}ms` })} />
-      <div className="cinema-surgir absolute inset-0" style={atraso(escurecer, { "--dur": "1200ms" })}>
-        <PalcoCinema>
-          <div className="flex h-full flex-col items-center justify-center gap-6 px-24 text-center">
-            <p className="cinema-tracking text-[72px] font-semibold uppercase tracking-[0.25em] text-cinema-suave" style={atraso(escurecer + 400)}>
-              {TEXTOS_PALCO.eOsVencedores}
-            </p>
-            <p className="cinema-revelar cinema-ouro text-[150px] font-black uppercase leading-none" style={atraso(escurecer + 1500, { "--dur": "1600ms" })}>
-              {TEXTOS_PALCO.desteAnoSao}
-            </p>
-            <div className="cinema-surgir text-[150px] font-black leading-none text-cinema-destaque" style={atraso(escurecer + 2800)}>
-              <Reticencias />
-            </div>
-          </div>
-        </PalcoCinema>
-      </div>
     </div>
   );
 }
@@ -322,7 +295,11 @@ export function CenaTrailer({
           <Cortina />
         </>
       )}
-      {chamada && <ChamadaVencedores />}
+      {chamada && (
+        <div className="absolute inset-0 z-20">
+          <ChamadaCerimonia nome={nome} logoUrl={logoUrl} ano={/\d{4}/.exec(data)?.[0] ?? null} />
+        </div>
+      )}
     </div>
   );
 }

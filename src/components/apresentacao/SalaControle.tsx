@@ -17,7 +17,7 @@ import type { ModoAvanco } from "@/dominio/tipos";
 import { ROTULO_ESTADO_EVENTO, ROTULO_ESTADO_URNA } from "@/lib/rotulos";
 import { useConsulta } from "@/lib/useConsulta";
 import { obterStatusResultado, registrarAcaoApresentacao } from "@/servicos/apresentacao";
-import { definirCategoriaApresentacao, definirCenarioEnsaio, definirModoAvancoLocal, definirModoSala, refazerRevelacao } from "@/store/acoesApresentacao";
+import { definirCenarioEnsaio, definirModoAvancoLocal, definirModoSala, refazerRevelacao } from "@/store/acoesApresentacao";
 import { useCategoriaApresentada, usePreferenciasSala, useRevelacao } from "@/store/seletores/apresentacao";
 import { rotaCategoria } from "@/dominio/categorias";
 import { useEventoAtivo } from "@/store/seletores/evento";
@@ -68,11 +68,10 @@ export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
   const idCenario = useId();
   const versao = useVersaoResultado(eventoId);
   const { fase, incoerente } = resolverFaseConfig(evento);
-  // Evento com categorias (09/11/2026): o telão apresenta uma categoria por vez; o status e a revelação são dela.
+  // Cerimônia (25/11/2026): a revelação é do evento inteiro, na ordem configurada em Configuração > Categorias.
   const categoria = useCategoriaApresentada(eventoId);
-  const categoriaId = categoria?.id ?? null;
-  const status = useConsulta(() => obterStatusResultado(eventoId, categoriaId), {
-    chave: `${eventoId}:${versao}:${fase}:${categoriaId}`,
+  const status = useConsulta(() => obterStatusResultado(eventoId), {
+    chave: `${eventoId}:${versao}:${fase}`,
     intervaloMs: fase === "URNA_ENCERRADA" ? INTERVALO_STATUS_MS : undefined,
   });
   const assinatura = status.dados?.assinatura ?? null;
@@ -140,31 +139,6 @@ export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
         </ul>
       </Alerta>
 
-      {ativo.categorias.length > 0 && (
-        <Cartao className="flex flex-col gap-3">
-          <h2 className="text-xl font-bold">Categoria no telão</h2>
-          <p className="text-sm text-tema-texto-suave">
-            Com a votação aberta, o telão alterna sozinho entre as categorias (o intervalo e o que aparece ficam em Configuração &gt;
-            Apresentação). Esta escolha vale antes da abertura e para a revelação do resultado, que é de uma categoria por vez: troque
-            aqui para passar à próxima (o palco aberto troca junto).
-          </p>
-          <div role="radiogroup" aria-label="Categoria no telão" className="flex flex-wrap gap-2">
-            {ativo.categorias.map((c) => (
-              <Botao
-                key={c.id}
-                variante={categoriaId === c.id ? "primaria" : "contorno"}
-                tamanho="pequeno"
-                role="radio"
-                aria-checked={categoriaId === c.id}
-                onClick={() => definirCategoriaApresentacao(eventoId, c.id)}
-              >
-                {c.nome}
-              </Botao>
-            ))}
-          </div>
-        </Cartao>
-      )}
-
       <Cartao className="flex flex-col gap-4">
         <h2 className="text-xl font-bold">Modo</h2>
         <div role="radiogroup" aria-label="Modo da apresentação" className="flex flex-wrap gap-2">
@@ -225,11 +199,12 @@ export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
         <h2 className="text-xl font-bold">Roteiro</h2>
         <ol className="list-decimal pl-5 text-sm">
           {descreverRoteiroPublico({
-            modulos: { juri: evento.moduloJuri, infantil: evento.moduloInfantil },
-            classificacaoCompleta: configApresentacao.classificacaoCompleta,
+            categorias: ativo.categorias,
+            config: configApresentacao,
+            gruposAtivos: ["POPULAR", ...(evento.moduloJuri ? (["JURI"] as const) : []), ...(evento.moduloInfantil ? (["INFANTIL"] as const) : [])],
             modo: prefs.modoSala,
-          }).map((n) => (
-            <li key={n}>{n}</li>
+          }).map((n, i) => (
+            <li key={i}>{n}</li>
           ))}
         </ol>
       </Cartao>

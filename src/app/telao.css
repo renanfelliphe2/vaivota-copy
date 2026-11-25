@@ -1,0 +1,303 @@
+/*
+ * Telão (cerimônia, 25/11/2026; protótipo aprovado "Telão do Festival"): sala de cinema derivada do tema do evento, como o estilo
+ * cinema da landing. A sala é um quase preto com 9% da primária (texto branco acima de 15:1); as cores "claras" são a primária e a
+ * secundária com branco, para texto colorido sobre a sala; o papel (ingresso) é um creme fixo com texto escuro. A luz é um branco
+ * quente fixo: é luz, não marca. Declarado no contêiner do palco, que recebe os tokens do <TemaEvento>. Importado em globals.css.
+ */
+.telao-cine {
+  --tc-sala: color-mix(in srgb, var(--tema-primaria) 9%, #0a0807);
+  --tc-sala-funda: color-mix(in srgb, var(--tema-primaria) 6%, #060403);
+  --tc-pelicula: #141110;
+  --tc-quadro: #221a16;
+  --tc-luz: #fff4e0;
+  --tc-suave: color-mix(in srgb, #fff4e0 80%, transparent);
+  --tc-apagado: color-mix(in srgb, #fff4e0 56%, transparent);
+  --tc-linha: color-mix(in srgb, #fff4e0 14%, transparent);
+  --tc-primaria-clara: color-mix(in srgb, var(--tema-primaria) 65%, #ffffff);
+  --tc-secundaria-clara: color-mix(in srgb, var(--tema-secundaria) 65%, #ffffff);
+  --tc-papel: #fff6ec;
+  --tc-papel-texto: #18181b;
+  --tc-papel-suave: #57534e;
+  --tc-papel-destaque: color-mix(in srgb, var(--tema-primaria) 68%, #000000);
+  --tc-papel-linha: #d6cbbe;
+  background:
+    radial-gradient(60% 75% at 82% -12%, color-mix(in srgb, var(--tc-luz) 16%, transparent), transparent 70%),
+    radial-gradient(45% 55% at 0% 105%, color-mix(in srgb, var(--tema-primaria) 24%, transparent), transparent 70%),
+    radial-gradient(35% 45% at 100% 100%, color-mix(in srgb, var(--tema-secundaria) 12%, transparent), transparent 70%),
+    var(--tc-sala);
+  color: #ffffff;
+}
+
+@theme inline {
+  --color-tc-sala: var(--tc-sala);
+  --color-tc-pelicula: var(--tc-pelicula);
+  --color-tc-quadro: var(--tc-quadro);
+  --color-tc-luz: var(--tc-luz);
+  --color-tc-suave: var(--tc-suave);
+  --color-tc-apagado: var(--tc-apagado);
+  --color-tc-linha: var(--tc-linha);
+  --color-tc-primaria-clara: var(--tc-primaria-clara);
+  --color-tc-secundaria-clara: var(--tc-secundaria-clara);
+  --color-tc-papel: var(--tc-papel);
+  --color-tc-papel-texto: var(--tc-papel-texto);
+  --color-tc-papel-suave: var(--tc-papel-suave);
+  --color-tc-papel-destaque: var(--tc-papel-destaque);
+  --color-tc-papel-linha: var(--tc-papel-linha);
+}
+
+/* Sala mais escura das cenas de revelação (a luz vem do quadro do cartaz). */
+.tc-sala-revelacao {
+  background:
+    radial-gradient(36% 52% at 73% 50%, color-mix(in srgb, var(--tc-luz) 10%, transparent), transparent 72%),
+    radial-gradient(45% 55% at 0% 105%, color-mix(in srgb, var(--tema-primaria) 20%, transparent), transparent 70%),
+    var(--tc-sala-funda);
+}
+
+/* Granulação de filme: dois pontilhados finos (sem imagem). */
+.tc-grao {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: soft-light;
+  background-image:
+    radial-gradient(color-mix(in srgb, var(--tc-luz) 7%, transparent) 1px, transparent 1.2px),
+    radial-gradient(rgb(0 0 0 / 0.25) 1px, transparent 1.2px);
+  background-size:
+    3px 3px,
+    7px 7px;
+  background-position:
+    0 0,
+    2px 3px;
+}
+
+/* Feixe do projetor, do alto à direita. */
+.tc-feixe {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: conic-gradient(
+    from 196deg at 86% -4%,
+    transparent 0deg,
+    color-mix(in srgb, var(--tc-luz) 9%, transparent) 9deg,
+    color-mix(in srgb, var(--tc-luz) 3%, transparent) 22deg,
+    transparent 30deg
+  );
+}
+
+/* Cone de luz descendo do centro (abertura), com o tremor de projetor. */
+.tc-cone {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: conic-gradient(
+    from 160deg at 50% -8%,
+    transparent 0deg,
+    color-mix(in srgb, var(--tc-luz) 5%, transparent) 10deg,
+    color-mix(in srgb, var(--tc-luz) 13%, transparent) 20deg,
+    color-mix(in srgb, var(--tc-luz) 5%, transparent) 30deg,
+    transparent 40deg
+  );
+  animation: tc-tremular 2.6s steps(12) infinite;
+}
+
+@keyframes tc-tremular {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  47% {
+    opacity: 0.93;
+  }
+  50% {
+    opacity: 0.86;
+  }
+  53% {
+    opacity: 0.95;
+  }
+}
+
+/* Ingresso: dois recortes redondos nas laterais, na altura --corte (o canhoto fica abaixo). */
+.tc-ingresso {
+  --corte: 612px;
+  --furo: 24px;
+  mask:
+    radial-gradient(circle var(--furo) at 0 var(--corte), #0000 98%, #000) 0 0 / 51% 100% no-repeat,
+    radial-gradient(circle var(--furo) at 100% var(--corte), #0000 98%, #000) 100% 0 / 51% 100% no-repeat;
+}
+
+/* Ponteiro da contagem de início de filme. */
+.tc-varredura {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(color-mix(in srgb, var(--tc-luz) 20%, transparent) 0 80deg, transparent 80deg);
+  animation: tc-girar 1s linear infinite;
+}
+
+@keyframes tc-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Barra do ciclo de categorias (a duração vem em --tc-dur). */
+.tc-ciclo {
+  transform-origin: left;
+  animation: tc-ciclo var(--tc-dur, 15s) linear infinite;
+}
+
+@keyframes tc-ciclo {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* Película que corre (mais filmes do que cabem): a lista vem duplicada e anda metade. */
+.tc-rolo {
+  animation: tc-rolo var(--tc-dur, 32s) linear infinite;
+}
+
+@keyframes tc-rolo {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Créditos (parceiros) correndo no pé do resultado. */
+.tc-creditos {
+  animation: tc-rolo 40s linear infinite;
+}
+
+/* Totem, TV e tablet se revezando no ingresso da categoria do totem. */
+.tc-aparelho {
+  position: absolute;
+  inset: 0;
+  animation: tc-alternar 7.5s ease-in-out infinite;
+}
+.tc-aparelho-2 {
+  animation-delay: -5s;
+}
+.tc-aparelho-3 {
+  animation-delay: -2.5s;
+}
+
+@keyframes tc-alternar {
+  0%,
+  28% {
+    opacity: 1;
+  }
+  33%,
+  95% {
+    opacity: 0;
+  }
+}
+
+.tc-toque {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: tc-toque 2.4s ease-out infinite;
+}
+
+@keyframes tc-toque {
+  0%,
+  60%,
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  90% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* O cartaz do vencedor acende como projetado. */
+.tc-projetar {
+  animation: tc-projetar 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes tc-projetar {
+  from {
+    filter: brightness(0.1) blur(6px);
+    transform: scale(1.03);
+  }
+}
+
+/* Textos que entram (o atraso vem em --tc-atraso). */
+.tc-surgir {
+  animation: tc-surgir 1s cubic-bezier(0.2, 0.7, 0.2, 1) var(--tc-atraso, 0ms) both;
+}
+
+@keyframes tc-surgir {
+  from {
+    opacity: 0.05;
+    transform: translateY(18px);
+  }
+}
+
+.tc-acender {
+  animation: tc-acender 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) var(--tc-atraso, 0ms) both;
+}
+
+@keyframes tc-acender {
+  from {
+    opacity: 0.12;
+    filter: blur(8px);
+  }
+}
+
+/* Selo dos louros: carimbado sobre o canto do quadro. */
+.tc-carimbar {
+  animation: tc-carimbar 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 1.2s both;
+}
+
+@keyframes tc-carimbar {
+  from {
+    opacity: 0;
+    transform: scale(1.25) rotate(-8deg);
+  }
+}
+
+/* Quem perde o desempate escurece aos poucos. */
+.tc-apagar {
+  animation: tc-apagar 1.6s ease 0.6s both;
+}
+
+@keyframes tc-apagar {
+  to {
+    filter: grayscale(0.85) brightness(0.5);
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-cone,
+  .tc-varredura,
+  .tc-ciclo,
+  .tc-rolo,
+  .tc-creditos,
+  .tc-toque,
+  .tc-projetar,
+  .tc-surgir,
+  .tc-acender,
+  .tc-carimbar {
+    animation: none;
+  }
+  .tc-aparelho {
+    animation: none;
+    opacity: 0;
+  }
+  .tc-aparelho-1 {
+    opacity: 1;
+  }
+  .tc-apagar {
+    animation: none;
+    filter: grayscale(0.85) brightness(0.5);
+    opacity: 0.55;
+  }
+}
