@@ -18,8 +18,7 @@ import { ROTULO_ESTADO_EVENTO, ROTULO_ESTADO_URNA } from "@/lib/rotulos";
 import { useConsulta } from "@/lib/useConsulta";
 import { obterStatusResultado, registrarAcaoApresentacao } from "@/servicos/apresentacao";
 import { definirCenarioEnsaio, definirModoAvancoLocal, definirModoSala, refazerRevelacao } from "@/store/acoesApresentacao";
-import { useCategoriaApresentada, usePreferenciasSala, useRevelacao } from "@/store/seletores/apresentacao";
-import { rotaCategoria } from "@/dominio/categorias";
+import { usePreferenciasSala, useRevelacao } from "@/store/seletores/apresentacao";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { useVersaoResultado } from "@/store/seletores/resultado";
 import { ListaAtalhos } from "./Palco";
@@ -68,8 +67,6 @@ export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
   const idCenario = useId();
   const versao = useVersaoResultado(eventoId);
   const { fase, incoerente } = resolverFaseConfig(evento);
-  // Cerimônia (25/11/2026): a revelação é do evento inteiro, na ordem configurada em Configuração > Categorias.
-  const categoria = useCategoriaApresentada(eventoId);
   const status = useConsulta(() => obterStatusResultado(eventoId), {
     chave: `${eventoId}:${versao}:${fase}`,
     intervaloMs: fase === "URNA_ENCERRADA" ? INTERVALO_STATUS_MS : undefined,
@@ -86,7 +83,8 @@ export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
   const nomesCenarios = new Map(CENARIOS_ENSAIO.map((c) => [c.id, c]));
   const cenarioId = prefs.cenarioEnsaioId && cenarios.includes(prefs.cenarioEnsaioId) ? prefs.cenarioEnsaioId : cenarios[0];
   const modoAvanco: ModoAvanco = prefs.modoAvancoLocal ?? configApresentacao.modoAvanco;
-  const urlQr = `${origem}${categoria ? rotaCategoria(slug, categoria.slug) : `/e/${slug}`}`;
+  // 25/11/2026: o QR Code do telão leva sempre à landing do evento, nunca à página de uma categoria.
+  const urlQr = `${origem}/e/${slug}`;
   const local = /\/\/(localhost|127\.0\.0\.1)/.test(origem);
 
   const imagens = votaveis(ativo.candidatos)

@@ -12,7 +12,6 @@ import { MENSAGEM_TOTEM_PADRAO } from "@/dominio/apresentacao/cerimonia";
 import { montarFinal, montarRoteiro } from "@/dominio/apresentacao/roteiro";
 import type { AcaoMotor, DadosRevelacao, EstadoMotor, EstadoTrailer } from "@/dominio/apresentacao/tipos";
 import { votaveis } from "@/dominio/candidatos";
-import { rotaCategoria } from "@/dominio/categorias";
 import { categoriaDoTelao } from "@/dominio/telao";
 import { resolverFaseConfig } from "@/dominio/travas";
 import { formatarDataHora, paraMs } from "@/lib/tempo";
@@ -279,7 +278,7 @@ export function PalcoReal({
         intervaloSegundos={configApresentacao.telaoIntervaloSegundos}
         logoUrl={tema.logoUrl}
         candidatos={candidatosEmTela}
-        urlQr={emTela ? `${window.location.origin}${rotaCategoria(ativo.slug, emTela.slug)}` : urlQr}
+        urlQr={urlQr}
         mostrar={configApresentacao.telaoMostrar}
         categoria={
           emTela
