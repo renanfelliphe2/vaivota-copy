@@ -45,7 +45,8 @@ export function PaginaCategoria() {
   const params = useParams<{ categoria?: string | string[] }>();
   const slugCategoria = typeof params?.categoria === "string" ? decodeURIComponent(params.categoria) : "";
   const ativo = useEventoAtivo();
-  const categorias = useCategoriasDoEvento();
+  // 25/11/2026: toda categoria tem página, inclusive a do totem (para conhecer os itens; o voto dela é só nos totens).
+  const categorias = useCategoriasDoEvento({ incluirTotem: true });
   const visao = useVisaoEvento();
   const sessao = useSessao();
   const atual = categorias?.find((c) => c.categoria.slug === slugCategoria) ?? null;

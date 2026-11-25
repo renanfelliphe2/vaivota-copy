@@ -502,7 +502,9 @@ function FormCategoria({
               <span className="flex flex-col gap-0.5">
                 <span className="font-semibold">{ROTULOS_CANAL[canal]}</span>
                 <span className="text-sm text-tema-texto-suave">
-                  {canal === "ONLINE" ? "No celular do público, com página e QR Code." : "Só nos totens que exibem esta categoria. Não aparece na página do evento."}
+                  {canal === "ONLINE"
+                    ? "Votada no celular do público, na página da categoria (com QR Code)."
+                    : "Votada só nos totens que exibem esta categoria. A página dela segue no ar, para conhecer os itens, sem voto online."}
                 </span>
               </span>
             </label>
