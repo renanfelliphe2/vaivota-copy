@@ -3,17 +3,21 @@ import type { PapelParticipacao } from "./tipos";
 
 // Cabeçalho fixo (08/10/2026): atalhos por papel no evento. Só links para as páginas, nunca ações.
 
-export type IdAtalho = "DASHBOARD" | "CONFIGURACOES" | "APRESENTACAO" | "VOTAR";
+export type IdAtalho = "DASHBOARD" | "CONFIGURACOES" | "APRESENTACAO" | "TOTENS" | "VOTAR";
 export type Atalho = { id: IdAtalho; href: string; rotulo: string };
 
-/** `votacaoAberta`: "Votar" só aparece com o evento ativo e a urna aberta (votacaoAberta, em situacaoEvento). */
-export function atalhosDoPapel(slug: string, papel: PapelParticipacao | null, votacaoAberta: boolean): Atalho[] {
+/**
+ * `votacaoAberta`: "Votar" só aparece com o evento ativo e a urna aberta (votacaoAberta, em situacaoEvento).
+ * `totens` (24/11/2026): a página Totens do admin só aparece no evento com votação infantil.
+ */
+export function atalhosDoPapel(slug: string, papel: PapelParticipacao | null, votacaoAberta: boolean, opcoes: { totens?: boolean } = {}): Atalho[] {
   const admin = `/e/${slug}/admin`;
   if (papel === "ADMIN")
     return [
       { id: "DASHBOARD", href: admin, rotulo: "Dashboard" },
       { id: "CONFIGURACOES", href: `${admin}/configuracao`, rotulo: "Configurações" },
       { id: "APRESENTACAO", href: `${admin}/apresentar`, rotulo: "Apresentação" },
+      ...(opcoes.totens ? [{ id: "TOTENS" as const, href: `${admin}/totens`, rotulo: "Totens" }] : []),
     ];
   if ((papel === "PUBLICO" || papel === "JURADO") && votacaoAberta)
     return [{ id: "VOTAR", href: rotaVotacao(slug), rotulo: "Votar" }];

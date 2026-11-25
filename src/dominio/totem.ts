@@ -65,7 +65,79 @@ export type DispositivoListado = Pick<Dispositivo, "id" | "nome" | "estado" | "u
   votos: number;
   temPin: boolean;
   categoriaIds: string[];
+  /** Último relatório do aparelho (sincronização) e o que ele contou. */
+  ultimoSinalEm: Instante | null;
+  situacaoRelatada: SituacaoTotem | null;
+  telaCheia: boolean | null;
+  /** Último "Forçar sincronização" do admin; pendente enquanto for mais novo que o último sinal. */
+  sincronizacaoPedidaEm: Instante | null;
 };
+
+// ─────────────────────────────────────────────
+// Sincronização (página Totens, 24/11/2026)
+// ─────────────────────────────────────────────
+
+export const SITUACOES_TOTEM = [
+  "NAO_PAREADO",
+  "DISPOSITIVO_REVOGADO",
+  "MODULO_DESLIGADO",
+  "EVENTO_INDISPONIVEL",
+  "EVENTO_CONCLUIDO",
+  "DISPOSITIVO_PAUSADO",
+  "URNA_NAO_INICIADA",
+  "URNA_ENCERRADA",
+  "SEM_CANDIDATOS",
+  "VOTANDO",
+] as const satisfies readonly SituacaoTotem[];
+
+export function ehSituacaoTotem(valor: string | null): valor is SituacaoTotem {
+  return valor !== null && (SITUACOES_TOTEM as readonly string[]).includes(valor);
+}
+
+/** O que o totem conta de si a cada sincronização. Nada da criança nem do voto. */
+export type RelatorioTotem = { situacao: SituacaoTotem; telaCheia: boolean };
+
+export const SINCRONIZACAO_TOTEM = {
+  /** O totem manda um relatório sozinho a cada hora (e ao abrir). */
+  intervaloMs: 60 * 60_000,
+  /** Folga além da hora antes de dizer "sem sinal" (o relatório pode atrasar um pouco). */
+  toleranciaMs: 5 * 60_000,
+  /** Depois de "Forçar sincronização", quanto esperar a resposta: o totem consulta o servidor a cada 10 s. */
+  esperaRespostaMs: 45_000,
+} as const;
+
+export type ConexaoTotem =
+  /** Respondeu dentro da última hora (relatório ou voto). */
+  | "CONECTADO"
+  /** Sincronização pedida, esperando a resposta. */
+  | "SINCRONIZANDO"
+  /** Sincronização pedida e o totem não respondeu a tempo: desligado, sem rede ou com a página fechada. */
+  | "SEM_RESPOSTA"
+  /** Passou da hora sem relatório. */
+  | "SEM_SINAL"
+  /** Pareado, mas nunca mandou relatório (aparelho antigo ou página nunca aberta depois desta versão). */
+  | "NUNCA"
+  | "REVOGADO";
+
+/** Último contato do aparelho: o relatório ou o voto, o que for mais novo. */
+export function ultimoContatoMs(t: Pick<DispositivoListado, "ultimoSinalEm" | "ultimoUsoEm">): number | null {
+  const ms = [t.ultimoSinalEm, t.ultimoUsoEm].flatMap((i) => (i ? [Date.parse(i)] : [])).filter((n) => !Number.isNaN(n));
+  return ms.length ? Math.max(...ms) : null;
+}
+
+export function conexaoTotem(
+  t: Pick<DispositivoListado, "estado" | "ultimoSinalEm" | "ultimoUsoEm" | "sincronizacaoPedidaEm">,
+  agoraMs: number,
+): ConexaoTotem {
+  if (t.estado === "REVOGADO") return "REVOGADO";
+  const contato = ultimoContatoMs(t);
+  const pedido = t.sincronizacaoPedidaEm ? Date.parse(t.sincronizacaoPedidaEm) : null;
+  const sinal = t.ultimoSinalEm ? Date.parse(t.ultimoSinalEm) : null;
+  // Pedido mais novo que o último relatório: ainda não respondeu.
+  if (pedido !== null && (sinal === null || sinal < pedido)) return agoraMs - pedido <= SINCRONIZACAO_TOTEM.esperaRespostaMs ? "SINCRONIZANDO" : "SEM_RESPOSTA";
+  if (contato === null) return "NUNCA";
+  return agoraMs - contato <= SINCRONIZACAO_TOTEM.intervaloMs + SINCRONIZACAO_TOTEM.toleranciaMs ? "CONECTADO" : "SEM_SINAL";
+}
 
 /**
  * Categorias escolhidas para um totem (25/11/2026): ao menos uma, todas TOTEM e do evento. Devolve a mensagem do erro ou null.

@@ -1,4 +1,4 @@
-import type { DispositivoDoTotem } from "@/dominio/totem";
+import type { DispositivoDoTotem, RelatorioTotem } from "@/dominio/totem";
 import { chamar } from "./rpc";
 import type { Resultado } from "./resultado";
 
@@ -13,9 +13,17 @@ export function parearTotem(entrada: { eventoId: string; codigo: string }): Prom
   return chamar<{ dispositivo: DispositivoDoTotem }>("parearTotem", entrada, { tempoMs: 15_000 });
 }
 
-/** O totem deste aparelho (null = não pareado). Lido de tempos em tempos: pausar ou revogar aparece no quiosque. */
-export function obterEstadoTotem(): Promise<Resultado<{ dispositivo: DispositivoDoTotem | null }>> {
-  return chamar<{ dispositivo: DispositivoDoTotem | null }>("obterEstadoTotem", undefined, { tempoMs: 10_000 });
+/**
+ * O totem deste aparelho (null = não pareado). Lido de tempos em tempos: pausar ou revogar aparece no quiosque. `sincronizar`: o
+ * admin pediu um relatório agora ("Forçar sincronização").
+ */
+export function obterEstadoTotem(): Promise<Resultado<{ dispositivo: DispositivoDoTotem | null; sincronizar: boolean }>> {
+  return chamar<{ dispositivo: DispositivoDoTotem | null; sincronizar: boolean }>("obterEstadoTotem", undefined, { tempoMs: 10_000 });
+}
+
+/** Relatório do aparelho para a página Totens do admin: o que a tela mostra e se está em tela cheia. */
+export function sincronizarTotem(relatorio: RelatorioTotem): Promise<Resultado<null>> {
+  return chamar<null>("sincronizarTotem", relatorio, { tempoMs: 10_000 });
 }
 
 /**

@@ -18,18 +18,22 @@ export type VisaoTotem = {
 
 export type GrupoTotem = { categoria: Categoria; itens: Candidato[] };
 
+/**
+ * O que um totem mostra: os itens das categorias que ele exibe e a situação. Usada pelo quiosque e pelo preview do admin
+ * (página Totens), para os dois mostrarem a mesma coisa.
+ */
+export function montarVisaoTotem(ativo: EventoAtivo, pareado: DispositivoDoTotem | null): VisaoTotem {
+  const dispositivo = pareado && pareado.eventoId === ativo.evento.id ? pareado : null;
+  // 25/11/2026: só os itens das categorias que este totem exibe (nunca os da página do evento), agrupados por categoria.
+  const candidatos = dispositivo ? itensDoTotem(votaveis(ativo.candidatos), ativo.categorias, dispositivo.categoriaIds) : [];
+  const grupos = ativo.categorias
+    .map((categoria) => ({ categoria, itens: candidatos.filter((c) => c.categoriaId === categoria.id) }))
+    .filter((g) => g.itens.length > 0);
+  return { ativo, dispositivo, candidatos, grupos, situacao: situacaoTotem(ativo.evento, dispositivo, candidatos.length) };
+}
+
 /** Visão do quiosque: evento da URL, o aparelho pareado, os candidatos votáveis e a situação. */
 export function useVisaoTotem(pareado: DispositivoDoTotem | null): VisaoTotem | null {
   const ativo = useEventoAtivo();
-
-  return useMemo(() => {
-    if (!ativo) return null;
-    const dispositivo = pareado && pareado.eventoId === ativo.evento.id ? pareado : null;
-    // 25/11/2026: só os itens das categorias que este totem exibe (nunca os da página do evento), agrupados por categoria.
-    const candidatos = dispositivo ? itensDoTotem(votaveis(ativo.candidatos), ativo.categorias, dispositivo.categoriaIds) : [];
-    const grupos = ativo.categorias
-      .map((categoria) => ({ categoria, itens: candidatos.filter((c) => c.categoriaId === categoria.id) }))
-      .filter((g) => g.itens.length > 0);
-    return { ativo, dispositivo, candidatos, grupos, situacao: situacaoTotem(ativo.evento, dispositivo, candidatos.length) };
-  }, [ativo, pareado]);
+  return useMemo(() => (ativo ? montarVisaoTotem(ativo, pareado) : null), [ativo, pareado]);
 }

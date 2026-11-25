@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartColumn, Monitor, Settings, Vote, type LucideIcon } from "lucide-react";
+import { ChartColumn, Monitor, Settings, Tablet, Vote, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoEvento } from "@/components/evento/LogoEvento";
@@ -26,6 +26,7 @@ const ICONES: Record<IdAtalho, LucideIcon> = {
   DASHBOARD: ChartColumn,
   CONFIGURACOES: Settings,
   APRESENTACAO: Monitor,
+  TOTENS: Tablet,
   VOTAR: Vote,
 };
 
@@ -42,7 +43,7 @@ export function CabecalhoEvento() {
   if (pathname === `/e/${slug}/totem` || pathname.startsWith(`/e/${slug}/qr/`) || ui.palcoAtivo) return null;
 
   // A apresentação (telão) é do MVP do Festival.
-  const atalhos = sessao.logado ? atalhosDoPapel(slug, sessao.papel, votacaoAberta(evento)) : [];
+  const atalhos = sessao.logado ? atalhosDoPapel(slug, sessao.papel, votacaoAberta(evento), { totens: evento.moduloInfantil }) : [];
   // Evento indisponível: a casca mínima já mostra o estado.
   // 09/11/2026: também nas páginas das categorias (Festival).
   const naPaginaDeVoto = pathname === `/e/${slug}` || pathname.startsWith(`/e/${slug}/categoria/`);

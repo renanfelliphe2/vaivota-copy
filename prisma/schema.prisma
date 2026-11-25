@@ -658,6 +658,14 @@ model Dispositivo {
   ultimoUsoEm DateTime?         @map("ultimo_uso_em") @db.Timestamptz(3)
   criadoEm    DateTime          @default(now()) @map("criado_em") @db.Timestamptz(3)
 
+  // Sincronização (página Totens, 24/11/2026): o totem manda um relatório ao abrir, a cada hora e quando o admin pede.
+  // `situacaoRelatada` é o que a tela mostrava (SituacaoTotem: VOTANDO, URNA_ENCERRADA...); nunca nada da criança.
+  ultimoSinalEm         DateTime? @map("ultimo_sinal_em") @db.Timestamptz(3)
+  situacaoRelatada      String?   @map("situacao_relatada") @db.VarChar(40)
+  telaCheia             Boolean?  @map("tela_cheia")
+  // Pedido do admin ("Forçar sincronização"): o totem o vê na próxima consulta (a cada 10 s) e responde com um relatório.
+  sincronizacaoPedidaEm DateTime? @map("sincronizacao_pedida_em") @db.Timestamptz(3)
+
   evento Evento @relation(fields: [eventoId], references: [id], onDelete: Restrict)
 
   votosInfantis VotoInfantil[]

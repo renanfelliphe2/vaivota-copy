@@ -47,9 +47,14 @@ export type FluxoTotemProps = {
   aoComecar: () => void;
   /** Voto recusado ou sem rede: quem monta confere de novo o aparelho e o evento (pausa, revogação, urna encerrada). */
   aoFalhar: () => void;
+  /**
+   * Quem registra o voto. Sem ela, o voto vai ao servidor (o totem de verdade). O preview do admin (página Totens) passa uma que
+   * não chama servidor nenhum: lá nada é contado.
+   */
+  registrar?: typeof votarInfantil;
 };
 
-export function FluxoTotem({ eventoId, candidatos, grupos, rotuloCategoria, logo, logoPequeno, aoComecar, aoFalhar }: FluxoTotemProps) {
+export function FluxoTotem({ eventoId, candidatos, grupos, rotuloCategoria, logo, logoPequeno, aoComecar, aoFalhar, registrar = votarInfantil }: FluxoTotemProps) {
   const [passo, setPasso] = useState<Passo>(INICIO);
   const enviando = useRef(false);
   const raiz = useRef<HTMLDivElement>(null);
@@ -77,7 +82,7 @@ export function FluxoTotem({ eventoId, candidatos, grupos, rotuloCategoria, logo
     enviando.current = true;
     const idEnvio = idEnvioAnterior ?? novoIdEnvio();
     setPasso({ tipo: "ENVIANDO", candidatoId, idEnvio });
-    const r = await votarInfantil({ eventoId, candidatoId, idEnvio });
+    const r = await registrar({ eventoId, candidatoId, idEnvio });
     enviando.current = false;
     if (!r.ok) aoFalhar();
     setPasso(r.ok ? { tipo: "SUCESSO" } : { tipo: "ERRO", candidatoId, idEnvio });

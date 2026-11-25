@@ -13,6 +13,11 @@ export function listarDispositivos(eventoId: string): Promise<Resultado<Disposit
   return chamar<DispositivoListado[]>("listarDispositivos", { eventoId });
 }
 
+/** Pede um relatório agora a todos os totens não revogados (ou a um só). Cada um responde em até uns 10 s, se estiver ligado. */
+export function forcarSincronizacaoTotens(eventoId: string, dispositivoId?: string): Promise<Resultado<{ pedidos: number }>> {
+  return chamar<{ pedidos: number }>("forcarSincronizacaoTotens", { eventoId, dispositivoId });
+}
+
 /** Gera o código de pareamento; o admin já define o nome e o PIN de saída do quiosque do totem. */
 export async function gerarCodigoPareamento(
   eventoId: string,

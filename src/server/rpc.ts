@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { SITUACOES_TOTEM } from "@/dominio/totem";
 import * as acesso from "./acesso";
 import * as apresentacao from "./apresentacao";
 import * as candidatos from "./candidatos";
@@ -110,6 +111,9 @@ const servicos = {
   // Totem (voto infantil), lado do aparelho. Sem login: a identidade é o token do cookie HttpOnly, nunca um campo enviado.
   parearTotem: definir(z.object({ eventoId: id, codigo: texto(40) }), (ctx, _u, a) => totem.parearTotem(ctx, a)),
   obterEstadoTotem: definir(semArgs, (ctx) => totem.obterEstadoTotem(ctx), { sessaoEmCache: true }),
+  sincronizarTotem: definir(z.object({ situacao: z.enum(SITUACOES_TOTEM), telaCheia: z.boolean() }).strict(), (ctx, _u, a) => totem.sincronizarTotem(ctx, a), {
+    sessaoEmCache: true,
+  }),
   votarInfantil: definir(z.object({ eventoId: id, candidatoId: id, idEnvio: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/).optional() }), (ctx, _u, a) => totem.votarInfantil(ctx, a), {
     sessaoEmCache: true,
   }),
@@ -120,6 +124,9 @@ const servicos = {
     dispositivos.alternarModuloInfantil(u, a.eventoId, a.ligado, { ip: ctx.ip }),
   ),
   listarDispositivos: definir(z.object({ eventoId: id }), (_c, u, a) => dispositivos.listarDispositivos(u, a.eventoId)),
+  forcarSincronizacaoTotens: definir(z.object({ eventoId: id, dispositivoId: id.optional() }), (_c, u, a) =>
+    dispositivos.forcarSincronizacaoTotens(u, a.eventoId, a.dispositivoId),
+  ),
   gerarCodigoPareamento: definir(z.object({ eventoId: id, nome: texto(100), pin: texto(20), categoriaIds: z.array(id).max(30) }), (ctx, u, a) =>
     dispositivos.gerarCodigoPareamento(u, a.eventoId, { nome: a.nome, pin: a.pin, categoriaIds: a.categoriaIds }, { ip: ctx.ip }),
   ),

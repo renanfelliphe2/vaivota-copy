@@ -1,5 +1,5 @@
 import "server-only";
-import type { DispositivoDoTotem } from "@/dominio/totem";
+import type { DispositivoDoTotem, RelatorioTotem } from "@/dominio/totem";
 import { validarFormatoCodigo } from "@/lib/codigos";
 import { registrarAuditoria } from "./auditoria";
 import { cookieDoTotem, gerarToken, hashDoCodigoPareamento, hashDoToken, pinConfere, tokenDoCookie } from "./credenciaisTotem";
@@ -23,6 +23,8 @@ const VOTOS_POR_TOTEM_POR_MINUTO = 120;
 const REQUISICOES_POR_IP_POR_MINUTO = 6000;
 const PAREAMENTOS_POR_IP_POR_MINUTO = 120;
 const CONSULTAS_POR_TOTEM_POR_MINUTO = 60;
+// O relatório sai a cada hora, ao abrir e a cada pedido do admin: o teto só barra um laço.
+const RELATORIOS_POR_TOTEM_POR_MINUTO = 12;
 
 type LinhaDispositivo = { id: string; evento_id: string; estado: string };
 type LinhaEvento = { id: string; estado: string; estado_urna: string; modulo_infantil: boolean };
@@ -179,17 +181,42 @@ export async function parearTotem(ctx: ContextoTotem, entrada: { eventoId: strin
  * O totem deste aparelho, pelo cookie. `null` = sem cookie ou token desconhecido (aparelho não pareado). O estado vem do banco a
  * cada chamada: pausar ou revogar aparece no quiosque na próxima consulta.
  */
-export async function obterEstadoTotem(ctx: ContextoTotem): Promise<Resultado<{ dispositivo: DispositivoDoTotem | null }>> {
+export async function obterEstadoTotem(ctx: ContextoTotem): Promise<Resultado<{ dispositivo: DispositivoDoTotem | null; sincronizar: boolean }>> {
   const token = tokenDoCookie(ctx.headers);
-  if (!token) return sucesso({ dispositivo: null });
+  if (!token) return sucesso({ dispositivo: null, sincronizar: false });
   const hash = hashDoToken(token);
   if (!consumirEmMemoria(`totem-estado:${hash}`, CONSULTAS_POR_TOTEM_POR_MINUTO, 60_000) || !consumirEmMemoria(`totem-estado-ip:${ctx.ip}`, REQUISICOES_POR_IP_POR_MINUTO, 60_000))
     return falha("LIMITE_TENTATIVAS", { parametros: { n: 60 } });
   try {
-    const d = await db().dispositivo.findUnique({ where: { hashToken: hash }, select: SELECAO_TOTEM });
-    return sucesso({ dispositivo: d ? doTotem(d) : null });
+    const d = await db().dispositivo.findUnique({ where: { hashToken: hash }, select: { ...SELECAO_TOTEM, ultimoSinalEm: true, sincronizacaoPedidaEm: true } });
+    if (!d) return sucesso({ dispositivo: null, sincronizar: false });
+    // "Forçar sincronização" do admin: pedido mais novo que o último relatório. O totem responde com sincronizarTotem.
+    const pedido = d.sincronizacaoPedidaEm;
+    const sincronizar = pedido !== null && (d.ultimoSinalEm === null || d.ultimoSinalEm < pedido);
+    return sucesso({ dispositivo: doTotem(d), sincronizar });
   } catch (e) {
     return falhaInterna(e, "obterEstadoTotem");
+  }
+}
+
+/**
+ * Relatório do aparelho (página Totens): o que a tela mostra e se está em tela cheia. Sai ao abrir o quiosque, a cada hora e a
+ * cada pedido do admin. Grava só o horário e esses dois campos; nada da criança, nada do voto.
+ */
+export async function sincronizarTotem(ctx: ContextoTotem, relatorio: RelatorioTotem): Promise<Resultado<null>> {
+  const token = tokenDoCookie(ctx.headers);
+  if (!token) return falha("DISPOSITIVO_INATIVO", { detalhe: "relatório sem token de totem" });
+  const hash = hashDoToken(token);
+  if (!consumirEmMemoria(`totem-relatorio:${hash}`, RELATORIOS_POR_TOTEM_POR_MINUTO, 60_000) || !consumirEmMemoria(`totem-estado-ip:${ctx.ip}`, REQUISICOES_POR_IP_POR_MINUTO, 60_000))
+    return falha("LIMITE_TENTATIVAS", { parametros: { n: 60 } });
+  try {
+    const { count } = await db().dispositivo.updateMany({
+      where: { hashToken: hash },
+      data: { ultimoSinalEm: new Date(), situacaoRelatada: relatorio.situacao, telaCheia: relatorio.telaCheia },
+    });
+    return count === 0 ? falha("DISPOSITIVO_INATIVO", { detalhe: "relatório de totem desconhecido" }) : sucesso(null);
+  } catch (e) {
+    return falhaInterna(e, "sincronizarTotem");
   }
 }
 

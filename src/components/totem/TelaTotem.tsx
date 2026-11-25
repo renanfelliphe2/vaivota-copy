@@ -14,6 +14,7 @@ import { DialogoPinTotem } from "./DialogoPinTotem";
 import { FluxoTotem } from "./FluxoTotem";
 import { TotemBloqueado } from "./TotemBloqueado";
 import { useDispositivoDoTotem } from "./useDispositivoDoTotem";
+import { useSinalTotem } from "./useSinalTotem";
 
 // Totem (Base/VotoInfantil.md §6): modo quiosque. Sem login: a identidade é o aparelho pareado (token no cookie do tablet).
 // Tela cheia no primeiro toque, sem seleção de texto, sem menu de contexto; sair só com o PIN.
@@ -27,6 +28,14 @@ export function TelaTotem() {
   const router = useRouter();
   const raiz = useRef<HTMLDivElement>(null);
   const [pinAberto, setPinAberto] = useState(false);
+
+  // Relatório para a página Totens do admin (ao abrir, a cada hora e quando o admin pede). Só com o aparelho pareado e respondendo.
+  useSinalTotem({
+    pareado: visao?.dispositivo != null && !aparelho.semConexao,
+    situacao: visao?.situacao ?? "NAO_PAREADO",
+    sincronizar: aparelho.sincronizar,
+    respostaEm: aparelho.respostaEm,
+  });
 
   // A toolbar some em AUTO enquanto o quiosque está montado (Alt+D traz de volta).
   useEffect(() => {

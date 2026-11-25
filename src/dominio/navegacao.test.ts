@@ -10,6 +10,16 @@ describe("atalhos do cabeçalho", () => {
     ]);
   });
 
+  it("admin com votação infantil: Totens por último", () => {
+    expect(atalhosDoPapel("fv", "ADMIN", true, { totens: true }).map((a) => [a.rotulo, a.href])).toEqual([
+      ["Dashboard", "/e/fv/admin"],
+      ["Configurações", "/e/fv/admin/configuracao"],
+      ["Apresentação", "/e/fv/admin/apresentar"],
+      ["Totens", "/e/fv/admin/totens"],
+    ]);
+    expect(atalhosDoPapel("fv", "PUBLICO", true, { totens: true }).map((a) => a.rotulo)).toEqual(["Votar"]);
+  });
+
   it("público e jurado: Votar; visitante ou sem participação: nada", () => {
     for (const papel of ["PUBLICO", "JURADO"] as const) expect(atalhosDoPapel("fv", papel, true).map((a) => a.href)).toEqual(["/e/fv#candidatos"]);
     expect(atalhosDoPapel("fv", null, true)).toEqual([]);

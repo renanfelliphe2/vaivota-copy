@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import type { OperacaoDados } from "@/dominio/painel";
 import { redistribuirPesos } from "@/dominio/placar";
 import {
+  ehSituacaoTotem,
   MAX_CODIGOS_PENDENTES,
   VALIDADE_CODIGO_PAREAMENTO_MS,
   type CodigoPareamentoGerado,
@@ -92,10 +93,33 @@ export async function listarDispositivos(usuario: UsuarioSessao | null, eventoId
         votos: porTotem.get(d.id) ?? 0,
         temPin: d.hashPin !== null,
         categoriaIds: d.categorias.map((c) => c.categoriaId),
+        ultimoSinalEm: instanteOuNulo(d.ultimoSinalEm, fuso),
+        situacaoRelatada: ehSituacaoTotem(d.situacaoRelatada) ? d.situacaoRelatada : null,
+        telaCheia: d.telaCheia,
+        sincronizacaoPedidaEm: instanteOuNulo(d.sincronizacaoPedidaEm, fuso),
       })),
     );
   } catch (e) {
     return falhaInterna(e, "listarDispositivos");
+  }
+}
+
+/**
+ * "Forçar sincronização" (página Totens): marca o pedido nos totens não revogados do evento (ou num só). Cada totem vê o pedido
+ * na próxima consulta (a cada 10 s) e responde com um relatório. Não muda voto, estado nem configuração: vale em qualquer fase.
+ */
+export async function forcarSincronizacaoTotens(usuario: UsuarioSessao | null, eventoId: string, dispositivoId?: string): Promise<Resultado<{ pedidos: number }>> {
+  const admin = await exigirAdmin(usuario, eventoId);
+  if (!admin.ok) return admin;
+  try {
+    const { count } = await db().dispositivo.updateMany({
+      where: { eventoId, estado: { not: "REVOGADO" }, ...(dispositivoId ? { id: dispositivoId } : {}) },
+      data: { sincronizacaoPedidaEm: new Date() },
+    });
+    if (dispositivoId && count === 0) return falha("NAO_ENCONTRADO", { mensagem: "Este totem não existe mais ou foi revogado." });
+    return sucesso({ pedidos: count });
+  } catch (e) {
+    return falhaInterna(e, "forcarSincronizacaoTotens");
   }
 }
 
