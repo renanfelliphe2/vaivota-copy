@@ -320,7 +320,9 @@ function SecaoDaCategoria({
                 }}
               />
             )}
-            {soTotem ? <AvisoSoTotem /> : <BotaoVerMais href={href} nome={categoria.nome} className="hidden sm:inline-flex" />}
+            {/* 25/11/2026: a categoria do totem também leva à página dela (os detalhes dos itens), além do aviso. */}
+            {soTotem && <AvisoSoTotem />}
+            <BotaoVerMais href={href} nome={categoria.nome} className="hidden sm:inline-flex" />
           </div>
         </div>
 
@@ -369,13 +371,13 @@ function SecaoDaCategoria({
         )}
 
         {/* No celular, o "Ver mais" vem depois da lista. */}
-        {!soTotem && <BotaoVerMais href={href} nome={categoria.nome} className="self-stretch sm:hidden" />}
+        <BotaoVerMais href={href} nome={categoria.nome} className="self-stretch sm:hidden" />
       </div>
     </section>
   );
 }
 
-/** No lugar do "Ver mais" da categoria do totem: o voto é só no local. */
+/** Na categoria do totem, ao lado do "Ver mais": o voto é só no local. */
 function AvisoSoTotem() {
   return (
     <p className="inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-tema-fundo px-4 py-2 text-sm font-semibold text-tema-primaria-texto shadow-sm ring-1 ring-tema-borda/80 sm:self-auto">

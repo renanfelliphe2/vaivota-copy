@@ -69,7 +69,8 @@ export function PaginaCategoria() {
     logado: sessao.logado,
     emailVerificado: sessao.emailVerificado,
     papel: sessao.papel,
-    soTotem: false,
+    // 25/11/2026: a categoria do totem também tem página (para conhecer os itens), mas sem voto online.
+    soTotem: atual?.soTotem ?? false,
     votou: atual?.votou ?? false,
   });
 
@@ -107,7 +108,7 @@ export function PaginaCategoria() {
   const itemSelecionado = modo === "ESCOLHA" ? (itens.find((i) => i.candidato.id === votacao.selecaoId && !i.bloqueadoVotoProprio) ?? null) : null;
   // O coração só depois de um voto desta categoria (o `ultimoVoto` não diz em quem a ninguém: fica só nesta aba).
   const sucessoAqui = votacao.ultimoVoto !== null && itens.some((i) => i.candidato.id === votacao.ultimoVoto?.candidatoId);
-  const pendentes = categorias.filter((c) => c.categoria.id !== categoria.id && c.itens.length > 0 && !c.votou);
+  const pendentes = categorias.filter((c) => c.categoria.id !== categoria.id && !c.soTotem && c.itens.length > 0 && !c.votou);
   const outras = categorias.filter((c) => c.categoria.id !== categoria.id);
   // Na leitura, só os avisos que explicam por que não há escolha.
   const aviso =
@@ -188,7 +189,12 @@ export function PaginaCategoria() {
           {modo === "LEITURA" && aberta && sessao.papel === "JURADO" && (
             <Alerta variante="informacao">Como jurado, você avalia na página inicial do evento. O voto das categorias é do público.</Alerta>
           )}
-          {!aberta && <UrnaStatusCard visao={visao} />}
+          {atual.soTotem && (
+            <Alerta variante="informacao" titulo="Votação só nos totens, no local do evento">
+              Aqui você conhece os {rotuloItens} desta categoria. O voto é feito nos totens do evento.
+            </Alerta>
+          )}
+          {!aberta && !atual.soTotem && <UrnaStatusCard visao={visao} />}
 
           {itens.length === 0 ? (
             <p className="rounded-xl border border-dashed border-tema-borda p-6 text-tema-texto-suave">
