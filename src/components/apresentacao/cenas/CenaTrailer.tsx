@@ -17,7 +17,7 @@ import { ChamadaCerimonia } from "../telao/CenasCerimonia";
 // vídeo. O iframe começa sem mudo (o clique em Apresentar liberou o áudio, C19).
 // 08/10/2026: o telão é uma aba própria e pode nunca ter recebido um toque; aí o vídeo começa mudo (única forma de
 // o navegador deixar rodar sozinho) e o som volta no primeiro clique ou tecla no telão. O gerado virou uma
-// sequência de títulos: logo → nome e data → candidatos (ou "os votos foram contados") → chamada do resultado.
+// sequência de títulos: logo → nome → candidatos → chamada do resultado.
 
 const MAX_CANDIDATOS_TRAILER = 12;
 
@@ -40,14 +40,13 @@ function PlacaLogo({ nome, logoUrl }: { nome: string; logoUrl: string | null }) 
   );
 }
 
-function TrailerEstatico({ nome, logoUrl, data, candidatos }: { nome: string; logoUrl: string | null; data: string; candidatos: CandidatoPalco[] }) {
+function TrailerEstatico({ nome, logoUrl, candidatos }: { nome: string; logoUrl: string | null; candidatos: CandidatoPalco[] }) {
   const visiveis = candidatos.slice(0, MAX_CANDIDATOS_TRAILER);
   return (
     <PalcoCinema fundo={<FundoCinema holofotes={false} poeira={false} />}>
       <div className="flex h-full flex-col items-center justify-center gap-12 p-20 text-center">
         <PlacaLogo nome={nome} logoUrl={logoUrl} />
         <p className="text-[96px] font-black leading-tight">{nome}</p>
-        {data && <p className="text-[48px] font-semibold text-cinema-suave">{data}</p>}
         {visiveis.length > 0 && (
           <div className="grid w-full grid-cols-6 gap-5">
             {visiveis.map((c) => (
@@ -60,9 +59,9 @@ function TrailerEstatico({ nome, logoUrl, data, candidatos }: { nome: string; lo
   );
 }
 
-function TrailerGerado({ nome, logoUrl, data, candidatos }: { nome: string; logoUrl: string | null; data: string; candidatos: CandidatoPalco[] }) {
+function TrailerGerado({ nome, logoUrl, candidatos }: { nome: string; logoUrl: string | null; candidatos: CandidatoPalco[] }) {
   const reduzido = useMovimentoReduzido();
-  if (reduzido) return <TrailerEstatico nome={nome} logoUrl={logoUrl} data={data} candidatos={candidatos} />;
+  if (reduzido) return <TrailerEstatico nome={nome} logoUrl={logoUrl} candidatos={candidatos} />;
   const j = janelas(DURACOES.trailerGerado);
   const visiveis = candidatos.slice(0, MAX_CANDIDATOS_TRAILER);
   const camada = (w: { atraso: number; dur: number }) => vars({ "--atraso": `${w.atraso}ms`, "--dur": `${w.dur}ms` });
@@ -78,40 +77,30 @@ function TrailerGerado({ nome, logoUrl, data, candidatos }: { nome: string; logo
         </p>
       </div>
 
-      {/* 2. Nome e data */}
+      {/* 2. Nome (25/11/2026: sem a data). Entra por desfoque e escala: animar o espaçamento das letras mudava a quebra
+          de linha a cada quadro, e o bloco centralizado subia e descia até estabilizar. */}
       <div className="cinema-janela absolute inset-0 flex flex-col items-center justify-center gap-10 px-24 text-center" style={camada(j.nome)}>
-        <p className="cinema-tracking text-[120px] font-black uppercase leading-[1.02] tracking-[0.04em]" style={atraso(j.nome.atraso + 100)}>
+        <p className="cinema-revelar text-[120px] font-black uppercase leading-[1.02] tracking-[0.04em] text-balance" style={atraso(j.nome.atraso + 100)}>
           {nome}
         </p>
         <span className="cinema-barra h-[4px] w-[900px] bg-linear-to-r from-transparent via-cinema-destaque to-transparent" style={atraso(j.nome.atraso + 700)} />
-        {data && (
-          <p className="cinema-subir text-[52px] font-semibold text-cinema-destaque" style={atraso(j.nome.atraso + 1100)}>
-            {data}
-          </p>
-        )}
       </div>
 
-      {/* 3. Candidatos (ou a frase de transição) */}
-      <div className="cinema-janela absolute inset-0 flex flex-col items-center justify-center gap-8 px-20" style={camada(j.meio)}>
-        {visiveis.length > 0 ? (
-          <>
-            <div className="grid w-full grid-cols-6 gap-5">
-              {visiveis.map((c, i) => (
-                <div key={c.id} className="cinema-pop overflow-hidden rounded-2xl" style={atraso(j.meio.atraso + 150 + i * 90)}>
-                  <div className="cinema-zoom-lento" style={vars({ "--dur": `${j.meio.dur}ms` })}>
-                    <ImagemCandidato titulo={c.titulo} imagemUrl={c.imagemUrl} proporcao="16/9" sizes="280px" />
-                  </div>
+      {/* 3. Candidatos (25/11/2026: sem itens, a janela fica vazia; saiu "Os votos foram contados") */}
+      {visiveis.length > 0 && (
+        <div className="cinema-janela absolute inset-0 flex flex-col items-center justify-center gap-8 px-20" style={camada(j.meio)}>
+          <div className="grid w-full grid-cols-6 gap-5">
+            {visiveis.map((c, i) => (
+              <div key={c.id} className="cinema-pop overflow-hidden rounded-2xl" style={atraso(j.meio.atraso + 150 + i * 90)}>
+                <div className="cinema-zoom-lento" style={vars({ "--dur": `${j.meio.dur}ms` })}>
+                  <ImagemCandidato titulo={c.titulo} imagemUrl={c.imagemUrl} proporcao="16/9" sizes="280px" />
                 </div>
-              ))}
-            </div>
-            <MaisNomes mais={candidatos.length - visiveis.length} />
-          </>
-        ) : (
-          <p className="cinema-revelar text-center text-[110px] font-black leading-tight" style={atraso(j.meio.atraso + 100)}>
-            {TEXTOS_PALCO.votosContados}
-          </p>
-        )}
-      </div>
+              </div>
+            ))}
+          </div>
+          <MaisNomes mais={candidatos.length - visiveis.length} />
+        </div>
+      )}
 
       {/* 4. Chamada do resultado (fica até o fim) */}
       <div className="absolute inset-0 flex items-center justify-center px-24">
@@ -291,7 +280,7 @@ export function CenaTrailer({
         <TrailerLink embed={embed} mudo={mudo} nome={nome} encerrando={chamada} aoPronto={aoPronto} />
       ) : (
         <>
-          <TrailerGerado nome={nome} logoUrl={logoUrl} data={data} candidatos={candidatos} />
+          <TrailerGerado nome={nome} logoUrl={logoUrl} candidatos={candidatos} />
           <Cortina />
         </>
       )}

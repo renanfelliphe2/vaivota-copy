@@ -35,7 +35,6 @@ export const TEXTOS_PALCO = {
   pontos: "pontos",
   destaques: "Também premiados",
   apresenta: "apresenta",
-  votosContados: "Os votos foram contados",
   chegouAHora: "Chegou a hora do resultado",
   // Títulos em volta do trailer (08/10/2026).
   naUltimaEdicao: "Na última edição",

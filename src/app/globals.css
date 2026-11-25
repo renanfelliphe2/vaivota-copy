@@ -550,13 +550,13 @@ dialog::backdrop {
   animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* Nome do vencedor: sai do desfoque, com as letras se fechando. */
+/* Sai do desfoque, encolhendo. Sem animar letter-spacing: em texto de várias linhas ele muda a quebra a cada quadro e o
+   bloco centralizado pula (25/11/2026). */
 @keyframes cinema-revelar {
   from {
     opacity: 0;
     filter: blur(28px);
     transform: scale(1.18);
-    letter-spacing: 0.18em;
   }
   60% {
     opacity: 1;
