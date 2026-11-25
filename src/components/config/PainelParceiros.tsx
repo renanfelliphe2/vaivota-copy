@@ -394,7 +394,9 @@ function ModalParceiros({
                             <label
                               key={g.chave}
                               className={cx(
-                                "inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-semibold ring-1 transition has-focus-visible:outline-3 has-focus-visible:outline-tema-foco",
+                                // `relative`: ancora o checkbox escondido (sr-only é absoluto) no chip. Sem isso ele fica preso fora
+                                // da área que rola do modal, e o foco do clique fazia a rolagem pular.
+                                "relative inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-semibold ring-1 transition has-focus-visible:outline-3 has-focus-visible:outline-tema-foco",
                                 marcado ? "bg-tema-primaria text-tema-sobre-primaria ring-tema-primaria" : "bg-tema-fundo text-tema-texto ring-tema-borda hover:ring-tema-primaria",
                               )}
                             >

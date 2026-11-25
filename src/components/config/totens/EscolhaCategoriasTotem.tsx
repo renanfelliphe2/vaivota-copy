@@ -48,7 +48,8 @@ export function EscolhaCategoriasTotem({
             <li key={c.id}>
               <label
                 className={cx(
-                  "inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-2 px-4 text-sm font-semibold has-focus-visible:outline-3 has-focus-visible:outline-tema-foco",
+                  // `relative`: ancora o checkbox sr-only no chip (dentro de um modal que rola, o foco do clique fazia a rolagem pular).
+                  "relative inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-2 px-4 text-sm font-semibold has-focus-visible:outline-3 has-focus-visible:outline-tema-foco",
                   marcada ? "border-tema-primaria bg-tema-primaria text-tema-sobre-primaria" : "border-tema-borda hover:bg-tema-superficie",
                   desabilitado && "cursor-not-allowed opacity-60",
                 )}
