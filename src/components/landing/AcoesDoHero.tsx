@@ -85,7 +85,8 @@ export function AcoesDoHero() {
           {jaVotou && (
             <p className="inline-flex min-h-12 grow items-center justify-center gap-2 rounded-full bg-white px-6 py-2 text-center font-semibold text-marca-noite shadow-lg shadow-black/25 sm:grow-0">
               <CircleCheck aria-hidden className="size-5 text-tema-sucesso" />
-              {ativo.categorias.length > 0 ? "Você votou em todas as categorias" : "Seu voto foi registrado"}
+              {/* 25/11/2026: sem "todas as categorias" (as do totem não são votadas aqui). */}
+              {ativo.categorias.length > 0 ? "Seus votos foram registrados" : "Seu voto foi registrado"}
             </p>
           )}
           {evento.linkSobre && (

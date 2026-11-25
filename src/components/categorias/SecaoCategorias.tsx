@@ -142,9 +142,10 @@ export function SecaoCategorias() {
               <h2 id="titulo-categorias" tabIndex={-1} className={cx("text-3xl tracking-tight sm:text-4xl", cinema ? "font-cine font-bold" : "font-display font-extrabold")}>
                 Categorias
               </h2>
-              {publico && comItens.length > 0 && (
+              {/* 25/11/2026: sem "Você votou em todas" (as categorias do totem não entram na conta e a frase soava errada). */}
+              {publico && comItens.length > 0 && votadas < comItens.length && (
                 <p className="rounded-full bg-tema-fundo px-4 py-1.5 text-sm font-semibold text-tema-primaria-texto shadow-sm ring-1 ring-tema-borda/80">
-                  {votadas === comItens.length ? "Você votou em todas" : `Você votou em ${votadas} de ${comItens.length}`}
+                  Você votou em {votadas} de {comItens.length}
                 </p>
               )}
             </div>
@@ -308,8 +309,10 @@ function SecaoDaCategoria({
                 </span>
               )}
             </p>
+            {/* 25/11/2026: o aviso do totem fica aqui, sob o título; ao lado dos botões ele espremia o título no tablet. */}
+            {soTotem && <AvisoSoTotem />}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             {(!cabemTodos || buscaAberta) && itens.length > 1 && (
               <BotaoPesquisar
                 aberta={buscaAberta}
@@ -321,8 +324,6 @@ function SecaoDaCategoria({
                 }}
               />
             )}
-            {/* 25/11/2026: a categoria do totem também leva à página dela (os detalhes dos itens), além do aviso. */}
-            {soTotem && <AvisoSoTotem />}
             {/* max-sm:hidden: o botão já é inline-flex, e um "hidden" solto perdia para ele (os dois apareciam no celular). */}
             <BotaoVerMais href={href} nome={categoria.nome} className="max-sm:hidden" />
           </div>
@@ -382,12 +383,12 @@ function SecaoDaCategoria({
 }
 
 /**
- * Na categoria do totem, ao lado do "Ver mais". 25/11/2026: "apenas nos totens", sem "no local do evento" (os totens nem sempre
+ * Na categoria do totem, sob o título. 25/11/2026: "apenas nos totens", sem "no local do evento" (os totens nem sempre
  * ficam no local).
  */
 function AvisoSoTotem() {
   return (
-    <p className="inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-tema-fundo px-4 py-2 text-sm font-semibold text-tema-primaria-texto shadow-sm ring-1 ring-tema-borda/80 sm:self-auto">
+    <p className="mt-1.5 inline-flex items-center gap-2 self-start rounded-full bg-tema-fundo px-4 py-2 text-sm font-semibold text-tema-primaria-texto shadow-sm ring-1 ring-tema-borda/80">
       <Tablet aria-hidden className="size-4 shrink-0" />
       Votação apenas nos totens
     </p>

@@ -122,7 +122,7 @@ export function SecaoCategoriasConfig({ travas }: { travas: Travas }) {
 
       {categorias.length > 0 && semCategoria.length > 0 && <SemCategoria itens={semCategoria} rotulo={rotulo} />}
 
-      {/* As do totem não têm página nem QR Code: são votadas só nos totens. */}
+      {/* As do totem têm página (para conhecer os itens), mas não QR Code: o voto delas é só nos totens. */}
       {daPagina.length > 0 && <QrCodes slugEvento={ativo.slug} categorias={daPagina} />}
 
       <ModalCategoria
@@ -311,7 +311,8 @@ function CartaoCategoria({
             {itens.length > 0 && <span className="font-normal text-tema-texto-suave"> · {naVotacao} na votação</span>}
           </span>
           <span className="truncate text-tema-texto-suave">
-            {categoria.canal === "TOTEM" ? "Sem página: só nos totens que a exibem" : rotaCategoria(slugEvento, categoria.slug)}
+            {/* 25/11/2026: toda categoria tem página, inclusive a do totem (o selo acima diz onde se vota). */}
+            {rotaCategoria(slugEvento, categoria.slug)}
           </span>
         </div>
         <Botao variante="contorno" tamanho="pequeno" onClick={aoSelecionar} icone={<Film aria-hidden className="size-4" />}>

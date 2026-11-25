@@ -83,7 +83,7 @@ export function DialogoCoracao({ aberto, categoria, proxima, hrefCategorias, aoF
           Seu voto em <strong>{categoria}</strong> foi registrado. Obrigado por participar!
         </p>
         <p className="text-sm text-tema-texto-suave">
-          {proxima ? `Ainda dá para votar em ${proxima.nome}.` : "Você votou em todas as categorias. O resultado será divulgado pela organização."}
+          {proxima ? `Ainda dá para votar em ${proxima.nome}.` : "O resultado será divulgado pela organização."}
         </p>
       </div>
     </Dialogo>
