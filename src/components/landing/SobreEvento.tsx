@@ -6,9 +6,11 @@ import { cx } from "@/lib/classes";
 import { useEventoAtivo } from "@/store/seletores/evento";
 
 /**
- * "Sobre o evento" (demanda C2, 25/11/2026), no fim da página de todos os eventos: um cartão na cor do tema, imagem à esquerda e
- * título e texto à direita; no celular, a imagem vem em cima. Sem título nem texto, nada. O **negrito** do texto vira <strong>
- * (o texto nunca é lido como HTML).
+ * "Sobre o evento" (demanda C2, 25/11/2026), no fim da página de todos os eventos. Sem título nem texto, nada. O **negrito** do
+ * texto vira <strong> (o texto nunca é lido como HTML).
+ * 24/11/2026, refeito: cartão claro de revista, com fio nas cores do tema no topo e brilhos suaves ao fundo; a foto numa moldura
+ * com uma placa em degradê deslocada atrás (no estilo cinema, um quadro de película com perfurações); sobrescrito "Sobre o
+ * evento", título com traço de destaque, primeiro parágrafo maior (abertura) e os demais no tom suave. Sem foto, o texto centraliza.
  */
 export function SobreEvento({ cinema = false }: { cinema?: boolean }) {
   const ativo = useEventoAtivo();
@@ -16,44 +18,118 @@ export function SobreEvento({ cinema = false }: { cinema?: boolean }) {
   const { sobreTitulo, sobreTexto, sobreImagemUrl } = ativo.evento;
   const paragrafos = paragrafosDoSobre(sobreTexto);
   const titulo = sobreTitulo?.trim() || null;
+  const comImagem = Boolean(sobreImagemUrl);
 
   return (
-    <section aria-labelledby={titulo ? "titulo-sobre-evento" : undefined} aria-label={titulo ? undefined : "Sobre o evento"} className={cx("w-full", cinema ? "bg-cine-papel" : "bg-tema-fundo")}>
+    <section aria-labelledby="titulo-sobre-evento" className={cx("w-full", cinema ? "bg-cine-papel" : "bg-tema-fundo")}>
       <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-        <div
-          className={cx(
-            "grid overflow-hidden rounded-3xl bg-tema-primaria text-tema-sobre-primaria shadow-xl shadow-tema-primaria/20",
-            sobreImagemUrl && "md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]",
-          )}
-        >
-          {sobreImagemUrl && (
-            <div className="relative md:min-h-80">
-              <ImagemCandidato
-                titulo={titulo ?? "Sobre o evento"}
-                imagemUrl={sobreImagemUrl}
-                proporcao="4/3"
-                className="h-full md:absolute md:inset-0 md:aspect-auto!"
-                sizes="(min-width: 1152px) 28rem, (min-width: 768px) 40vw, 100vw"
-              />
-            </div>
-          )}
-          <div className="flex flex-col justify-center gap-5 p-6 sm:p-10 lg:p-12">
-            {titulo && (
-              <h2
-                id="titulo-sobre-evento"
-                className={cx("text-3xl leading-tight tracking-tight wrap-anywhere sm:text-4xl", cinema ? "font-cine font-bold" : "font-display font-extrabold")}
-              >
-                {titulo}
-              </h2>
+        <article className="relative isolate overflow-hidden rounded-[2rem] border border-tema-borda bg-tema-superficie shadow-xl shadow-tema-primaria/10">
+          {/* Fio nas cores do tema e brilhos de fundo: só decoração. */}
+          <div aria-hidden className="h-1.5 w-full bg-linear-to-r from-tema-primaria via-tema-secundaria to-tema-primaria" />
+          <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 -z-10 size-80 rounded-full bg-tema-primaria/10 blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-24 -z-10 size-96 rounded-full bg-tema-secundaria/10 blur-3xl" />
+
+          <div
+            className={cx(
+              "grid items-center gap-10 p-6 sm:p-10 lg:gap-14 lg:p-14",
+              comImagem ? "md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]" : "justify-items-center text-center",
             )}
-            {paragrafos.map((trechos, i) => (
-              <p key={i} className="text-base leading-relaxed opacity-95 sm:text-lg">
-                {trechos.map((t, j) => (t.negrito ? <strong key={j} className="font-bold">{t.texto}</strong> : <span key={j}>{t.texto}</span>))}
-              </p>
-            ))}
+          >
+            {sobreImagemUrl && (
+              <div className="relative mr-3 mb-3 md:mr-4 md:mb-4">
+                {/* Placa em degradê deslocada atrás da foto. */}
+                <div
+                  aria-hidden
+                  className="absolute inset-0 translate-x-3 translate-y-3 rounded-2xl bg-linear-to-br from-tema-primaria to-tema-secundaria md:translate-x-4 md:translate-y-4"
+                />
+                {cinema ? (
+                  <div className="relative rounded-2xl bg-cine-pelicula px-2.5 py-1 shadow-lg">
+                    <Perfuracoes />
+                    <ImagemCandidato
+                      titulo={titulo ?? "Sobre o evento"}
+                      imagemUrl={sobreImagemUrl}
+                      proporcao="4/3"
+                      className="rounded-md"
+                      sizes="(min-width: 1152px) 26rem, (min-width: 768px) 38vw, 100vw"
+                    />
+                    <Perfuracoes />
+                  </div>
+                ) : (
+                  <div className="relative overflow-hidden rounded-2xl shadow-lg ring-1 ring-tema-borda">
+                    <ImagemCandidato
+                      titulo={titulo ?? "Sobre o evento"}
+                      imagemUrl={sobreImagemUrl}
+                      proporcao="4/3"
+                      sizes="(min-width: 1152px) 26rem, (min-width: 768px) 38vw, 100vw"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className={cx("flex flex-col gap-5", !comImagem && "max-w-3xl items-center")}>
+              <div className={cx("flex flex-col gap-3", !comImagem && "items-center")}>
+                <p
+                  {...(titulo ? {} : { id: "titulo-sobre-evento", role: "heading", "aria-level": 2 })}
+                  className={cx(
+                    "inline-flex items-center gap-3 text-xs font-bold uppercase text-tema-primaria-texto",
+                    cinema ? "font-cine tracking-[0.3em]" : "tracking-[0.22em]",
+                  )}
+                >
+                  <span aria-hidden className="h-px w-8 bg-tema-primaria" />
+                  Sobre o evento
+                  {!comImagem && <span aria-hidden className="h-px w-8 bg-tema-primaria" />}
+                </p>
+                {titulo && (
+                  <h2
+                    id="titulo-sobre-evento"
+                    className={cx(
+                      "text-3xl leading-[1.1] tracking-tight text-balance text-tema-texto wrap-anywhere sm:text-4xl lg:text-5xl",
+                      cinema ? "font-cine font-bold" : "font-display font-extrabold",
+                    )}
+                  >
+                    {titulo}
+                  </h2>
+                )}
+                <span aria-hidden className="mt-1 h-1 w-14 rounded-full bg-linear-to-r from-tema-primaria to-tema-secundaria" />
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {paragrafos.map((trechos, i) => (
+                  <p
+                    key={i}
+                    className={cx(
+                      "text-pretty",
+                      i === 0 ? "text-lg leading-relaxed text-tema-texto sm:text-xl" : "text-base leading-relaxed text-tema-texto-suave sm:text-lg",
+                    )}
+                  >
+                    {trechos.map((t, j) =>
+                      t.negrito ? (
+                        <strong key={j} className="font-bold text-tema-texto">
+                          {t.texto}
+                        </strong>
+                      ) : (
+                        <span key={j}>{t.texto}</span>
+                      ),
+                    )}
+                  </p>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        </article>
       </div>
     </section>
+  );
+}
+
+/** Fileira de perfurações da película (estilo cinema). */
+function Perfuracoes() {
+  return (
+    <div aria-hidden className="flex justify-between py-1.5">
+      {Array.from({ length: 12 }, (_, i) => (
+        <span key={i} className="h-2 w-3 rounded-[2px] bg-cine-papel/85" />
+      ))}
+    </div>
   );
 }
