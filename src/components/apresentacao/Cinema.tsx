@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { cx } from "@/lib/classes";
 
 // 08/10/2026: peças de cena da revelação cinematográfica (palco escuro, holofotes, poeira de luz, raios, flash e
@@ -110,47 +110,10 @@ export function usePapelNaPassagem(): PapelNaPassagem {
 }
 
 /**
- * Passagem pelo preto (08/10/2026): quando `chave` muda, a cena que sai continua montada (o vídeo segue rodando)
- * e escurece até o preto em `duracaoMs`; só então fica só a nova (que sai do preto pela própria Cortina). Com
- * `montarAntes`, a nova já é montada por baixo durante o escurecimento (o trailer começa a carregar e tocar no
- * escuro). Camadas com chave e ordem fixa: a que fica nunca muda de lugar no DOM (mover um iframe o recarrega).
+ * O papel vem da Transicao do telão (telao/Transicao.tsx, 25/11/2026), que substituiu a passagem pelo preto: a cena que sai continua
+ * montada (o vídeo segue rodando) enquanto a nova entra pelo corte escolhido.
  */
-export function PassagemPeloPreto({
-  chave,
-  duracaoMs,
-  montarAntes = false,
-  children,
-}: {
-  chave: string;
-  duracaoMs: number;
-  montarAntes?: boolean;
-  children: ReactNode;
-}) {
-  const [exibida, setExibida] = useState<{ chave: string; conteudo: ReactNode }>({ chave, conteudo: children });
-  const saindo = chave !== exibida.chave;
-  // Estado derivado no render: guarda o último conteúdo da chave exibida, para a saída usar o mesmo elemento.
-  if (!saindo && children !== exibida.conteudo) setExibida({ chave, conteudo: children });
-  useEffect(() => {
-    if (!saindo) return;
-    const t = setTimeout(() => setExibida({ chave, conteudo: null }), duracaoMs);
-    return () => clearTimeout(t);
-  }, [saindo, chave, duracaoMs]);
-
-  const camadas: { chave: string; papel: PapelNaPassagem; conteudo: ReactNode }[] = saindo
-    ? [
-        { chave: exibida.chave, papel: "SAINDO", conteudo: exibida.conteudo },
-        ...(montarAntes ? [{ chave, papel: "ENTRANDO" as const, conteudo: children }] : []),
-      ]
-    : [{ chave, papel: "EM_CENA", conteudo: children }];
-  return camadas.map((c) => (
-    <div key={c.chave} className={cx("absolute inset-0 flex flex-col", c.papel === "SAINDO" ? "z-10" : "z-0")}>
-      <PassagemContext.Provider value={c.papel}>{c.conteudo}</PassagemContext.Provider>
-      {c.papel === "SAINDO" && (
-        <div aria-hidden className="cinema-escurecer pointer-events-none absolute inset-0 z-50 bg-black" style={vars({ "--dur": `${duracaoMs}ms` })} />
-      )}
-    </div>
-  ));
-}
+export const ProvedorPapel = PassagemContext.Provider;
 
 /** Abertura da cena: sai do preto. */
 export function Cortina() {

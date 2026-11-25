@@ -338,7 +338,7 @@ export function PalcoReal({
         progresso={revelando ? { cena: estadoMotor.cena + 1, total: roteiro.length } : null}
         proximoAvancoEm={revelando ? proximoAvancoEm : null}
         aoDesligar={desligar}
-        chaveTransicao={cenaAtual?.tipo === "TRAILER" ? "trailer" : "cena"}
+        chaveTransicao={fasePalco}
         mensagem={mensagemHud ?? (erroLeitura ? `Falha de leitura: ${erroLeitura.mensagem}. Mostrando o último dado.` : null)}
         ajudaVisivel={ajuda}
         controles={{

@@ -63,9 +63,9 @@ export function MarcaVaiVota({ className }: { className?: string }) {
 }
 
 /** As cores do tema numa faixa curta (como na landing). */
-export function FaixaCores({ className }: { className?: string }) {
+export function FaixaCores({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
-    <span aria-hidden className={cx("flex h-2 w-[132px] overflow-hidden rounded", className)}>
+    <span aria-hidden className={cx("flex h-2 w-[132px] overflow-hidden rounded", className)} style={style}>
       <span className="flex-1 bg-tema-primaria" />
       <span className="flex-1 bg-tema-secundaria" />
     </span>
@@ -162,10 +162,12 @@ export function QuadroContagem({ numero, tamanho, className }: { numero: number 
       >
         <div className="tc-varredura" />
         <div className="absolute inset-[8%] rounded-full shadow-[inset_0_0_0_4px_color-mix(in_srgb,var(--tc-luz)_40%,transparent)]" />
-        <p className="absolute inset-0 m-0 flex items-center justify-center font-cine font-bold leading-none text-tc-luz" style={{ fontSize: Math.round(circulo * 0.52) }}>
+        {/* 25/11/2026: a cada número o quadro pisca e o número assenta (a chave reinicia as duas animações). */}
+        <p key={numero} className="tc-numero absolute inset-0 m-0 flex items-center justify-center font-cine font-bold leading-none text-tc-luz" style={{ fontSize: Math.round(circulo * 0.52) }}>
           {numero}
         </p>
       </div>
+      <div key={`piscar-${numero}`} className="tc-piscar pointer-events-none absolute inset-0 bg-tc-luz opacity-0" />
     </div>
   );
 }

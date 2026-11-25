@@ -284,9 +284,14 @@ export function CenaTrailer({
           <Cortina />
         </>
       )}
+      {/* 25/11/2026: as tarjas pretas fecham sobre o trailer (que segue por baixo, baixando o som) e a chamada acende no escuro. */}
       {chamada && (
         <div className="absolute inset-0 z-20">
-          <ChamadaCerimonia nome={nome} logoUrl={logoUrl} ano={/\d{4}/.exec(data)?.[0] ?? null} />
+          <div aria-hidden className="tc-tarja tc-tarja-cima absolute inset-x-0 top-0 h-1/2 bg-black" />
+          <div aria-hidden className="tc-tarja tc-tarja-baixo absolute inset-x-0 bottom-0 h-1/2 bg-black" />
+          <div className="tc-depois-das-tarjas absolute inset-0" style={vars({ "--tc-entrada": "800ms" })}>
+            <ChamadaCerimonia nome={nome} logoUrl={logoUrl} ano={/\d{4}/.exec(data)?.[0] ?? null} />
+          </div>
         </div>
       )}
     </div>

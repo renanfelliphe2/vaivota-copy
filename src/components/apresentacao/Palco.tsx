@@ -4,10 +4,22 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ModoAvanco } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 import { useTelaoPublicado, type ComandoDoPalco } from "@/store/canalTelao";
-import { DURACOES } from "@/dominio/apresentacao/duracoes";
-import { PassagemPeloPreto } from "./Cinema";
 import { ALTURA_PALCO, LARGURA_PALCO, useEscalaPalco } from "./hooks";
 import { SeloEnsaio } from "./Pecas";
+import { Transicao, type Corte } from "./telao/Transicao";
+
+/**
+ * Cortes entre as fases do telão (25/11/2026; as cenas da revelação têm os seus, em CenaAtual): a revelação começa pelo preto, com o
+ * trailer já tocando por baixo; o fim da votação apaga a lâmpada do projetor; a abertura da votação e o final estático, pela íris.
+ */
+function corteEntreFases(de: string, para: string): Corte | null {
+  // O evento concluído com o final da revelação em tela: a mesma tela, sem corte.
+  if (de === "REVELACAO" && para === "FINAL_ESTATICO") return null;
+  if (para === "REVELACAO") return "PRETO";
+  if (para === "FINAL_ESTATICO" || para === "AO_VIVO") return "IRIS";
+  if (de === "AO_VIVO") return "APAGAR";
+  return "FUSAO";
+}
 
 // Etapa 8 (5.7): canvas lógico 1920×1080 escalado (letterbox), camadas (cena, selo, ajuda).
 // 08/10/2026: nada de HUD no telão. O palco é comandado pelo controle remoto (ControleRemoto, em qualquer aba do
@@ -80,7 +92,7 @@ export function Palco({
   aoDesligar: () => void;
   /** Faixa fixa no pé do canvas (08/10/2026: parceiros, fora da revelação); a cena ocupa o resto. */
   rodape?: ReactNode;
-  /** Quando muda, a cena (com o rodapé) escurece até o preto antes da próxima (08/10/2026: entrada e saída do trailer). */
+  /** A fase do telão (PRE_VOTACAO, AO_VIVO, REVELACAO…): quando muda, a tela passa pelo corte de corteEntreFases (25/11/2026). */
   chaveTransicao?: string;
   children: ReactNode;
 }) {
@@ -134,10 +146,10 @@ export function Palco({
           className="relative flex shrink-0 flex-col overflow-hidden bg-tema-fundo"
           style={{ width: LARGURA_PALCO, height: ALTURA_PALCO, transform: `scale(${escala})` }}
         >
-          <PassagemPeloPreto chave={chaveTransicao} duracaoMs={DURACOES.passagemPreto} montarAntes={chaveTransicao === "trailer"}>
+          <Transicao chave={chaveTransicao} meta={chaveTransicao} escolher={corteEntreFases} className="size-full overflow-hidden bg-black">
             <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
             {rodape}
-          </PassagemPeloPreto>
+          </Transicao>
           {ensaio && <SeloEnsaio />}
         </div>
       </div>

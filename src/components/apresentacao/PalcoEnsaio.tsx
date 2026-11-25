@@ -100,7 +100,7 @@ export function PalcoEnsaio({
       progresso={{ cena: estado.cena + 1, total: roteiro.length }}
       proximoAvancoEm={proximoAvancoEm}
       aoDesligar={aoDesligar}
-      chaveTransicao={cena?.tipo === "TRAILER" ? "trailer" : "cena"}
+      chaveTransicao="ENSAIO"
       mensagem={null}
       ajudaVisivel={ajuda}
       controles={{

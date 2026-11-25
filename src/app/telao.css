@@ -218,50 +218,261 @@
   }
 }
 
-/* O cartaz do vencedor acende como projetado. */
-.tc-projetar {
-  animation: tc-projetar 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+/*
+ * Entradas (25/11/2026). Todas esperam o corte que trouxe a cena (--tc-entrada, posto pela Transicao na camada que entra) mais o
+ * próprio atraso (--tc-atraso). Os ciclos infinitos (holofotes, ponteiro, película) não esperam.
+ */
+.tc-surgir,
+.tc-acender,
+.tc-revelar,
+.tc-projetar,
+.tc-barra,
+.tc-distribuir,
+.tc-puxar,
+.tc-ingresso-entra,
+.tc-enfiar,
+.tc-revelar-cartaz {
+  animation-delay: calc(var(--tc-atraso, 0ms) + var(--tc-entrada, 0ms));
+  animation-fill-mode: both;
 }
 
-@keyframes tc-projetar {
-  from {
-    filter: brightness(0.1) blur(6px);
-    transform: scale(1.03);
-  }
-}
-
-/* Textos que entram (o atraso vem em --tc-atraso). */
+/* Textos que entram. */
 .tc-surgir {
-  animation: tc-surgir 1s cubic-bezier(0.2, 0.7, 0.2, 1) var(--tc-atraso, 0ms) both;
+  animation-name: tc-surgir;
+  animation-duration: 1000ms;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 @keyframes tc-surgir {
   from {
-    opacity: 0.05;
-    transform: translateY(18px);
+    opacity: 0;
+    transform: translateY(22px);
   }
 }
 
+/* Saem do desfoque, como a lâmpada aquecendo. */
 .tc-acender {
-  animation: tc-acender 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) var(--tc-atraso, 0ms) both;
+  animation-name: tc-acender;
+  animation-duration: 1400ms;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 @keyframes tc-acender {
   from {
-    opacity: 0.12;
-    filter: blur(8px);
+    opacity: 0;
+    filter: blur(10px);
+  }
+}
+
+/* Títulos grandes: entram em foco, assentando de leve (sem animar o espaçamento: a quebra de linha mudaria a cada quadro). */
+.tc-revelar {
+  animation-name: tc-revelar;
+  animation-duration: 1300ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tc-revelar {
+  from {
+    opacity: 0;
+    filter: blur(16px);
+    transform: scale(1.06) translateY(10px);
+  }
+  55% {
+    opacity: 1;
+  }
+}
+
+/* O cartaz acende como projetado: do escuro e fora de foco ao quadro nítido. */
+.tc-projetar {
+  animation-name: tc-projetar;
+  animation-duration: 1600ms;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@keyframes tc-projetar {
+  from {
+    filter: brightness(0.1) blur(8px);
+    transform: scale(1.04);
+  }
+  40% {
+    filter: brightness(1.35) blur(2px);
+  }
+}
+
+/* Cartazes da tela final: a luz passa e revela cada um (como um fotograma revelado). */
+.tc-revelar-cartaz {
+  animation-name: tc-revelar-cartaz;
+  animation-duration: 1300ms;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@keyframes tc-revelar-cartaz {
+  from {
+    opacity: 0;
+    filter: brightness(2.4) blur(10px);
+    transform: translateY(26px) scale(0.96);
+  }
+  45% {
+    opacity: 1;
+  }
+}
+
+/* Faixas (cores do tema, linhas): correm da esquerda. */
+.tc-barra {
+  transform-origin: left;
+  animation-name: tc-barra;
+  animation-duration: 1200ms;
+  animation-timing-function: cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+@keyframes tc-barra {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* Cartazes do desempate: dados na mesa, cada um com um giro. */
+.tc-distribuir {
+  animation-name: tc-distribuir;
+  animation-duration: 1100ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes tc-distribuir {
+  from {
+    opacity: 0;
+    filter: blur(10px) brightness(0.3);
+    transform: translateY(90px) rotate(var(--tc-giro, -3deg));
+  }
+}
+
+/* A película do ao vivo é puxada pela direita, passa um pouco e volta (o rolo travando). */
+.tc-puxar {
+  animation-name: tc-puxar;
+  animation-duration: 1400ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes tc-puxar {
+  from {
+    transform: translateX(78%);
+    filter: blur(4px);
+  }
+  72% {
+    transform: translateX(-1.4%);
+    filter: none;
+  }
+}
+
+/* O ingresso sai da bilheteria: sobe girando e assenta. */
+.tc-ingresso-entra {
+  animation-name: tc-ingresso-entra;
+  animation-duration: 1300ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+
+@keyframes tc-ingresso-entra {
+  from {
+    opacity: 0;
+    transform: translateY(180px) rotate(4deg);
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* A película em pé das telas de espera é enfiada no projetor, de cima. */
+.tc-enfiar {
+  animation-name: tc-enfiar;
+  animation-duration: 1800ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tc-enfiar {
+  from {
+    transform: translateY(-105%);
+  }
+}
+
+/* Depois de enfiada, ela corre devagar (o ciclo é exatamente quatro quadros: a lista vem repetida). */
+.tc-pelicula-correr {
+  animation: tc-pelicula-correr 26s linear infinite;
+}
+
+@keyframes tc-pelicula-correr {
+  to {
+    transform: translateY(-1760px);
+  }
+}
+
+/* O que sai de cena dentro da mesma tela (a disputa, quando o vencedor aparece): apaga subindo e perde o foco. */
+.tc-recolher {
+  animation: tc-recolher 600ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
+@keyframes tc-recolher {
+  to {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(-16px);
+  }
+}
+
+/* Contagem de início de filme: o número troca com o quadro piscando. */
+.tc-numero {
+  animation: tc-numero 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes tc-numero {
+  from {
+    opacity: 0.1;
+    filter: blur(6px);
+    transform: scale(1.3);
+  }
+}
+
+.tc-piscar {
+  animation: tc-piscar 280ms ease-out both;
+}
+
+@keyframes tc-piscar {
+  from {
+    opacity: 0.32;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* O fim da contagem: o clarão branco do fim da ponta, e o cartaz aparece no quadro. */
+.tc-clarao {
+  animation: tc-clarao 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes tc-clarao {
+  from {
+    opacity: 0.95;
+  }
+  to {
+    opacity: 0;
   }
 }
 
 /* Selo dos louros: carimbado sobre o canto do quadro. */
 .tc-carimbar {
-  animation: tc-carimbar 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 1.2s both;
+  animation: tc-carimbar 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--tc-atraso, 1200ms) + var(--tc-entrada, 0ms));
 }
 
 @keyframes tc-carimbar {
   from {
     opacity: 0;
-    transform: scale(1.25) rotate(-8deg);
+    transform: scale(1.3) rotate(-10deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(0.96) rotate(1deg);
   }
 }
 
@@ -277,6 +488,611 @@
   }
 }
 
+/* Quem vence o desempate ganha um foco de luz do alto. */
+.tc-foco-de-luz {
+  position: absolute;
+  inset: -260px -90px -40px;
+  pointer-events: none;
+  background: conic-gradient(
+    from 168deg at 50% 0%,
+    transparent 0deg,
+    color-mix(in srgb, var(--tc-luz) 16%, transparent) 10deg,
+    color-mix(in srgb, var(--tc-luz) 22%, transparent) 12deg,
+    color-mix(in srgb, var(--tc-luz) 16%, transparent) 14deg,
+    transparent 24deg
+  );
+  mix-blend-mode: screen;
+  animation: tc-foco-de-luz 1400ms cubic-bezier(0.2, 0.7, 0.2, 1) 0.5s both;
+}
+
+@keyframes tc-foco-de-luz {
+  from {
+    opacity: 0;
+    transform: scaleX(0.4);
+  }
+  20% {
+    opacity: 1;
+  }
+  28% {
+    opacity: 0.4;
+  }
+  36% {
+    opacity: 1;
+  }
+}
+
+/* Tarjas pretas fechando sobre o trailer antes da chamada dos vencedores. */
+.tc-tarja {
+  animation: tc-tarja 900ms cubic-bezier(0.7, 0, 0.3, 1) both;
+}
+.tc-tarja-cima {
+  transform-origin: top;
+}
+.tc-tarja-baixo {
+  transform-origin: bottom;
+}
+
+@keyframes tc-tarja {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.tc-depois-das-tarjas {
+  animation: tc-depois-das-tarjas 500ms ease-out 800ms both;
+}
+
+@keyframes tc-depois-das-tarjas {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Corte casado: o cartaz sai da pose do quadro da revelação (--tc-de-*) e vai ao lugar dele; as luzes da sala acendem. */
+.tc-casar {
+  position: relative;
+  z-index: 2;
+  transform-origin: 0 0;
+  animation: tc-casar 1500ms both;
+}
+
+@keyframes tc-casar {
+  0%,
+  28% {
+    transform: translate(var(--tc-de-x), var(--tc-de-y)) scale(var(--tc-de-escala));
+    animation-timing-function: cubic-bezier(0.65, 0, 0.25, 1);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.tc-luzes {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: #000;
+  animation: tc-luzes 1600ms ease-out both;
+}
+
+@keyframes tc-luzes {
+  0%,
+  30% {
+    opacity: 0.8;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/*
+ * Cortes (Transicao.tsx). As durações aqui são as de CORTES. A camada que entra recebe --tc-entrada; a que sai continua montada até
+ * o fim do corte e some.
+ */
+.tc-transicao {
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+
+.tc-camada {
+  position: relative;
+  grid-area: 1 / 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+
+/* Puxada: os dois fotogramas sobem juntos, com a linha da película entre eles; a garra assenta o quadro com um tranco. */
+.tc-puxada-sai,
+.tc-puxada-entra,
+.tc-volta-sai,
+.tc-volta-entra {
+  animation-duration: 1150ms;
+  animation-fill-mode: both;
+  will-change: transform;
+}
+.tc-puxada-sai {
+  z-index: 1;
+  animation-name: tc-puxada-sai;
+}
+.tc-puxada-entra {
+  z-index: 2;
+  animation-name: tc-puxada-entra;
+}
+.tc-puxada-sai::after,
+.tc-volta-sai::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: 96px;
+  background-color: #0b0908;
+  background-image: repeating-linear-gradient(90deg, transparent 0 26px, color-mix(in srgb, var(--tc-luz, #fff4e0) 75%, transparent) 26px 46px);
+  background-size: 100% 16px;
+  background-position: 0 50%;
+  background-repeat: no-repeat;
+  box-shadow:
+    inset 0 2px 0 rgb(255 244 224 / 0.08),
+    inset 0 -2px 0 rgb(255 244 224 / 0.08);
+}
+.tc-puxada-sai::after {
+  top: 100%;
+}
+.tc-volta-sai::before {
+  bottom: 100%;
+}
+
+@keyframes tc-puxada-sai {
+  0% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1);
+  }
+  14% {
+    transform: translateY(18px);
+    filter: brightness(0.85);
+    animation-timing-function: cubic-bezier(0.62, 0, 0.22, 1);
+  }
+  50% {
+    filter: brightness(1.2) blur(2px);
+  }
+  84% {
+    transform: translateY(calc(-100% - 96px - 20px));
+    filter: none;
+    animation-timing-function: cubic-bezier(0.3, 0, 0.3, 1);
+  }
+  92% {
+    transform: translateY(calc(-100% - 96px + 6px));
+  }
+  100% {
+    transform: translateY(calc(-100% - 96px));
+  }
+}
+
+@keyframes tc-puxada-entra {
+  0% {
+    transform: translateY(calc(100% + 96px));
+    animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1);
+  }
+  14% {
+    transform: translateY(calc(100% + 96px + 18px));
+    filter: brightness(0.85);
+    animation-timing-function: cubic-bezier(0.62, 0, 0.22, 1);
+  }
+  50% {
+    filter: brightness(1.2) blur(2px);
+  }
+  84% {
+    transform: translateY(-20px);
+    filter: none;
+    animation-timing-function: cubic-bezier(0.3, 0, 0.3, 1);
+  }
+  92% {
+    transform: translateY(6px);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* Volta: a puxada ao contrário, mais curta. */
+.tc-volta-sai,
+.tc-volta-entra {
+  animation-duration: 900ms;
+}
+.tc-volta-sai {
+  z-index: 1;
+  animation-name: tc-volta-sai;
+}
+.tc-volta-entra {
+  z-index: 2;
+  animation-name: tc-volta-entra;
+}
+
+@keyframes tc-volta-sai {
+  0% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0.6, 0, 0.25, 1);
+  }
+  82% {
+    transform: translateY(calc(100% + 96px + 14px));
+    animation-timing-function: ease-out;
+  }
+  100% {
+    transform: translateY(calc(100% + 96px));
+  }
+}
+
+@keyframes tc-volta-entra {
+  0% {
+    transform: translateY(calc(-100% - 96px));
+    animation-timing-function: cubic-bezier(0.6, 0, 0.25, 1);
+  }
+  82% {
+    transform: translateY(14px);
+    animation-timing-function: ease-out;
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* Queima: a cena esquenta, a película abre em manchas de luz e a nova aparece estourada, esfriando até o normal. */
+.tc-queima-sai {
+  z-index: 1;
+  animation: tc-queima-sai 1800ms linear both;
+}
+.tc-queima-entra {
+  z-index: 2;
+  animation: tc-queima-entra 1800ms linear both;
+}
+
+@keyframes tc-queima-sai {
+  0% {
+    filter: none;
+    transform: none;
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6);
+  }
+  48%,
+  100% {
+    filter: brightness(1.9) saturate(1.5) sepia(0.35);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes tc-queima-entra {
+  0%,
+  49% {
+    opacity: 0;
+    filter: brightness(3) blur(6px);
+    transform: scale(1.04);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(3) blur(6px);
+    transform: scale(1.04);
+    animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+.tc-queima {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  animation: tc-queima 1800ms ease-out both;
+}
+
+@keyframes tc-queima {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.tc-queima-mancha {
+  position: absolute;
+  translate: -50% -50%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #fffdf6 0 20%, #ffe3a3 30%, #ff9a2e 44%, #c2410c 54%, rgb(60 10 0 / 0.8) 60%, transparent 68%);
+  filter: blur(8px);
+  animation: tc-queimar 1000ms cubic-bezier(0.5, 0, 0.8, 0.6) both;
+}
+
+@keyframes tc-queimar {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(3.8);
+  }
+}
+
+/* Casado: a cena da revelação se desfaz por cima; por baixo, o resultado já tem o cartaz no mesmo lugar (.tc-casar). */
+.tc-casado-sai {
+  z-index: 2;
+  animation: tc-casado-sai 1500ms ease both;
+}
+.tc-casado-entra {
+  z-index: 1;
+}
+
+@keyframes tc-casado-sai {
+  0%,
+  12% {
+    opacity: 1;
+  }
+  42%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Tranco: o projetor engasga; o quadro salta, pisca e assenta. */
+.tc-tranco-sai {
+  z-index: 1;
+  opacity: 0;
+}
+.tc-tranco-entra {
+  z-index: 2;
+  animation: tc-tranco 800ms linear both;
+}
+
+@keyframes tc-tranco {
+  0% {
+    transform: translateY(-9%);
+    filter: brightness(2.2) contrast(1.2);
+  }
+  9% {
+    transform: translateY(4%);
+    filter: brightness(0.35);
+  }
+  18% {
+    transform: translateY(-2%);
+    filter: brightness(1.6);
+  }
+  27% {
+    transform: translateY(0.6%);
+    filter: brightness(0.6);
+  }
+  38% {
+    transform: none;
+    filter: brightness(1.3);
+  }
+  52% {
+    filter: brightness(0.85);
+  }
+  70%,
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Íris: fecha no preto, segura um instante e abre na cena nova. Borda macia por máscara (o raio é animado como <length>). */
+@property --tc-iris {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.tc-iris-sai,
+.tc-iris-entra {
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 calc(var(--tc-iris) - 48px), transparent var(--tc-iris));
+  mask-image: radial-gradient(circle at 50% 50%, #000 calc(var(--tc-iris) - 48px), transparent var(--tc-iris));
+}
+.tc-iris-sai {
+  z-index: 2;
+  animation: tc-iris-fecha 1800ms both;
+}
+.tc-iris-entra {
+  z-index: 1;
+  animation: tc-iris-abre 1800ms both;
+}
+
+@keyframes tc-iris-fecha {
+  0% {
+    --tc-iris: 1200px;
+    animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.4);
+  }
+  42%,
+  100% {
+    --tc-iris: 0px;
+  }
+}
+
+@keyframes tc-iris-abre {
+  0%,
+  56% {
+    --tc-iris: 0px;
+    animation-timing-function: cubic-bezier(0.25, 0.6, 0.45, 1);
+  }
+  100% {
+    --tc-iris: 1200px;
+  }
+}
+
+/* Apagar: a lâmpada falha algumas vezes e morre; a cena nova aquece do escuro. */
+.tc-apagar-sai {
+  z-index: 2;
+  animation: tc-apagar-sai 1700ms linear both;
+}
+.tc-apagar-entra {
+  z-index: 1;
+  animation: tc-apagar-entra 1700ms linear both;
+}
+
+@keyframes tc-apagar-sai {
+  0% {
+    filter: brightness(1);
+  }
+  8% {
+    filter: brightness(1.35);
+  }
+  13% {
+    filter: brightness(0.3);
+  }
+  19% {
+    filter: brightness(1.1);
+  }
+  25% {
+    filter: brightness(0.15);
+  }
+  31% {
+    filter: brightness(0.75);
+  }
+  38% {
+    filter: brightness(0.5);
+    animation-timing-function: ease-in;
+  }
+  62%,
+  100% {
+    filter: brightness(0);
+  }
+}
+
+@keyframes tc-apagar-entra {
+  0%,
+  70% {
+    opacity: 0;
+    filter: brightness(0);
+  }
+  71% {
+    opacity: 1;
+    filter: brightness(0);
+  }
+  80% {
+    filter: brightness(0.55);
+  }
+  84% {
+    filter: brightness(0.3);
+    animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+/* Preto: a cena escurece; a nova já toca por baixo (o trailer). */
+.tc-preto-sai {
+  z-index: 2;
+  animation: tc-preto 900ms ease-in both;
+}
+.tc-preto-entra {
+  z-index: 1;
+}
+
+@keyframes tc-preto {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Foco: o foco sai de uma cena e encontra a outra. */
+.tc-foco-sai {
+  z-index: 1;
+  animation: tc-foco-sai 1100ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.tc-foco-entra {
+  z-index: 2;
+  animation: tc-foco-entra 1100ms cubic-bezier(0.2, 0.6, 0.2, 1) both;
+}
+
+@keyframes tc-foco-sai {
+  55%,
+  100% {
+    opacity: 0;
+    filter: blur(22px);
+    transform: scale(0.985);
+  }
+}
+
+@keyframes tc-foco-entra {
+  0%,
+  25% {
+    opacity: 0;
+    filter: blur(22px);
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+/* Virar: o ingresso gira no eixo vertical e mostra o outro lado. */
+.tc-virar-sai,
+.tc-virar-entra {
+  backface-visibility: hidden;
+}
+.tc-virar-sai {
+  animation: tc-virar-sai 900ms both;
+}
+.tc-virar-entra {
+  animation: tc-virar-entra 900ms both;
+}
+
+@keyframes tc-virar-sai {
+  0% {
+    transform: perspective(1800px) rotateY(0deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
+  }
+  50%,
+  100% {
+    transform: perspective(1800px) rotateY(90deg);
+    filter: brightness(0.6);
+    opacity: 0;
+  }
+}
+
+@keyframes tc-virar-entra {
+  0%,
+  49% {
+    opacity: 0;
+    transform: perspective(1800px) rotateY(-90deg);
+    filter: brightness(0.6);
+  }
+  50% {
+    opacity: 1;
+    transform: perspective(1800px) rotateY(-90deg);
+    filter: brightness(0.6);
+    animation-timing-function: cubic-bezier(0.1, 0.5, 0.5, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Fusão: curta, com um pouco de desfoque. */
+.tc-fusao-sai {
+  z-index: 2;
+  animation: tc-fusao 550ms ease both;
+}
+.tc-fusao-entra {
+  z-index: 1;
+}
+
+@keyframes tc-fusao {
+  to {
+    opacity: 0;
+    filter: blur(6px);
+  }
+}
+
+/* Sem movimento: tudo no estado final, sem atraso (a Transicao já faz corte seco). */
 @media (prefers-reduced-motion: reduce) {
   .tc-cone,
   .tc-varredura,
@@ -284,10 +1100,32 @@
   .tc-rolo,
   .tc-creditos,
   .tc-toque,
-  .tc-projetar,
   .tc-surgir,
   .tc-acender,
-  .tc-carimbar {
+  .tc-revelar,
+  .tc-projetar,
+  .tc-revelar-cartaz,
+  .tc-barra,
+  .tc-distribuir,
+  .tc-puxar,
+  .tc-ingresso-entra,
+  .tc-enfiar,
+  .tc-pelicula-correr,
+  .tc-numero,
+  .tc-carimbar,
+  .tc-casar,
+  .tc-depois-das-tarjas,
+  .tc-tarja {
+    animation: none;
+  }
+  .tc-piscar,
+  .tc-clarao,
+  .tc-luzes,
+  .tc-recolher {
+    animation: none;
+    opacity: 0;
+  }
+  .tc-foco-de-luz {
     animation: none;
   }
   .tc-aparelho {

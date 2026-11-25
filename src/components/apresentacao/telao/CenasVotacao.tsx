@@ -8,9 +8,13 @@ import type { OpcoesTelao } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 import { formatarNumero } from "@/lib/formatar";
 import { TEXTOS_PALCO } from "@/lib/textosPalco";
-import { BordasPelicula, CartazTelao, FaixaCores, FundoSala, Furos, LogoTelao, MarcaVaiVota, QuadroContagem, Sobretitulo } from "./Sala";
+import { useContagemAnimada } from "../hooks";
+import { atrasoTc, BordasPelicula, CartazTelao, FaixaCores, FundoSala, Furos, LogoTelao, MarcaVaiVota, QuadroContagem, Sobretitulo } from "./Sala";
+import { Transicao, useEntradaDaCena } from "./Transicao";
 
 // Telão (cerimônia, 25/11/2026; protótipo aprovado, quadros 1 a 3): as cenas fora da revelação. Só desenham o que recebem.
+// Animações (25/11/2026, telao.css): a tela entra em cascata; no ao vivo, a troca de categoria passa pelo foco (a película entra
+// puxada) e o ingresso vira entre a categoria online e a do totem; nas telas de espera a película é enfiada no projetor e corre.
 
 export type SubestadoAoVivo = "ABERTURA" | "RETA_FINAL" | "TEMPO_ESGOTADO" | null;
 
@@ -22,21 +26,24 @@ function Pelicula({ candidatos }: { candidatos: CandidatoPalco[] }) {
   const lista = corre ? [...candidatos, ...candidatos] : candidatos;
   return (
     <div className="mt-auto overflow-hidden rounded-md">
-      <div
-        className={cx("flex", corre ? "tc-rolo w-max" : "w-full")}
-        style={corre ? ({ "--tc-dur": `${candidatos.length * 6.5}s` } as CSSProperties) : undefined}
-      >
-        {lista.map((c, i) => (
-          <div key={`${c.id}-${i}`} className="flex w-[276px] flex-none flex-col">
-            <div className="bg-tc-pelicula px-2.5">
-              <Furos quantidade={8} className="h-[30px] justify-around" furo="h-[11px] w-4" />
-              <CartazTelao candidato={c} sizes="256px" className="w-64" />
-              <Furos quantidade={8} className="h-[30px] justify-around" furo="h-[11px] w-4" />
+      {/* A película é puxada pela direita e trava (só na entrada); depois, se não couber, corre. */}
+      <div className="tc-puxar" style={atrasoTc(500)}>
+        <div
+          className={cx("flex", corre ? "tc-rolo w-max" : "w-full")}
+          style={corre ? ({ "--tc-dur": `${candidatos.length * 6.5}s` } as CSSProperties) : undefined}
+        >
+          {lista.map((c, i) => (
+            <div key={`${c.id}-${i}`} className="flex w-[276px] flex-none flex-col">
+              <div className="bg-tc-pelicula px-2.5">
+                <Furos quantidade={8} className="h-[30px] justify-around" furo="h-[11px] w-4" />
+                <CartazTelao candidato={c} sizes="256px" className="w-64" />
+                <Furos quantidade={8} className="h-[30px] justify-around" furo="h-[11px] w-4" />
+              </div>
+              <p className="m-0 mt-4 line-clamp-2 h-[60px] px-2.5 text-[26px] font-bold leading-[1.15] text-balance">{c.titulo}</p>
             </div>
-            <p className="m-0 mt-4 line-clamp-2 h-[60px] px-2.5 text-[26px] font-bold leading-[1.15] text-balance">{c.titulo}</p>
-          </div>
-        ))}
-        {!corre && <div aria-hidden className="flex-1 self-start bg-tc-pelicula" style={{ height: 401 }} />}
+          ))}
+          {!corre && <div aria-hidden className="flex-1 self-start bg-tc-pelicula" style={{ height: 401 }} />}
+        </div>
       </div>
     </div>
   );
@@ -112,45 +119,62 @@ export function CenaAoVivo({
   const posicao = categoria?.posicao;
   const sobretitulo =
     subestado === "ABERTURA" ? TEXTOS_PALCO.votacaoComecou : posicao && posicao.total > 1 ? `Categoria ${posicao.indice + 1} de ${posicao.total}` : "Categoria";
+  const ladoDoIngresso = categoria?.soTotem ? `totem:${categoria.mensagem}` : "online";
   return (
     <div className="telao-cine relative h-full overflow-hidden">
       <FundoSala />
       <BordasPelicula />
       <div className="absolute inset-x-24 top-[74px] bottom-[70px] grid grid-cols-[minmax(0,1fr)_520px] gap-x-[88px]">
         <div className="flex min-w-0 flex-col">
-          <LogoTelao nome={nome} logoUrl={logoUrl} />
-          <div className="mt-[58px] flex items-center gap-[22px]">
-            <Sobretitulo>{sobretitulo}</Sobretitulo>
-            {posicao && posicao.total > 1 && (
-              <div aria-hidden className="flex gap-2">
-                {Array.from({ length: posicao.total }, (_, i) => (
-                  <span key={i} className={cx("block h-1.5 w-14 overflow-hidden rounded-[3px]", i < posicao.indice ? "bg-tc-luz/50" : "bg-tc-luz/18")}>
-                    {i === posicao.indice && (
-                      <span key={categoria?.nome} className="tc-ciclo block size-full bg-tema-primaria" style={{ "--tc-dur": `${intervaloSegundos}s` } as CSSProperties} />
-                    )}
-                  </span>
-                ))}
-              </div>
-            )}
+          <div className="tc-acender self-start">
+            <LogoTelao nome={nome} logoUrl={logoUrl} />
           </div>
-          {categoria && (
-            <>
-              <h1 className="m-0 mt-[18px] font-cine text-[88px] font-bold uppercase leading-[0.98] tracking-[-0.01em] text-balance">{categoria.nome}</h1>
-              <div className="mt-[26px] flex items-center gap-6">
-                <FaixaCores />
-                {categoria.premio && <p className="m-0 text-[34px] font-medium text-tc-suave">{categoria.premio}</p>}
+          {/* A categoria em tela: na troca, o foco sai de uma e encontra a outra. */}
+          <div className="relative mt-[58px] min-h-0 flex-1">
+            <Transicao chave={categoria?.nome ?? ""} meta={null} escolher={() => "FOCO"} className="size-full">
+              <div className="flex items-center gap-[22px]">
+                <Sobretitulo className="tc-surgir">{sobretitulo}</Sobretitulo>
+                {posicao && posicao.total > 1 && (
+                  <div aria-hidden className="tc-surgir flex gap-2" style={atrasoTc(100)}>
+                    {Array.from({ length: posicao.total }, (_, i) => (
+                      <span key={i} className={cx("block h-1.5 w-14 overflow-hidden rounded-[3px]", i < posicao.indice ? "bg-tc-luz/50" : "bg-tc-luz/18")}>
+                        {i === posicao.indice && (
+                          <span key={categoria?.nome} className="tc-ciclo block size-full bg-tema-primaria" style={{ "--tc-dur": `${intervaloSegundos}s` } as CSSProperties} />
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-            </>
-          )}
-          {subestado === "TEMPO_ESGOTADO" && (
-            <p className="m-0 mt-6 text-[34px] font-semibold text-tc-primaria-clara">
-              {TEXTOS_PALCO.tempoEsgotado}. {TEXTOS_PALCO.aguardandoEncerramento}
-            </p>
-          )}
-          {mostrar.candidatos && <Pelicula key={categoria?.nome} candidatos={candidatos} />}
+              {categoria && (
+                <>
+                  <h1 className="tc-revelar m-0 mt-[18px] font-cine text-[88px] font-bold uppercase leading-[0.98] tracking-[-0.01em] text-balance" style={atrasoTc(150)}>
+                    {categoria.nome}
+                  </h1>
+                  <div className="mt-[26px] flex items-center gap-6">
+                    <FaixaCores className="tc-barra" style={atrasoTc(350)} />
+                    {categoria.premio && (
+                      <p className="tc-surgir m-0 text-[34px] font-medium text-tc-suave" style={atrasoTc(450)}>
+                        {categoria.premio}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+              {subestado === "TEMPO_ESGOTADO" && (
+                <p className="tc-surgir m-0 mt-6 text-[34px] font-semibold text-tc-primaria-clara">
+                  {TEXTOS_PALCO.tempoEsgotado}. {TEXTOS_PALCO.aguardandoEncerramento}
+                </p>
+              )}
+              {mostrar.candidatos && <Pelicula candidatos={candidatos} />}
+            </Transicao>
+          </div>
         </div>
 
-        <div className="tc-ingresso flex flex-col self-center rounded-[28px] bg-tc-papel text-tc-papel-texto shadow-[0_30px_70px_rgb(0_0_0/0.5)]">
+        {/* O ingresso sai da bilheteria na entrada; entre a categoria online e a do totem, ele vira. */}
+        <div className="tc-ingresso-entra self-center" style={atrasoTc(600)}>
+          <Transicao chave={ladoDoIngresso} meta={null} escolher={() => "VIRAR"}>
+        <div className="tc-ingresso flex flex-col rounded-[28px] bg-tc-papel text-tc-papel-texto shadow-[0_30px_70px_rgb(0_0_0/0.5)]">
           {categoria?.soTotem ? (
             <div className="flex h-[612px] flex-col items-center justify-center gap-[34px] px-[52px] pt-14 pb-11 text-center">
               <Aparelhos />
@@ -189,24 +213,31 @@ export function CenaAoVivo({
             </div>
           </div>
         </div>
+          </Transicao>
+        </div>
       </div>
       <MarcaVaiVota className="right-[30px] bottom-[70px]" />
     </div>
   );
 }
 
-/** A película em pé, à direita, com a contagem de início de filme em cada quadro. */
+/** Quadros da ponta (a lista repete: o ciclo de tc-pelicula-correr é exatamente os quatro primeiros). */
+const PONTA = [5, 4, 3, 2, 5, 4, 3, 2];
+
+/** A película em pé, à direita, com a contagem de início de filme em cada quadro: enfiada no projetor na entrada, depois corre. */
 function PeliculaEmPe() {
   return (
-    <div aria-hidden className="absolute top-[34px] right-[220px] bottom-[34px] w-[420px] overflow-hidden bg-tc-pelicula shadow-[0_0_80px_rgb(0_0_0/0.6)]">
-      <div className="absolute inset-x-0 -top-[200px] flex flex-col">
-        {[5, 4, 3, 2, 5].map((n, i) => (
-          <div key={i} className="grid h-[440px] flex-none grid-cols-[34px_1fr_34px]">
-            <Furos quantidade={7} className="flex-col justify-around" furo="h-[18px] w-3" />
-            <QuadroContagem numero={n} tamanho={352} className="my-[44px]" />
-            <Furos quantidade={7} className="flex-col justify-around" furo="h-[18px] w-3" />
-          </div>
-        ))}
+    <div aria-hidden className="absolute top-[34px] right-[220px] bottom-[34px] w-[420px] overflow-hidden">
+      <div className="tc-enfiar relative size-full bg-tc-pelicula shadow-[0_0_80px_rgb(0_0_0/0.6)]" style={atrasoTc(200)}>
+        <div className="tc-pelicula-correr absolute inset-x-0 -top-[200px] flex flex-col">
+          {PONTA.map((n, i) => (
+            <div key={i} className="grid h-[440px] flex-none grid-cols-[34px_1fr_34px]">
+              <Furos quantidade={7} className="flex-col justify-around" furo="h-[18px] w-3" />
+              <QuadroContagem numero={n} tamanho={352} className="my-[44px]" />
+              <Furos quantidade={7} className="flex-col justify-around" furo="h-[18px] w-3" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -219,11 +250,23 @@ function TelaDeEspera({ nome, logoUrl, titulo, texto, rodape }: { nome: string; 
       <FundoSala />
       <BordasPelicula />
       <div className="absolute top-[110px] bottom-[110px] left-[120px] flex w-[1060px] flex-col">
-        <LogoTelao nome={nome} logoUrl={logoUrl} className="h-[88px] self-start" />
-        <h1 className="m-0 mt-auto font-cine text-[150px] font-bold uppercase leading-[0.94] tracking-[-0.015em] text-balance">{titulo}</h1>
-        <FaixaCores className="mt-10 w-40" />
-        <div className="m-0 mt-[34px] max-w-[900px] text-[42px] font-medium leading-[1.3] text-tc-suave">{texto}</div>
-        {rodape && <div className="mt-auto flex items-end gap-[72px]">{rodape}</div>}
+        <div className="tc-acender self-start">
+          <LogoTelao nome={nome} logoUrl={logoUrl} className="h-[88px]" />
+        </div>
+        <h1 className="tc-revelar m-0 mt-auto font-cine text-[150px] font-bold uppercase leading-[0.94] tracking-[-0.015em] text-balance" style={atrasoTc(250)}>
+          {titulo}
+        </h1>
+        <FaixaCores className="tc-barra mt-10 w-40" style={atrasoTc(600)} />
+        {texto && (
+          <div className="tc-surgir m-0 mt-[34px] max-w-[900px] text-[42px] font-medium leading-[1.3] text-tc-suave" style={atrasoTc(750)}>
+            {texto}
+          </div>
+        )}
+        {rodape && (
+          <div className="tc-surgir mt-auto flex items-end gap-[72px]" style={atrasoTc(1000)}>
+            {rodape}
+          </div>
+        )}
       </div>
       <PeliculaEmPe />
       <MarcaVaiVota className="right-[120px] bottom-[58px]" />
@@ -231,10 +274,15 @@ function TelaDeEspera({ nome, logoUrl, titulo, texto, rodape }: { nome: string; 
   );
 }
 
-function Numero({ valor, legenda, cor }: { valor: string; legenda: string; cor: "primaria" | "secundaria" }) {
+/** Um número grande da tela de espera, contando até o total quando entra. */
+function Numero({ valor, legenda, cor, atraso }: { valor: number; legenda: string; cor: "primaria" | "secundaria"; atraso: number }) {
+  const { entrada } = useEntradaDaCena();
+  const contando = useContagemAnimada(valor, 1800, true, entrada + atraso);
   return (
     <div className="flex flex-col gap-1.5">
-      <p className={cx("m-0 font-cine text-[96px] font-bold leading-none tabular-nums", cor === "primaria" ? "text-tc-primaria-clara" : "text-tc-secundaria-clara")}>{valor}</p>
+      <p className={cx("m-0 font-cine text-[96px] font-bold leading-none tabular-nums", cor === "primaria" ? "text-tc-primaria-clara" : "text-tc-secundaria-clara")}>
+        {formatarNumero(Math.round(contando))}
+      </p>
       <p className="m-0 text-[28px] font-semibold text-tc-apagado">{legenda}</p>
     </div>
   );
@@ -265,8 +313,8 @@ export function CenaEncerrada({
       texto="Obrigado por votar. O resultado será revelado na cerimônia, em instantes."
       rodape={
         <>
-          {totalGeral !== null && <Numero valor={formatarNumero(totalGeral)} legenda={TEXTOS_PALCO.totalVotos} cor="primaria" />}
-          {itens > 0 && <Numero valor={formatarNumero(itens)} legenda={categorias > 1 ? `${plural} em ${categorias} categorias` : plural} cor="secundaria" />}
+          {totalGeral !== null && <Numero valor={totalGeral} legenda={TEXTOS_PALCO.totalVotos} cor="primaria" atraso={1000} />}
+          {itens > 0 && <Numero valor={itens} legenda={categorias > 1 ? `${plural} em ${categorias} categorias` : plural} cor="secundaria" atraso={1150} />}
         </>
       }
     />

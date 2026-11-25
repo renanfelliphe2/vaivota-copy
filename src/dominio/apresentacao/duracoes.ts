@@ -1,8 +1,11 @@
 // Etapa 8 (seção 5.5, P3): durações em ms, ajustáveis.
 
 export const DURACOES = {
-  /** Cerimônia (25/11/2026): a contagem 3, 2, 1 antes de cada vencedor (um segundo por número, mais a virada). */
-  contagem: 3300,
+  /**
+   * Cerimônia (25/11/2026): a contagem 3, 2, 1 antes de cada vencedor. O 2 e o 1 duram um segundo cada (e a virada); o 3 dura o
+   * resto, porque a cena ainda está entrando pelo corte (até ~1 s) quando ele aparece.
+   */
+  contagem: 4200,
   /** O vencedor revelado, no modo automático. */
   revelado: 8000,
   /** O resultado de uma categoria, no modo automático; no final, o tempo de cada categoria na rotação. */

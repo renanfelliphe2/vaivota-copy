@@ -139,8 +139,8 @@ export function useMovimentoReduzido(): boolean {
   return reduzido;
 }
 
-/** Contagem animada até `alvo` (requestAnimationFrame); reduced motion = valor final. */
-export function useContagemAnimada(alvo: number, duracaoMs: number, ativo: boolean): number {
+/** Contagem animada até `alvo` (requestAnimationFrame), começando depois de `atrasoMs`; reduced motion = valor final. */
+export function useContagemAnimada(alvo: number, duracaoMs: number, ativo: boolean, atrasoMs = 0): number {
   const reduzido = useMovimentoReduzido();
   const [valor, setValor] = useState(0);
   useEffect(() => {
@@ -148,13 +148,13 @@ export function useContagemAnimada(alvo: number, duracaoMs: number, ativo: boole
     let quadro = 0;
     let inicio: number | null = null;
     const passo = (t: number) => {
-      inicio ??= t;
-      const f = Math.min(1, (t - inicio) / duracaoMs);
+      inicio ??= t + atrasoMs;
+      const f = Math.min(1, Math.max(0, (t - inicio) / duracaoMs));
       setValor(alvo * (1 - (1 - f) ** 3));
       if (f < 1) quadro = requestAnimationFrame(passo);
     };
     quadro = requestAnimationFrame(passo);
     return () => cancelAnimationFrame(quadro);
-  }, [alvo, duracaoMs, ativo, reduzido]);
+  }, [alvo, duracaoMs, ativo, reduzido, atrasoMs]);
   return reduzido || !ativo ? alvo : valor;
 }
