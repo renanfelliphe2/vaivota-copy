@@ -10,7 +10,6 @@ import { formatarValorCampo, hrefDoCampo } from "@/dominio/camposExtras";
 import type { CampoCandidato } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 import type { ItemLista } from "@/store/seletores/candidatos";
-import { SeloSeuVoto } from "./BotaoFilme";
 
 /** Âncora do bloco de detalhes de um item na página da categoria (o "Ver detalhes" do cartão e o "Ver mais" da revisão). */
 export const idDetalhes = (candidatoId: string) => `detalhes-${candidatoId}`;
@@ -80,16 +79,17 @@ export function DetalhesItem({
   const cartaz = (classe: string, sizes: string) => (
     <div className={cx("relative shrink-0 overflow-hidden rounded-2xl shadow-md ring-1 ring-tema-borda/80", classe)}>
       <ImagemCandidato titulo={candidato.titulo} imagemUrl={candidato.imagemUrl} proporcao="5/7" sizes={sizes} />
-      {meuVoto && <SeloSeuVoto />}
     </div>
   );
+  // 25/11/2026: o voto fica junto do título (antes vinha no fim, depois da ficha).
+  const podeVotar = clicavel && !bloqueadoVotoProprio;
 
   return (
     <article
       id={idDetalhes(candidato.id)}
       aria-labelledby={tituloId}
       className={cx(
-        "scroll-mt-6 overflow-hidden rounded-3xl bg-tema-fundo p-4 sm:p-6 lg:p-8",
+        "scroll-mt-40 overflow-hidden rounded-3xl bg-tema-fundo p-4 sm:p-6 lg:p-8",
         meuVoto ? "ring-4 ring-tema-primaria" : "shadow-sm ring-1 ring-tema-borda/80",
       )}
     >
@@ -106,6 +106,8 @@ export function DetalhesItem({
             <div className="flex min-w-0 flex-1 flex-col gap-3">
               <h3 id={tituloId} tabIndex={-1} className={cx("text-2xl leading-tight tracking-tight wrap-anywhere sm:text-3xl", fonteTitulo)}>
                 {candidato.titulo}
+                {/* O destaque do voto é só o contorno do bloco (25/11/2026); o leitor de tela ouve. */}
+                {meuVoto && <span className="sr-only"> (seu voto)</span>}
               </h3>
               {fatos.length > 0 && (
                 <ul className="flex flex-wrap gap-2">
@@ -120,6 +122,17 @@ export function DetalhesItem({
                     );
                   })}
                 </ul>
+              )}
+              {podeVotar && (
+                <button
+                  type="button"
+                  onClick={aoVotar}
+                  aria-label={`Votar em ${candidato.titulo}`}
+                  className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 self-start rounded-full bg-tema-primaria px-6 font-semibold text-tema-sobre-primaria shadow-md transition hover:-translate-y-0.5 active:scale-[0.98]"
+                >
+                  <Heart aria-hidden className="size-5" />
+                  Votar
+                </button>
               )}
             </div>
           </div>
@@ -173,16 +186,6 @@ export function DetalhesItem({
           )}
 
           {bloqueadoVotoProprio && <AvisoVotoProprio dicaId={dicaId} />}
-          {clicavel && !bloqueadoVotoProprio && (
-            <button
-              type="button"
-              onClick={aoVotar}
-              className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 self-start rounded-full bg-tema-primaria px-6 font-semibold text-tema-sobre-primaria shadow-md transition hover:-translate-y-0.5 active:scale-[0.98]"
-            >
-              <Heart aria-hidden className="size-5" />
-              Votar em {candidato.titulo}
-            </button>
-          )}
         </div>
       </div>
     </article>

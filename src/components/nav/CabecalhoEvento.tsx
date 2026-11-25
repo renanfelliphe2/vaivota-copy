@@ -43,29 +43,34 @@ export function CabecalhoEvento() {
   if (pathname === `/e/${slug}/totem` || pathname.startsWith(`/e/${slug}/qr/`) || ui.palcoAtivo) return null;
 
   // A apresentação (telão) é do MVP do Festival.
-  const atalhos = sessao.logado ? atalhosDoPapel(slug, sessao.papel, votacaoAberta(evento), { totens: evento.moduloInfantil }) : [];
+  const atalhos = sessao.logado
+    ? atalhosDoPapel(slug, sessao.papel, votacaoAberta(evento), { totens: evento.moduloInfantil, jaVotou: sessao.jaVotou })
+    : [];
   // Evento indisponível: a casca mínima já mostra o estado.
   // 09/11/2026: também nas páginas das categorias (Festival).
   const naPaginaDeVoto = pathname === `/e/${slug}` || pathname.startsWith(`/e/${slug}/categoria/`);
   const comFaixa = naPaginaDeVoto && visao !== null && visao.variante !== "INDISPONIVEL";
   const nome = tema.nomeExibicao ?? evento.nome;
-  // 25/11/2026: com mais de um atalho (o admin tem 3 ou 4), no celular eles descem para uma segunda linha, como abas de
-  // ícone e nome curto: na linha do logo só cabiam o logo espremido e o menu. Do sm ao lg, só os ícones na linha; do lg
-  // em diante, ícone e nome. Um atalho só (Votar) segue na linha do logo.
-  const emAbas = atalhos.length > 1;
+  // 25/11/2026: com mais de um atalho (o admin tem 3 ou 4), abaixo de 700px eles saem da linha do logo e entram no menu da
+  // conta (MenuUsuario). Dos 700px ao lg, só os ícones na linha; do lg em diante, ícone e nome. Um atalho só (Votar) segue
+  // sempre na linha do logo.
+  const emMenu = atalhos.length > 1;
+  const atalhosDoMenu = emMenu
+    ? atalhos.map((atalho) => ({ href: atalho.href, rotulo: atalho.rotulo, icone: ICONES[atalho.id], atual: atalhoAtual(atalho, pathname) }))
+    : [];
 
   return (
     <header data-print="ocultar" className="sticky top-0 z-30 w-full bg-tema-fundo/90 backdrop-blur-md">
-      <div className={cx("mx-auto flex max-w-6xl items-center gap-x-3 px-4 sm:gap-x-4 sm:px-6", emAbas ? "flex-wrap pt-2.5 sm:flex-nowrap sm:py-2.5" : "py-2.5")}>
+      <div className="mx-auto flex max-w-6xl items-center gap-x-3 px-4 py-2.5 sm:gap-x-4 sm:px-6">
         {tema.logoUrl ? (
           // Logo largo encolhe (em vez de empurrar o menu para fora da tela).
-          <Link href={`/e/${slug}`} className={cx("flex min-w-0 rounded-md", emAbas && "flex-1 sm:flex-initial")}>
+          <Link href={`/e/${slug}`} className="flex min-w-0 rounded-md">
             <LogoEvento nome={nome} logoUrl={tema.logoUrl} className="h-9 max-w-full object-contain object-left sm:h-11" prioridade />
           </Link>
         ) : (
           // 19/10/2026: sem logo, o nome em dois tons (como no hero), com o símbolo do organizador a partir do sm.
           // Encolhe e trunca no celular, onde divide a linha com os atalhos e o menu.
-          <Link href={`/e/${slug}`} className={cx("flex min-h-11 min-w-0 items-center gap-3 rounded-md", emAbas && "flex-1 sm:flex-initial")}>
+          <Link href={`/e/${slug}`} className="flex min-h-11 min-w-0 items-center gap-3 rounded-md">
             {organizador && (
               <>
                 <SimboloOrganizador marca={organizador} className="hidden h-8 sm:block" />
@@ -76,11 +81,8 @@ export function CabecalhoEvento() {
           </Link>
         )}
         {atalhos.length > 0 && (
-          <nav
-            aria-label="Atalhos"
-            className={cx("ml-auto", emAbas && "order-last mt-1.5 basis-full border-t border-tema-borda/60 py-1 sm:order-none sm:mt-0 sm:basis-auto sm:border-0 sm:py-0")}
-          >
-            <ul className={cx("flex items-center gap-1", emAbas && "*:flex-1 sm:*:flex-none")}>
+          <nav aria-label="Atalhos" className={cx("ml-auto", emMenu && "max-[700px]:hidden")}>
+            <ul className="flex items-center gap-1">
               {atalhos.map((atalho) => {
                 const { href, rotulo } = atalho;
                 const Icone = ICONES[atalho.id];
@@ -92,16 +94,13 @@ export function CabecalhoEvento() {
                       aria-current={atual ? "page" : undefined}
                       title={rotulo}
                       className={cx(
-                        "inline-flex min-h-11 min-w-11 items-center justify-center font-semibold",
-                        emAbas
-                          ? "w-full flex-col gap-0.5 rounded-xl px-1 py-1 text-[0.6875rem] leading-tight sm:w-auto sm:flex-row sm:gap-2 sm:rounded-full sm:px-3 sm:py-0 sm:text-sm lg:px-4"
-                          : "gap-2 rounded-full px-3 text-sm sm:px-4",
+                        "inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full px-3 text-sm font-semibold sm:px-4",
                         atual ? "bg-tema-primaria text-tema-sobre-primaria" : "text-tema-texto hover:bg-tema-superficie",
                       )}
                     >
                       <Icone aria-hidden className="size-4 shrink-0" />
-                      {/* Nas abas do celular, ícone e nome; do sm ao lg, só o ícone (o nome segue para leitor de tela). */}
-                      <span className={emAbas ? "max-w-full truncate sm:sr-only lg:not-sr-only" : "sr-only sm:not-sr-only"}>{rotulo}</span>
+                      {/* Vários atalhos: só o ícone até o lg (o nome segue para leitor de tela). Um só: o nome a partir do sm. */}
+                      <span className={emMenu ? "sr-only lg:not-sr-only" : "sr-only sm:not-sr-only"}>{rotulo}</span>
                     </Link>
                   </li>
                 );
@@ -109,8 +108,8 @@ export function CabecalhoEvento() {
             </ul>
           </nav>
         )}
-        <div className={cx("shrink-0", (atalhos.length === 0 || emAbas) && "ml-auto", emAbas && "sm:ml-0")}>
-          <MenuUsuario />
+        <div className={cx("shrink-0", atalhos.length === 0 && "ml-auto", emMenu && "max-[700px]:ml-auto")}>
+          <MenuUsuario atalhos={atalhosDoMenu} />
         </div>
       </div>
       {comFaixa && <StatusUrna />}

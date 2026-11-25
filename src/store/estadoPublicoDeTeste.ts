@@ -108,6 +108,7 @@ export function publico(sobrescrever: Partial<EstadoPublico> = {}): EstadoPublic
         convitesJurado: [],
         dispositivos: [],
         participacao: { id: "p1", usuarioId: "u1", eventoId: "evt-1", papel: "PUBLICO", votou: false },
+        votosRegistrados: 0,
       },
     ],
     ...sobrescrever,

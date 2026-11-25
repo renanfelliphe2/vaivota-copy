@@ -82,3 +82,18 @@ export function useTemas(): Tema[] {
 export function useEventos(): Evento[] {
   return useStore((e) => e.banco.eventos);
 }
+
+/**
+ * Votos registrados no evento (25/11/2026, faixa de status): populares online + totem, em todas as categorias. Ligado ao
+ * servidor, a soma vem pronta no estado público (os votos nunca chegam ao navegador); no protótipo, conta os votos do banco.
+ */
+export function useVotosRegistrados(eventoId: string | null): number | null {
+  const contagem = useStore((e) => e.banco.contagemVotos);
+  const votos = useStore((e) => e.banco.votos);
+  const votosInfantis = useStore((e) => e.banco.votosInfantis);
+  return useMemo(() => {
+    if (!eventoId) return null;
+    if (contagem) return contagem.find((c) => c.eventoId === eventoId)?.votos ?? null;
+    return votos.filter((v) => v.eventoId === eventoId).length + votosInfantis.filter((v) => v.eventoId === eventoId).length;
+  }, [eventoId, contagem, votos, votosInfantis]);
+}

@@ -30,7 +30,13 @@ import type { UsuarioSessao } from "./sessao";
 const CACHE_MS = 3000;
 
 type EventoComTudo = Awaited<ReturnType<typeof carregarEventos>>[number];
-type Snapshot = { geradoEm: number; eventos: EventoComTudo[]; candidatosPublicados: Awaited<ReturnType<typeof carregarCandidatosPublicados>> };
+type Snapshot = {
+  geradoEm: number;
+  eventos: EventoComTudo[];
+  candidatosPublicados: Awaited<ReturnType<typeof carregarCandidatosPublicados>>;
+  /** Votos registrados por evento (populares online + totem), para a faixa de status. Só a soma. */
+  votosPorEvento: Map<string, number>;
+};
 
 const global = globalThis as unknown as { __vaivotaSnapshot?: Snapshot };
 
@@ -49,12 +55,26 @@ function carregarCandidatosPublicados(eventoIds: string[]) {
   });
 }
 
+/** 25/11/2026: quantos votos cada evento tem (populares online + totem). Duas contagens agrupadas, pelos índices de evento. */
+async function contarVotos(eventoIds: string[]): Promise<Map<string, number>> {
+  const total = new Map<string, number>();
+  if (eventoIds.length === 0) return total;
+  const onde = { eventoId: { in: eventoIds } };
+  const [populares, totem] = await Promise.all([
+    db().voto.groupBy({ by: ["eventoId"], where: onde, _count: { _all: true } }),
+    db().votoInfantil.groupBy({ by: ["eventoId"], where: onde, _count: { _all: true } }),
+  ]);
+  for (const g of [...populares, ...totem]) total.set(g.eventoId, (total.get(g.eventoId) ?? 0) + g._count._all);
+  return total;
+}
+
 async function snapshot(agoraMs: number): Promise<Snapshot> {
   const atual = global.__vaivotaSnapshot;
   if (atual && agoraMs - atual.geradoEm < CACHE_MS) return atual;
   const eventos = await carregarEventos();
-  const candidatosPublicados = await carregarCandidatosPublicados(eventos.map((e) => e.id));
-  global.__vaivotaSnapshot = { geradoEm: agoraMs, eventos, candidatosPublicados };
+  const ids = eventos.map((e) => e.id);
+  const [candidatosPublicados, votosPorEvento] = await Promise.all([carregarCandidatosPublicados(ids), contarVotos(ids)]);
+  global.__vaivotaSnapshot = { geradoEm: agoraMs, eventos, candidatosPublicados, votosPorEvento };
   return global.__vaivotaSnapshot;
 }
 
@@ -119,6 +139,7 @@ export async function montarEstadoPublico(usuario: UsuarioSessao | null, agoraMs
       convitesJurado: ehAdmin ? convitesDoAdmin.filter((c) => c.eventoId === e.id).map((c) => convitePublicoParaDominio(c, fuso)) : [],
       dispositivos: ehAdmin ? dispositivosDoAdmin.filter((d) => d.eventoId === e.id).map((d) => dispositivoPublicoParaDominio(d, fuso)) : [],
       participacao: minha ? participacaoParaDominio(minha, minha.categoriasVotadas.map((c) => c.categoriaId)) : null,
+      votosRegistrados: rascunho ? 0 : (fotoComum.votosPorEvento.get(e.id) ?? 0),
     });
   }
 

@@ -109,10 +109,8 @@ function ConteudoRevisao(props: DialogoRevisaoProps & { item: ItemLista }) {
           Seu voto é identificado para a organização e pode ser alterado até o encerramento da votação.
         </Alerta>
       ) : (
-        <>
-          <Alerta variante="informacao">Seu voto é secreto.</Alerta>
-          <p className="text-sm font-medium">Depois de confirmar, não será possível alterar nem desfazer o voto.</p>
-        </>
+        // 25/11/2026: sem o selo "Seu voto é secreto" na confirmação; fica o aviso de que o voto não volta atrás.
+        <p className="text-sm font-medium">Depois de confirmar, não será possível alterar nem desfazer o voto.</p>
       )}
 
       {exigeCiencia && (

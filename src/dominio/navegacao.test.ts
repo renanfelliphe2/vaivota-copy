@@ -48,3 +48,11 @@ describe("Votar só com a votação aberta", () => {
     expect(atalhosDoPapel("fv", "ADMIN", false)).toHaveLength(3);
   });
 });
+
+describe("Votar some depois do voto (25/11/2026)", () => {
+  it("o público que já votou fica sem o atalho; o jurado segue com ele (pode trocar o voto)", () => {
+    expect(atalhosDoPapel("fv", "PUBLICO", true, { jaVotou: true })).toEqual([]);
+    expect(atalhosDoPapel("fv", "JURADO", true, { jaVotou: true }).map((a) => a.rotulo)).toEqual(["Votar"]);
+    expect(atalhosDoPapel("fv", "PUBLICO", true, { jaVotou: false }).map((a) => a.rotulo)).toEqual(["Votar"]);
+  });
+});

@@ -146,7 +146,7 @@ export function PaginaCategoria() {
   };
   const instrucao =
     modo === "ESCOLHA" || modo === "VISITANTE"
-      ? `Toque no seu ${tema.rotuloCandidato.toLocaleLowerCase("pt-BR")} favorito para votar. Você confirma antes de o voto contar.`
+      ? `Toque num cartão para ver os detalhes e em "Votar" no seu ${tema.rotuloCandidato.toLocaleLowerCase("pt-BR")} favorito. Você confirma antes de o voto contar.`
       : null;
 
   return (
@@ -179,11 +179,8 @@ export function PaginaCategoria() {
           )}
 
           <AvisoVotacao aviso={aviso} />
-          {modo === "JA_VOTOU" && (
-            <Alerta variante="sucesso" titulo={meuItem ? `Você votou em ${meuItem.candidato.titulo}` : "Você já votou nesta categoria"}>
-              Obrigado! {pendentes.length > 0 ? "Ainda dá para votar nas outras categorias, logo abaixo." : "O resultado será divulgado pela organização."}
-            </Alerta>
-          )}
+          {/* 25/11/2026: quem votou vê só o cartão do voto em destaque. O aviso fica só quando este navegador não sabe em quem. */}
+          {modo === "JA_VOTOU" && !meuItem && <Alerta variante="sucesso">Você já votou nesta categoria.</Alerta>}
           {modo === "LEITURA" && aberta && sessao.papel === "ADMIN" && (
             <Alerta variante="informacao">Você é administrador deste evento: administradores não votam.</Alerta>
           )}
@@ -191,8 +188,8 @@ export function PaginaCategoria() {
             <Alerta variante="informacao">Como jurado, você avalia na página inicial do evento. O voto das categorias é do público.</Alerta>
           )}
           {atual.soTotem && (
-            <Alerta variante="informacao" titulo="Votação só nos totens, no local do evento">
-              Aqui você conhece os {rotuloItens} desta categoria. O voto é feito nos totens do evento.
+            <Alerta variante="informacao" titulo="Votação apenas nos totens">
+              Aqui você conhece os {rotuloItens} desta categoria. O voto é feito apenas nos totens.
             </Alerta>
           )}
           {!aberta && !atual.soTotem && <UrnaStatusCard visao={visao} />}
@@ -204,27 +201,18 @@ export function PaginaCategoria() {
           ) : (
             <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
               {visiveis.map((item) => (
-                <li key={item.candidato.id} className="flex flex-col gap-2">
+                <li key={item.candidato.id} id={idCartaoItem(item.candidato.id)} className="flex scroll-mt-40 flex-col gap-2">
                   <BotaoFilme
                     item={item}
                     clicavel={clicavel && !item.bloqueadoVotoProprio}
                     meuVoto={item.candidato.id === meuItem?.candidato.id}
                     cinema={cinema}
                     aoTocar={() => tocar(item)}
+                    // 25/11/2026: o toque no cartão rola até os detalhes do item (o "Ver detalhes" de baixo saiu); só o
+                    // botão "Votar" abre a confirmação.
+                    hrefDetalhes={`#${idDetalhes(item.candidato.id)}`}
+                    aoAbrirDetalhes={() => irParaDetalhes(item.candidato.id)}
                   />
-                  {temDetalhesItem(item, campos) && (
-                    <a
-                      href={`#${idDetalhes(item.candidato.id)}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        irParaDetalhes(item.candidato.id);
-                      }}
-                      className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full text-sm font-semibold text-tema-primaria-texto hover:underline"
-                    >
-                      <Info aria-hidden className="size-4" />
-                      Ver detalhes<span className="sr-only"> de {item.candidato.titulo}</span>
-                    </a>
-                  )}
                 </li>
               ))}
             </ul>
@@ -299,8 +287,12 @@ export function PaginaCategoria() {
 const atraso = (ms: number) => ({ "--atraso": `${ms}ms` }) as CSSProperties;
 
 /** Rola até os detalhes do item e põe o foco no título dele (para o teclado e o leitor de tela seguirem junto). */
+/** Âncora do cartão de um item na grade de voto. */
+const idCartaoItem = (candidatoId: string) => `cartao-${candidatoId}`;
+
 function irParaDetalhes(candidatoId: string, suave = true) {
-  const bloco = document.getElementById(idDetalhes(candidatoId));
+  // Item sem detalhes (o cartão da landing leva a todos para cá): rola até o cartão dele na grade.
+  const bloco = document.getElementById(idDetalhes(candidatoId)) ?? document.getElementById(idCartaoItem(candidatoId));
   if (!bloco) return;
   const reduzir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   bloco.scrollIntoView({ behavior: suave && !reduzir ? "smooth" : "auto", block: "start" });

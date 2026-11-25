@@ -265,8 +265,8 @@ dialog::backdrop {
 
 /*
  * Troca de cartaz na película (23/11/2026): o quadro velho é puxado para fora da fita, o novo entra pelo outro lado com o
- * brilho do projetor, um clarão cobre a emenda e os furos da fita correm um passo de quadro (6 furos). -h: fita deitada,
- * quadro a quadro; a duração é --cine-troca = DURACAO_TROCA_MS (useRotacaoCartazes.ts).
+ * brilho do projetor, um clarão cobre a emenda e os furos da fita correm um passo de quadro (6 furos).
+ * 25/11/2026: a fita deitada (celular e tablet) saiu; no tablet os cartazes correm num carrossel comum e no celular não há fita.
  *
  * Fita de pé (24/11/2026): a fita inteira corre. Todos os quadros (os que saem, por cima, e os que ficam) sobem juntos
  * --passos quadros (cada passo é a altura do quadro mais o vão de 0.75rem, gap-3 da TiraDePe); os novos acendem com o
@@ -274,7 +274,6 @@ dialog::backdrop {
  * fim). A duração é --cine-fita = DURACAO_FITA_MS.
  */
 .marca-evento {
-  --cine-troca: 1000ms;
   --cine-fita: 1400ms;
 }
 
@@ -327,30 +326,6 @@ dialog::backdrop {
   mix-blend-mode: overlay;
 }
 
-@keyframes cine-quadro-entra-h {
-  from {
-    transform: translateX(104%);
-    filter: brightness(1.9) sepia(0.6) contrast(0.8);
-  }
-  60% {
-    filter: brightness(1.2) sepia(0.2);
-  }
-  to {
-    transform: translateX(0);
-    filter: none;
-  }
-}
-
-@keyframes cine-quadro-sai-h {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-104%);
-    filter: brightness(0.45) blur(1px);
-  }
-}
-
 @keyframes cine-quadro-clarao {
   0% {
     opacity: 0;
@@ -372,40 +347,8 @@ dialog::backdrop {
   }
 }
 
-@keyframes cine-furos-correm-h {
-  from {
-    background-position: 0 center;
-  }
-  to {
-    background-position: -132px center;
-  }
-}
-
-.cine-quadro-entra-h,
-.cine-quadro-sai-h {
-  animation-duration: var(--cine-troca);
-  animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1);
-  animation-fill-mode: both;
-}
-
-.cine-quadro-entra-h {
-  animation-name: cine-quadro-entra-h;
-}
-.cine-quadro-sai-h {
-  animation-name: cine-quadro-sai-h;
-}
-
-.cine-quadro-clarao {
-  animation: cine-quadro-clarao var(--cine-troca) ease-out both;
-  mix-blend-mode: overlay;
-}
-
 .cine-furos-correm-v {
   animation: cine-furos-correm-v var(--cine-fita) cubic-bezier(0.65, 0, 0.25, 1) both;
-}
-
-.cine-furos-correm-h {
-  animation: cine-furos-correm-h var(--cine-troca) cubic-bezier(0.6, 0, 0.2, 1) both;
 }
 
 /* Granulação de filme (ruído em SVG), bem fraca: não mexe no contraste do texto. */
@@ -1270,4 +1213,23 @@ dialog::backdrop {
 }
 .carrossel-sem-barra::-webkit-scrollbar {
   display: none;
+}
+
+/*
+ * Diálogo em tela cheia (25/11/2026, acesso): do tablet para baixo (até o lg) desce do topo como uma cortina; do lg em diante
+ * é o diálogo centralizado, sem animação. Sem animação com "reduzir movimento".
+ */
+@keyframes dialogo-cortina {
+  from {
+    translate: 0 -100%;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+
+@media (width < 64rem) and (prefers-reduced-motion: no-preference) {
+  .dialogo-cortina[open] {
+    animation: dialogo-cortina 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
 }

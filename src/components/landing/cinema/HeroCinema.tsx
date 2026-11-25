@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
 import { useIdentidadePagina } from "@/components/evento/identidadePagina";
 import { LogoOrganizador } from "@/components/evento/MarcaOrganizador";
+import { idDetalhes } from "@/components/categorias/DetalhesItem";
 import { rotaCategoria } from "@/dominio/categorias";
 import { cx } from "@/lib/classes";
 import { dividirTitulo } from "@/lib/rotulos";
@@ -17,7 +18,7 @@ import { useSituacaoEvento } from "@/store/seletores/situacao";
 import { AcoesDoHero } from "../AcoesDoHero";
 import { useDestaqueCandidato } from "../DestaqueCandidato";
 import { Holofotes, Rosacea } from "./DecoracoesCinema";
-import { montarCasas, PeliculaDeitada, PeliculaTripla } from "./PeliculaDosCandidatos";
+import { montarCasas, PeliculaCarrossel, PeliculaTripla } from "./PeliculaDosCandidatos";
 import { useRotacaoCartazes } from "./useRotacaoCartazes";
 
 const atraso = (ms: number) => ({ "--atraso": `${ms}ms` }) as CSSProperties;
@@ -42,13 +43,14 @@ export function HeroCinema() {
   const n = candidatos.length;
   const { chamada, principal } = dividirTitulo(tema.nomeExibicao ?? evento.nome);
   // Evento com categorias (09/11/2026): o cartaz leva à página da categoria do filme (não há lista na página inicial).
+  // 25/11/2026: direto aos detalhes do filme lá.
   const aoEscolher = (candidatoId: string) => {
     const categoriaId = candidatos.find((c) => c.id === candidatoId)?.categoriaId;
     const categoria = ativo.categorias.find((c) => c.id === categoriaId);
-    if (categoria) router.push(rotaCategoria(ativo.slug, categoria.slug));
+    if (categoria) router.push(`${rotaCategoria(ativo.slug, categoria.slug)}#${idDetalhes(candidatoId)}`);
     else destacar(candidatoId);
   };
-  // As mesmas seis casas (e a mesma rotação) servem às duas películas: a de pé no desktop e a deitada no celular.
+  // As seis casas e a rotação de dois em dois: só a película de pé, do desktop.
   const pelicula = { casas: montarCasas(candidatos, rotacao.ids), trocas: rotacao.trocas, decorativa: n === 0, rotacao, aoEscolher };
   const periodo =
     evento.janelaInicio && evento.janelaFim
@@ -132,8 +134,9 @@ export function HeroCinema() {
         </div>
       </div>
 
-      <div className="marca-subir pb-10 lg:hidden" style={atraso(380)}>
-        <PeliculaDeitada {...pelicula} />
+      {/* 25/11/2026: no tablet, um carrossel infinito comum com todos os cartazes; no celular, sem película. */}
+      <div className="marca-subir hidden pb-10 md:block lg:hidden" style={atraso(380)}>
+        <PeliculaCarrossel candidatos={candidatos} aoEscolher={aoEscolher} />
       </div>
 
       <span aria-hidden className="cine-furos-h block h-[1.125rem] w-full bg-cine-pelicula" />

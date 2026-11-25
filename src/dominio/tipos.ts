@@ -483,7 +483,15 @@ export type Banco = {
   votosInfantis: VotoInfantil[];
   resultados: ResultadoOficial[];
   auditoria: Auditoria[];
+  /**
+   * Só no navegador ligado ao servidor (25/11/2026): quantos votos cada evento já tem (populares online + totem), para a faixa de
+   * status. Os votos em si nunca chegam ao navegador; sem isto (protótipo), a conta sai de `votos` e `votosInfantis`.
+   */
+  contagemVotos?: ContagemVotos[];
 };
+
+/** Total de votos registrados de um evento (25/11/2026): a soma, nunca em quem. */
+export type ContagemVotos = { eventoId: string; votos: number };
 
 /** Tipo definido pela Etapa 8 (seção 5.2 dela); valor inicial: tudo nulo, modoSala "REAL". */
 export type EstadoUiApresentacao = {

@@ -31,6 +31,7 @@ function bancoVazio(): Banco {
     votosInfantis: [],
     resultados: [],
     auditoria: [],
+    contagemVotos: [],
   };
 }
 
@@ -66,6 +67,7 @@ export function bancoDoServidor(publico: EstadoPublico): Pick<EstadoApp, "banco"
     // O token e o PIN do totem também nunca saem do servidor: o `Banco` os exige, então aqui ficam vazios.
     banco.dispositivos.push(...e.dispositivos.map((d) => ({ ...d, hashToken: "", hashPin: null })));
     if (e.participacao) banco.participacoes.push(e.participacao);
+    banco.contagemVotos!.push({ eventoId: e.evento.id, votos: e.votosRegistrados });
   }
   if (publico.usuario) {
     const agora = publico.eventos[0]?.evento.atualizadoEm ?? new Date(publico.agoraMs).toISOString();

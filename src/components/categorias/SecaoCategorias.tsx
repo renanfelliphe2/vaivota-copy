@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CircleCheck, MapPin } from "lucide-react";
+import { ArrowRight, CircleCheck, Tablet } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -150,7 +150,7 @@ export function SecaoCategorias() {
             </div>
             <p className="max-w-2xl text-tema-texto-suave">
               {aberta
-                ? `Conheça os ${rotuloItens} de cada categoria e toque no seu ${rotuloItem} favorito para votar. Você vota uma vez em cada categoria e confirma antes de o voto contar.`
+                ? `Conheça os ${rotuloItens} de cada categoria: toque num cartão para ver os detalhes e em "Votar" no seu ${rotuloItem} favorito. Você vota uma vez em cada categoria e confirma antes de o voto contar.`
                 : `Conheça os ${rotuloItens} de cada categoria.`}
             </p>
           </header>
@@ -300,10 +300,11 @@ function SecaoDaCategoria({
             {categoria.premio && <p className="font-semibold text-tema-texto-suave">{categoria.premio}</p>}
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-tema-texto-suave">
               <span>{rotuloContador}</span>
-              {votou && (
+              {/* 25/11/2026: com o voto conhecido, só o cartão em destaque; sem ele (outro aparelho), o aviso curto. */}
+              {votou && !meuItem && (
                 <span className="inline-flex items-center gap-1 font-semibold text-tema-sucesso">
                   <CircleCheck aria-hidden className="size-4" />
-                  {meuItem ? `Você votou em ${meuItem.candidato.titulo}` : "Você já votou"}
+                  Você já votou
                 </span>
               )}
             </p>
@@ -322,7 +323,8 @@ function SecaoDaCategoria({
             )}
             {/* 25/11/2026: a categoria do totem também leva à página dela (os detalhes dos itens), além do aviso. */}
             {soTotem && <AvisoSoTotem />}
-            <BotaoVerMais href={href} nome={categoria.nome} className="hidden sm:inline-flex" />
+            {/* max-sm:hidden: o botão já é inline-flex, e um "hidden" solto perdia para ele (os dois apareciam no celular). */}
+            <BotaoVerMais href={href} nome={categoria.nome} className="max-sm:hidden" />
           </div>
         </div>
 
@@ -364,6 +366,8 @@ function SecaoDaCategoria({
                 cinema={cinema}
                 compacto
                 sizes="(min-width: 1024px) 13rem, (min-width: 640px) 12rem, 10rem"
+                // 25/11/2026: o cartão leva aos detalhes do item na página da categoria; só o botão "Votar" abre a confirmação.
+                hrefDetalhes={`${href}#${idDetalhes(item.candidato.id)}`}
                 aoTocar={() => aoTocar(item)}
               />
             )}
@@ -377,12 +381,15 @@ function SecaoDaCategoria({
   );
 }
 
-/** Na categoria do totem, ao lado do "Ver mais": o voto é só no local. */
+/**
+ * Na categoria do totem, ao lado do "Ver mais". 25/11/2026: "apenas nos totens", sem "no local do evento" (os totens nem sempre
+ * ficam no local).
+ */
 function AvisoSoTotem() {
   return (
     <p className="inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-tema-fundo px-4 py-2 text-sm font-semibold text-tema-primaria-texto shadow-sm ring-1 ring-tema-borda/80 sm:self-auto">
-      <MapPin aria-hidden className="size-4 shrink-0" />
-      Votação só nos totens, no local do evento.
+      <Tablet aria-hidden className="size-4 shrink-0" />
+      Votação apenas nos totens
     </p>
   );
 }

@@ -5,8 +5,6 @@ import { aplicarTroca, cartazesIniciais, CASAS_DO_HERO, filmesDaFita, FITAS_DO_H
 
 /** De quanto em quanto tempo UMA fita corre (com uma variação de ±35% para não parecer relógio). Cada fita corre, em média, a cada 3x isto. */
 export const INTERVALO_TROCA_MS = 3500;
-/** Duração da troca de um quadro na película deitada (globals.css: `--cine-troca`). Menor que o intervalo mínimo (~2,3 s). */
-export const DURACAO_TROCA_MS = 1000;
 /** Duração da corrida da fita de pé, que anda dois quadros (globals.css: `--cine-fita`). Também menor que o intervalo mínimo. */
 export const DURACAO_FITA_MS = 1400;
 const VARIACAO = 0.35;

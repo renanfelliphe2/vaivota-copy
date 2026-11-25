@@ -17,6 +17,11 @@ export type DialogoProps = {
   /** Para onde o foco volta ao fechar (padrão: quem abriu). Etapa 4: o "Ver detalhes" do último exibido. */
   focoAoFechar?: () => HTMLElement | null;
   className?: string;
+  /**
+   * 25/11/2026 (acesso): do tablet para baixo (até o lg), ocupa a tela toda e desce do topo como uma cortina; do lg em diante,
+   * o diálogo centralizado de sempre.
+   */
+  telaCheiaAteLg?: boolean;
 };
 
 /**
@@ -33,6 +38,7 @@ export function Dialogo({
   fecharNoFundo = true,
   focoAoFechar,
   className,
+  telaCheiaAteLg = false,
 }: DialogoProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const origem = useRef<HTMLElement | null>(null);
@@ -71,15 +77,23 @@ export function Dialogo({
       }}
       className={cx(
         "bg-tema-fundo p-0 text-tema-texto font-tema shadow-2xl",
-        // Bottom sheet no celular; centralizado a partir de sm.
-        "fixed inset-x-0 bottom-0 top-auto m-0 max-h-[90dvh] w-full max-w-full rounded-t-2xl",
-        "sm:inset-0 sm:m-auto sm:h-fit sm:max-w-lg sm:rounded-2xl",
+        telaCheiaAteLg
+          ? // Tela cheia em cortina até o lg (globals.css: .dialogo-cortina); centralizado do lg em diante.
+            "dialogo-cortina fixed inset-0 m-0 h-dvh max-h-dvh w-full max-w-full lg:m-auto lg:h-fit lg:max-h-[90dvh] lg:max-w-lg lg:rounded-2xl"
+          : // Bottom sheet no celular; centralizado a partir de sm.
+            "fixed inset-x-0 bottom-0 top-auto m-0 max-h-[90dvh] w-full max-w-full rounded-t-2xl sm:inset-0 sm:m-auto sm:h-fit sm:max-w-lg sm:rounded-2xl",
         className,
       )}
     >
       {aberto && (
-        <div className="flex max-h-[90dvh] flex-col">
-          <div className="flex items-start justify-between gap-4 border-b border-tema-borda px-5 py-4">
+        <div className={cx("flex flex-col", telaCheiaAteLg ? "h-full max-h-dvh lg:h-auto lg:max-h-[90dvh]" : "max-h-[90dvh]")}>
+          <div
+            className={cx(
+              "flex items-start justify-between gap-4 border-b border-tema-borda px-5 py-4",
+              // Em tela cheia, o topo fica abaixo do entalhe do celular.
+              telaCheiaAteLg && "pt-[max(1rem,env(safe-area-inset-top))] lg:pt-4",
+            )}
+          >
             <div className="flex min-w-0 flex-col gap-1">
               <h2 id={tituloId} className="text-lg font-bold wrap-anywhere">
                 {titulo}

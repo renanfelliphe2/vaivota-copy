@@ -53,6 +53,11 @@ export type EventoPublico = {
   dispositivos: DispositivoPublico[];
   /** Só a da própria pessoa (com as categorias em que ela já votou, nunca em quem). */
   participacao: Participacao | null;
+  /**
+   * Votos registrados no evento (25/11/2026, faixa de status): populares online + totem, em todas as categorias. Só a soma:
+   * nunca por candidato nem por categoria. Fora o júri (avaliação, não voto). 0 no rascunho.
+   */
+  votosRegistrados: number;
 };
 
 export type EstadoPublico = {

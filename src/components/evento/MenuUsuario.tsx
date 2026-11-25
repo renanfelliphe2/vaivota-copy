@@ -1,12 +1,13 @@
 "use client";
 
-import { ChevronDown, Gavel, LogIn, LogOut, UserPlus, UserRound } from "lucide-react";
+import { ChevronDown, Gavel, LogIn, LogOut, UserPlus, UserRound, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { CartaoAcesso } from "@/components/auth/CartaoAcesso";
 import { Botao } from "@/components/ui/Botao";
 import { Dialogo } from "@/components/ui/Dialogo";
+import { cx } from "@/lib/classes";
 import { ROTULO_PAPEL } from "@/lib/rotulos";
 import { sair } from "@/servicos/sessao";
 import { abrirAcesso, fecharAcesso } from "@/store/acoesAcesso";
@@ -15,11 +16,16 @@ import { useEventoAtivo } from "@/store/seletores/evento";
 import { useSessao } from "@/store/seletores/sessao";
 import { useVisaoEvento } from "@/store/seletores/visao";
 
+/** Atalho de página que o cabeçalho passa ao menu (Dashboard, Configurações...). */
+export type AtalhoDoMenu = { href: string; rotulo: string; icone: LucideIcon; atual: boolean };
+
 /**
  * Menu do usuário (Etapa 3, assume o provisório da Etapa 2). Deslogado: "Entrar" e "Criar conta" abrem o painel de acesso
  * num diálogo (`ui.acesso`, 08/10/2026); "Criar conta" só com o evento ATIVO (D7). Logado: nome, papel, convite e "Sair".
+ * 25/11/2026: abaixo de 700px, os atalhos de página do admin (que saem da linha do logo) ficam aqui, antes do "Sair".
+ * 25/11/2026: do tablet para baixo (até o lg), o acesso abre em tela cheia, descendo como uma cortina.
  */
-export function MenuUsuario() {
+export function MenuUsuario({ atalhos = [] }: { atalhos?: AtalhoDoMenu[] }) {
   const ativo = useEventoAtivo();
   const sessao = useSessao();
   const visao = useVisaoEvento();
@@ -73,7 +79,7 @@ export function MenuUsuario() {
             </span>
           )}
         </div>
-        <Dialogo aberto={acesso !== null} aoFechar={fecharAcesso} titulo="Acesso ao evento">
+        <Dialogo aberto={acesso !== null} aoFechar={fecharAcesso} titulo="Acesso ao evento" telaCheiaAteLg>
           {acesso && <CartaoAcesso key={acesso.aba} de={acesso.de} abaInicial={acesso.aba} aoConcluir={fecharAcesso} />}
         </Dialogo>
       </>
@@ -126,6 +132,25 @@ export function MenuUsuario() {
               Papel neste evento: <strong className="text-tema-texto">{papel}</strong>
             </p>
           </div>
+          {atalhos.length > 0 && (
+            <nav aria-label="Páginas" className="flex flex-col gap-1 border-y border-tema-borda py-1 min-[700px]:hidden">
+              {atalhos.map(({ href, rotulo, icone: Icone, atual }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={atual ? "page" : undefined}
+                  onClick={() => setMenuAberto(false)}
+                  className={cx(
+                    "flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold",
+                    atual ? "bg-tema-primaria text-tema-sobre-primaria" : "hover:bg-tema-superficie",
+                  )}
+                >
+                  <Icone aria-hidden className="size-4" />
+                  {rotulo}
+                </Link>
+              ))}
+            </nav>
+          )}
           {visao?.mostrarCodigoConvite && (
             <Link
               href={`/e/${slug}/convite`}

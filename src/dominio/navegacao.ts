@@ -9,8 +9,10 @@ export type Atalho = { id: IdAtalho; href: string; rotulo: string };
 /**
  * `votacaoAberta`: "Votar" só aparece com o evento ativo e a urna aberta (votacaoAberta, em situacaoEvento).
  * `totens` (24/11/2026): a página Totens do admin só aparece no evento com votação infantil.
+ * `jaVotou` (25/11/2026): o público que já votou (em todas as categorias da página) não vê mais o "Votar". O jurado segue com
+ * ele: pode trocar o voto até o encerramento.
  */
-export function atalhosDoPapel(slug: string, papel: PapelParticipacao | null, votacaoAberta: boolean, opcoes: { totens?: boolean } = {}): Atalho[] {
+export function atalhosDoPapel(slug: string, papel: PapelParticipacao | null, votacaoAberta: boolean, opcoes: { totens?: boolean; jaVotou?: boolean } = {}): Atalho[] {
   const admin = `/e/${slug}/admin`;
   if (papel === "ADMIN")
     return [
@@ -19,6 +21,7 @@ export function atalhosDoPapel(slug: string, papel: PapelParticipacao | null, vo
       { id: "APRESENTACAO", href: `${admin}/apresentar`, rotulo: "Apresentação" },
       ...(opcoes.totens ? [{ id: "TOTENS" as const, href: `${admin}/totens`, rotulo: "Totens" }] : []),
     ];
+  if (papel === "PUBLICO" && opcoes.jaVotou) return [];
   if ((papel === "PUBLICO" || papel === "JURADO") && votacaoAberta)
     return [{ id: "VOTAR", href: rotaVotacao(slug), rotulo: "Votar" }];
   return [];
