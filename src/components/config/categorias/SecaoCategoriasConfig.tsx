@@ -3,6 +3,7 @@
 import { ArrowLeft, ArrowRight, Check, Copy, Download, ExternalLink, Film, Globe, Layers, ListPlus, Lock, MonitorPlay, Pencil, Plus, Search, Tablet, Trash2 } from "lucide-react";
 import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import { useRef, useState, type ReactNode } from "react";
+import { PODIO } from "@/dominio/apresentacao/cerimonia";
 import { categoriasDoCanal, enderecosDasCategorias, LIMITES_CATEGORIA, ROTULOS_CANAL, rotaCategoria, validarCategorias } from "@/dominio/categorias";
 import { avisoCamposPerdidos, camposDaCategoria, camposPerdidosNaMudanca } from "@/dominio/camposExtras";
 import type { CampoCandidato, Candidato, CanalCategoria, Categoria } from "@/dominio/tipos";
@@ -23,6 +24,8 @@ import { BannerTrava } from "../BannerTrava";
 import { CamposExtrasEditor } from "../candidatos/CamposExtrasEditor";
 import { DicaTrava } from "../DicaTrava";
 import { useFormularioSujo } from "../FormularioSujoProvider";
+import { PainelCerimonia } from "./PainelCerimonia";
+import { TelaoDaCategoria, votosPorPosicao, type TelaoCategoria } from "./TelaoDaCategoria";
 import { useServico } from "../useServico";
 
 /**
@@ -123,6 +126,8 @@ export function SecaoCategoriasConfig({ travas }: { travas: Travas }) {
       {categorias.length > 0 && semCategoria.length > 0 && <SemCategoria itens={semCategoria} rotulo={rotulo} />}
 
       {/* As do totem têm página (para conhecer os itens), mas não QR Code: o voto delas é só nos totens. */}
+      <PainelCerimonia evento={ativo.evento} config={ativo.configApresentacao} categorias={categorias} travas={travas} />
+
       {daPagina.length > 0 && <QrCodes slugEvento={ativo.slug} categorias={daPagina} />}
 
       <ModalCategoria
@@ -411,6 +416,11 @@ function FormCategoria({
     descricao: categoria?.descricao ?? "",
     canal: categoria?.canal ?? "ONLINE",
   });
+  const [telao, setTelao] = useState<TelaoCategoria>({
+    podioTamanho: categoria?.podioTamanho ?? PODIO.padrao,
+    podioVotos: categoria?.podioVotos ?? [],
+    mensagemTelao: categoria?.mensagemTelao ?? "",
+  });
   const [tentou, setTentou] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erroServidor, setErroServidor] = useState<{ campos?: Record<string, string>; mensagem: string } | null>(null);
@@ -418,12 +428,19 @@ function FormCategoria({
   const comCampos = todas.filter((c) => camposDaCategoria(campos, c.id).length > 0);
   const [copiarDe, setCopiarDe] = useState("");
 
+  // Telão (25/11/2026): o pódio com os votos de cada posição já resolvidos; a frase do totem só na categoria do totem.
+  const daCategoria = {
+    ...d,
+    podioTamanho: telao.podioTamanho,
+    podioVotos: votosPorPosicao(telao),
+    ...(d.canal === "TOTEM" && { mensagemTelao: telao.mensagemTelao.trim() || null }),
+  };
   const lista: CategoriaEditada[] = todas.map((c) =>
-    c.id === categoria?.id ? { id: c.id, ...d } : { id: c.id, nome: c.nome, premio: c.premio ?? "", descricao: c.descricao ?? "", canal: c.canal },
+    c.id === categoria?.id ? { id: c.id, ...daCategoria } : { id: c.id, nome: c.nome, premio: c.premio ?? "", descricao: c.descricao ?? "", canal: c.canal },
   );
   // Trocar o canal é estrutura (trava com a votação aberta), como criar e excluir.
   const travaCanal = categoria !== null && !podeEstrutura;
-  if (!categoria) lista.push({ id: null, ...d, copiarCamposDe: copiarDe || null });
+  if (!categoria) lista.push({ id: null, ...daCategoria, copiarCamposDe: copiarDe || null });
   const indice = categoria ? todas.findIndex((c) => c.id === categoria.id) : lista.length - 1;
   const erros = validarCategorias(lista);
   const meus = (campo: string) => erros[`${campo}-${indice}`] ?? erroServidor?.campos?.[`${campo}-${indice}`] ?? null;
@@ -514,6 +531,14 @@ function FormCategoria({
         </div>
         {travaCanal && <span className="text-sm text-tema-texto-suave">Com a votação aberta, o lugar da votação não muda.</span>}
       </fieldset>
+      <TelaoDaCategoria
+        valor={telao}
+        canal={d.canal}
+        aoMudar={(v) => {
+          setTelao((atual) => ({ ...atual, ...v }));
+          marcarSujo(true);
+        }}
+      />
       {!categoria && comCampos.length > 0 && (
         <Campo
           id="categoria-copiar-campos"

@@ -54,8 +54,9 @@ function FormTelao({ config, travas, qtdCategorias }: { config: ConfigApresentac
         </h2>
         <p className="max-w-2xl text-tema-texto-suave">
           Durante a votação, o telão mostra uma categoria por vez e passa para a próxima depois do intervalo, em loop. A cada troca
-          mudam os itens e o QR Code. As categorias do totem entram no ciclo com os itens, sem QR Code nem link, com o aviso
-          &quot;Votação nos totens&quot;.
+          mudam os itens e o QR Code. As categorias do totem entram no ciclo com os itens, sem QR Code nem link: no lugar, a frase de
+          cada uma (padrão &quot;Vote nos totens&quot;, em Configuração &gt; Categorias). Os troféus, o pódio e a ordem da revelação também
+          ficam em Categorias.
           {qtdCategorias <= 1 && " Com uma categoria só, o telão fica nela."}
         </p>
       </div>
