@@ -1,5 +1,6 @@
 import "server-only";
 import type * as P from "@/generated/prisma/client";
+import { lerOrdem, lerTrofeus, tamanhoDoPodio } from "@/dominio/apresentacao/cerimonia";
 import type { ConvitePublico, DispositivoPublico } from "@/dominio/estadoPublico";
 import type {
   CampoCandidato,
@@ -162,12 +163,26 @@ export function apresentacaoParaDominio(c: P.ConfigApresentacao, fuso: string): 
     limiarRetaFinalSegundos: c.limiarRetaFinalSegundos,
     telaoIntervaloSegundos: c.telaoIntervaloSegundos,
     telaoMostrar: { candidatos: c.telaoMostrarCandidatos, tempo: c.telaoMostrarTempo, qr: c.telaoMostrarQr, link: c.telaoMostrarLink },
+    trofeus: lerTrofeus(c.trofeus),
+    ordemRevelacao: lerOrdem(c.ordemRevelacao),
     atualizadoEm: instante(c.atualizadoEm, fuso),
   };
 }
 
 export function categoriaParaDominio(c: P.Categoria): Categoria {
-  return { id: c.id, eventoId: c.eventoId, slug: c.slug, nome: c.nome, premio: c.premio, descricao: c.descricao, canal: c.canal, ordem: c.ordem };
+  return {
+    id: c.id,
+    eventoId: c.eventoId,
+    slug: c.slug,
+    nome: c.nome,
+    premio: c.premio,
+    descricao: c.descricao,
+    canal: c.canal,
+    ordem: c.ordem,
+    podioTamanho: tamanhoDoPodio(c.podioTamanho),
+    podioVotos: c.podioVotos ?? [],
+    mensagemTelao: c.mensagemTelao,
+  };
 }
 
 export function campoParaDominio(c: P.CampoCandidato): CampoCandidato {

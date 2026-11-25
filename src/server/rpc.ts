@@ -241,6 +241,25 @@ const servicos = {
     }),
     (_c, u, a) => configuracao.salvarApresentacao(u, a.eventoId, a.dados),
   ),
+  // Cerimônia no telão (25/11/2026): troféus e ordem da revelação.
+  salvarCerimonia: definir(
+    z.object({
+      eventoId: id,
+      dados: z.object({
+        trofeus: z.record(
+          z.enum(["POPULAR", "JURI", "INFANTIL"]),
+          z.object({ ativo: z.boolean(), escopo: z.enum(["CATEGORIA", "EVENTO"]), mostrarVotos: z.boolean() }),
+        ),
+        rotulos: z.object({ POPULAR: texto(100), JURI: texto(100), INFANTIL: texto(100) }),
+        ordem: z.object({
+          modelo: z.enum(["CATEGORIA", "POSICAO", "INTERCALADO", "PERSONALIZADA"]),
+          ultimoPrimeiro: z.boolean(),
+          itens: z.array(texto(100)).max(400),
+        }),
+      }),
+    }),
+    (_c, u, a) => configuracao.salvarCerimonia(u, a.eventoId, a.dados as configuracao.DadosCerimonia),
+  ),
   salvarTema: definir(
     z.object({
       eventoId: id,
@@ -294,6 +313,9 @@ const servicos = {
             descricao: texto(1000).optional(),
             canal: z.enum(["ONLINE", "TOTEM"]).optional(),
             copiarCamposDe: id.nullable().optional(),
+            podioTamanho: z.number().int().optional(),
+            podioVotos: z.array(z.boolean()).max(10).optional(),
+            mensagemTelao: texto(100).nullable().optional(),
           }),
         )
         .max(30),
@@ -340,13 +362,9 @@ const servicos = {
   ),
 
   // Telão: sala de controle, palco, ensaio e revelação (admin)
-  obterStatusResultado: definir(z.object({ eventoId: id, categoriaId: id.optional() }), (_c, u, a) =>
-    apresentacao.obterStatusResultado(u, a.eventoId, a.categoriaId),
-  ),
+  obterStatusResultado: definir(z.object({ eventoId: id }), (_c, u, a) => apresentacao.obterStatusResultado(u, a.eventoId)),
   obterEstadoAoVivo: definir(z.object({ eventoId: id }), (_c, u, a) => apresentacao.obterEstadoAoVivo(u, a.eventoId)),
-  carregarRevelacao: definir(z.object({ eventoId: id, categoriaId: id.optional() }), (_c, u, a) =>
-    apresentacao.carregarRevelacao(u, a.eventoId, a.categoriaId),
-  ),
+  carregarRevelacao: definir(z.object({ eventoId: id }), (_c, u, a) => apresentacao.carregarRevelacao(u, a.eventoId)),
   obterDadosEnsaio: definir(z.object({ eventoId: id, cenarioId: z.string().min(1).max(64) }), (_c, u, a) =>
     apresentacao.obterDadosEnsaio(u, a.eventoId, a.cenarioId),
   ),

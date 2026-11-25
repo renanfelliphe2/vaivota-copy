@@ -11,7 +11,7 @@ const CRIADO_FV = "2026-09-25T10:00:00-03:00";
 export const ID_CATEGORIA_UNICA_FV = "cat-fv-melhor-curta";
 
 export const seedCategorias: Categoria[] = [
-  { id: ID_CATEGORIA_UNICA_FV, eventoId: ID_FESTIVAL, slug: "melhor-curta", nome: "Melhor Curta", premio: null, descricao: null, canal: "ONLINE", ordem: 1 },
+  { id: ID_CATEGORIA_UNICA_FV, eventoId: ID_FESTIVAL, slug: "melhor-curta", nome: "Melhor Curta", premio: null, descricao: null, canal: "ONLINE", ordem: 1, podioTamanho: 3, podioVotos: [], mensagemTelao: null },
 ];
 
 type Base = Pick<Candidato, "id" | "titulo" | "imagemUrl" | "camposExtras"> &

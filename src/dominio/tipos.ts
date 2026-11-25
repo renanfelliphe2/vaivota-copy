@@ -201,10 +201,25 @@ export type ConfigApresentacao = {
   telaoIntervaloSegundos: number;
   /** O que a cena da votação ao vivo mostra (ao menos um). */
   telaoMostrar: OpcoesTelao;
+  /** Cerimônia (25/11/2026): os troféus por tipo de votação (o nome de cada um fica nos `rotuloCategoria*`). */
+  trofeus: Record<Grupo, ConfigTrofeu>;
+  /** Cerimônia: a ordem da revelação. */
+  ordemRevelacao: OrdemCerimonia;
   atualizadoEm: Instante;
 };
 
 export type OpcoesTelao = { candidatos: boolean; tempo: boolean; qr: boolean; link: boolean };
+
+/** Troféu da cerimônia: entregue em cada categoria ou uma vez só, entre todos os itens do evento. */
+export type EscopoTrofeu = "CATEGORIA" | "EVENTO";
+export type ConfigTrofeu = { ativo: boolean; escopo: EscopoTrofeu; mostrarVotos: boolean };
+
+/**
+ * Ordem da revelação (25/11/2026). Os modelos montam a lista sozinhos a partir dos troféus e dos pódios; PERSONALIZADA usa `itens`
+ * (ids de `itensDaCerimonia`), e o que faltar nela entra no fim. `ultimoPrimeiro`: cada pódio vai do último lugar ao 1º.
+ */
+export type ModeloOrdemCerimonia = "CATEGORIA" | "POSICAO" | "INTERCALADO" | "PERSONALIZADA";
+export type OrdemCerimonia = { modelo: ModeloOrdemCerimonia; ultimoPrimeiro: boolean; itens: string[] };
 
 /** 24/11/2026: o valor é sempre texto; o tipo decide a validação, o controle do formulário e a exibição. */
 export type TipoCampo = "TEXTO" | "NUMERO" | "DATA" | "LINK" | "VIDEO";
@@ -236,6 +251,12 @@ export type Categoria = {
   descricao: string | null;
   canal: CanalCategoria;
   ordem: number;
+  /** Telão (25/11/2026): posições que a revelação mostra (1 = só o vencedor). */
+  podioTamanho: number;
+  /** Em quais posições aparecem os votos e a porcentagem (índice 0 = 1º lugar; sem valor, só o 1º). */
+  podioVotos: boolean[];
+  /** Categoria do totem: a frase no lugar do QR Code no telão (null = "Vote nos totens"). */
+  mensagemTelao: string | null;
 };
 
 export type Candidato = {

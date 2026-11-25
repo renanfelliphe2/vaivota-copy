@@ -82,7 +82,7 @@ describe("validarCategorias", () => {
   });
 });
 
-const cat = (id: string, ordem: number, eventoId = "e1"): Categoria => ({ id, eventoId, slug: id, nome: `Categoria ${id}`, premio: null, descricao: null, canal: "ONLINE", ordem });
+const cat = (id: string, ordem: number, eventoId = "e1"): Categoria => ({ id, eventoId, slug: id, nome: `Categoria ${id}`, premio: null, descricao: null, canal: "ONLINE", ordem, podioTamanho: 3, podioVotos: [], mensagemTelao: null });
 
 describe("auxiliares", () => {
   it("categoriasDoEvento ordena e filtra pelo evento", () => {

@@ -1,3 +1,4 @@
+import { ORDEM_PADRAO, TROFEUS_PADRAO } from "@/dominio/apresentacao/cerimonia";
 import type { CampoCandidato, ConfigApresentacao, ConfigPlacar, CriterioJuri, GrupoParceiro, Parceiro } from "@/dominio/tipos";
 import { ID_CATEGORIA_UNICA_FV } from "./candidatos";
 import { ID_FESTIVAL } from "./eventos";
@@ -29,6 +30,8 @@ export const seedConfigsApresentacao = [
     limiarRetaFinalSegundos: 300,
     telaoIntervaloSegundos: 15,
     telaoMostrar: { candidatos: true, tempo: true, qr: true, link: true },
+    trofeus: structuredClone(TROFEUS_PADRAO),
+    ordemRevelacao: structuredClone(ORDEM_PADRAO),
     atualizadoEm: "2026-10-01T09:00:00-03:00",
   },
 ] satisfies ConfigApresentacao[];

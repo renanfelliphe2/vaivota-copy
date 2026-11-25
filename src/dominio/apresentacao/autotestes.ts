@@ -1,11 +1,12 @@
 import { apurar, type EntradaApuracao } from "../apuracao";
 import { FIXTURES_APURACAO } from "../apuracaoAutoteste";
 import type { DadosResultado } from "../tipos";
+import { ORDEM_PADRAO, TROFEUS_PADRAO } from "./cerimonia";
 import { estadoInicialMotor, reduzirMotor } from "./motor";
-import { codigoDaCena, montarRoteiro } from "./roteiro";
+import { codigoDaCena, montarRoteiro, type EntradaCerimonia } from "./roteiro";
 import type { AcaoMotor, Cena } from "./tipos";
 
-// Etapa 8 (seção 5.4, 5.5, 5.11): autotestes puros. Lista vazia = ok. Também viram testes Vitest.
+// Etapa 8 (seção 5.4, 5.5, 5.11) e cerimônia (25/11/2026): autotestes puros. Lista vazia = ok. Também viram testes Vitest.
 
 const IDS_FV = ["c01", "c02", "c03", "c04", "c05", "c06"];
 
@@ -72,18 +73,40 @@ function dadosDaFixture(nome: string): DadosResultado {
   return apurar(FIXTURES_FESTIVAL[nome].entrada);
 }
 
-/** Roteiros esperados da seção 5.4 (modo real). */
+/** A entrada do roteiro com a configuração padrão (troféus por categoria, do último lugar para o 1º). */
+export function entradaPadrao(dados: DadosResultado, config: Partial<EntradaCerimonia["config"]> = {}): EntradaCerimonia {
+  return {
+    dados,
+    categorias: [],
+    config: {
+      trofeus: structuredClone(TROFEUS_PADRAO),
+      ordemRevelacao: structuredClone(ORDEM_PADRAO),
+      rotuloCategoriaPublico: "Queridinho do público",
+      rotuloCategoriaJuri: "Escolha dos jurados",
+      rotuloCategoriaInfantil: "Preferido das crianças",
+      ...config,
+    },
+  };
+}
+
+// Resultado sem `porCategoria` (anterior às categorias): uma categoria só, de id "evento".
+const T = (grupo: string) => `T:${grupo}@evento`;
+const P = (n: number) => `P:evento:${n}`;
+const D = "D:evento:0";
+const FIM = "R:evento, FINAL";
+
+/** Roteiros esperados (modo real, configuração padrão). */
 export const ROTEIROS_ESPERADOS: Record<string, string> = {
-  RESULTADO_PADRAO: "TRAILER, CAT:POPULAR, CAT:JURI, P:3, P:2, P:1, FINAL",
-  RESULTADO_EMPATE_RESOLVIDO: "TRAILER, CAT:POPULAR, CAT:JURI, D:0, P:3, P:2, P:1, FINAL",
-  RESULTADO_EMPATE_PERSISTENTE: "TRAILER, CAT:POPULAR, CAT:JURI, P:3, D:0, P:1, FINAL",
-  RESULTADO_CO_VENCEDORES: "TRAILER, CAT:POPULAR, CAT:JURI, D:0, P:2, P:1, FINAL",
-  RESULTADO_DOIS_CANDIDATOS: "TRAILER, CAT:POPULAR, CAT:JURI, P:2, P:1, FINAL",
-  FESTIVAL_ENCERRADO: "TRAILER, CAT:POPULAR, CAT:INFANTIL, CAT:JURI, P:3, P:2, P:1, FINAL",
-  RESULTADO_SEM_INFANTIL: "TRAILER, CAT:POPULAR, CAT:JURI, P:3, P:2, P:1, FINAL",
-  FESTIVAL_EMPATE_RESOLVIDO: "TRAILER, CAT:POPULAR, CAT:INFANTIL, CAT:JURI, D:0, P:3, P:2, P:1, FINAL",
-  FESTIVAL_EMPATE_PERSISTENTE: "TRAILER, CAT:POPULAR, CAT:INFANTIL, CAT:JURI, P:3, D:0, P:1, FINAL",
-  FESTIVAL_CO_VENCEDORES: "TRAILER, CAT:POPULAR, CAT:INFANTIL, CAT:JURI, D:0, P:2, P:1, FINAL",
+  RESULTADO_PADRAO: `TRAILER, ${T("POPULAR")}, ${T("JURI")}, ${P(3)}, ${P(2)}, ${P(1)}, ${FIM}`,
+  RESULTADO_EMPATE_RESOLVIDO: `TRAILER, ${T("POPULAR")}, ${T("JURI")}, ${D}, ${P(3)}, ${P(2)}, ${P(1)}, ${FIM}`,
+  RESULTADO_EMPATE_PERSISTENTE: `TRAILER, ${T("POPULAR")}, ${T("JURI")}, ${P(3)}, ${D}, ${P(1)}, ${FIM}`,
+  RESULTADO_CO_VENCEDORES: `TRAILER, ${T("POPULAR")}, ${T("JURI")}, ${D}, ${P(2)}, ${P(1)}, ${FIM}`,
+  RESULTADO_DOIS_CANDIDATOS: `TRAILER, ${T("POPULAR")}, ${T("JURI")}, ${P(2)}, ${P(1)}, ${FIM}`,
+  FESTIVAL_ENCERRADO: `TRAILER, ${T("POPULAR")}, ${T("JURI")}, ${T("INFANTIL")}, ${P(3)}, ${P(2)}, ${P(1)}, ${FIM}`,
+  RESULTADO_SEM_INFANTIL: `TRAILER, ${T("POPULAR")}, ${T("JURI")}, ${P(3)}, ${P(2)}, ${P(1)}, ${FIM}`,
+  FESTIVAL_EMPATE_RESOLVIDO: `TRAILER, ${T("POPULAR")}, ${T("JURI")}, ${T("INFANTIL")}, ${D}, ${P(3)}, ${P(2)}, ${P(1)}, ${FIM}`,
+  FESTIVAL_EMPATE_PERSISTENTE: `TRAILER, ${T("POPULAR")}, ${T("JURI")}, ${T("INFANTIL")}, ${P(3)}, ${D}, ${P(1)}, ${FIM}`,
+  FESTIVAL_CO_VENCEDORES: `TRAILER, ${T("POPULAR")}, ${T("JURI")}, ${T("INFANTIL")}, ${D}, ${P(2)}, ${P(1)}, ${FIM}`,
 };
 
 function dadosCenario(nome: string): DadosResultado {
@@ -95,7 +118,7 @@ function dadosCenario(nome: string): DadosResultado {
   return dadosDaFixture(nome);
 }
 
-function texto(roteiro: Cena[]): string {
+export function texto(roteiro: Cena[]): string {
   return roteiro.map(codigoDaCena).join(", ");
 }
 
@@ -110,32 +133,29 @@ function sintetico(n: number, popular: number[], juri: number[] = []): DadosResu
   });
 }
 
-/** Casos extremos (seção 5.4): [nome, dados, roteiro esperado]. */
+/** Casos extremos: [nome, dados, roteiro esperado]. */
 export const CASOS_EXTREMOS_ROTEIRO: [string, DadosResultado, string][] = [
-  ["24 sem votos", sintetico(24, []), "TRAILER, D:0, P:1, FINAL"],
-  ["1 candidato", sintetico(1, [5]), "TRAILER, CAT:POPULAR, P:1, FINAL"],
+  ["24 sem votos", sintetico(24, []), `TRAILER, ${D}, ${P(1)}, ${FIM}`],
+  ["1 candidato", sintetico(1, [5]), `TRAILER, ${T("POPULAR")}, ${P(1)}, ${FIM}`],
   ["0 candidatos", sintetico(0, []), "TRAILER, FINAL"],
-  ["empate fora do pódio", sintetico(6, [60, 50, 40, 10, 10, 5]), "TRAILER, CAT:POPULAR, P:3, P:2, P:1, FINAL"],
-  ["empate [3, 4] resolvido", sintetico(5, [60, 50, 20, 20, 5], [0, 0, 2, 1, 0]), "TRAILER, CAT:POPULAR, CAT:JURI, D:0, P:3, P:2, P:1, FINAL"],
-  ["empate [3, 4] persistente", sintetico(5, [60, 50, 20, 20, 5]), "TRAILER, CAT:POPULAR, D:0, P:3, P:2, P:1, FINAL"],
-  ["três empatados em 1º (1-1-1-4)", sintetico(4, [30, 30, 30, 10]), "TRAILER, CAT:POPULAR, D:0, P:1, FINAL"],
-  ["três empatados em 2º (1-2-2-2)", sintetico(4, [40, 20, 20, 20]), "TRAILER, CAT:POPULAR, D:0, P:2, P:1, FINAL"],
+  ["empate fora do pódio", sintetico(6, [60, 50, 40, 10, 10, 5]), `TRAILER, ${T("POPULAR")}, ${P(3)}, ${P(2)}, ${P(1)}, ${FIM}`],
+  ["empate [3, 4] resolvido", sintetico(5, [60, 50, 20, 20, 5], [0, 0, 2, 1, 0]), `TRAILER, ${T("POPULAR")}, ${T("JURI")}, ${D}, ${P(3)}, ${P(2)}, ${P(1)}, ${FIM}`],
+  ["empate [3, 4] persistente", sintetico(5, [60, 50, 20, 20, 5]), `TRAILER, ${T("POPULAR")}, ${D}, ${P(3)}, ${P(2)}, ${P(1)}, ${FIM}`],
+  ["três empatados em 1º (1-1-1-4)", sintetico(4, [30, 30, 30, 10]), `TRAILER, ${T("POPULAR")}, ${D}, ${P(1)}, ${FIM}`],
+  ["três empatados em 2º (1-2-2-2)", sintetico(4, [40, 20, 20, 20]), `TRAILER, ${T("POPULAR")}, ${D}, ${P(2)}, ${P(1)}, ${FIM}`],
 ];
 
 export function conferirRoteiro(): string[] {
   const erros: string[] = [];
-  const opcoes = { classificacaoCompleta: false, modo: "REAL" as const, candidatosNaDisputa: 8 };
   for (const [nome, esperado] of Object.entries(ROTEIROS_ESPERADOS)) {
     const dados = dadosCenario(nome);
-    const real = texto(montarRoteiro(dados, opcoes));
+    const real = texto(montarRoteiro(entradaPadrao(dados), { modo: "REAL" }));
     if (real !== esperado) erros.push(`${nome}: ${real}`);
-    const ensaio = texto(montarRoteiro(dados, { ...opcoes, modo: "ENSAIO" }));
+    const ensaio = texto(montarRoteiro(entradaPadrao(dados), { modo: "ENSAIO" }));
     if (ensaio !== `AO_VIVO_ENSAIO, ENCERRADA_ENSAIO, ${esperado}`) erros.push(`${nome} (ensaio): ${ensaio}`);
-    const completo = texto(montarRoteiro(dados, { ...opcoes, classificacaoCompleta: true }));
-    if (completo !== esperado.replace(", FINAL", ", CLASSIFICACAO, FINAL")) erros.push(`${nome} (classificação): ${completo}`);
   }
   for (const [nome, dados, esperado] of CASOS_EXTREMOS_ROTEIRO) {
-    const real = texto(montarRoteiro(dados, { ...opcoes, candidatosNaDisputa: dados.ranking.length }));
+    const real = texto(montarRoteiro(entradaPadrao(dados), { modo: "REAL" }));
     if (real !== esperado) erros.push(`${nome}: ${real}`);
   }
   return erros;
@@ -143,19 +163,19 @@ export function conferirRoteiro(): string[] {
 
 export function conferirMotor(): string[] {
   const erros: string[] = [];
-  const roteiro = montarRoteiro(dadosCenario("RESULTADO_EMPATE_RESOLVIDO"), { classificacaoCompleta: false, modo: "REAL", candidatosNaDisputa: 8 });
+  const roteiro = montarRoteiro(entradaPadrao(dadosCenario("RESULTADO_EMPATE_RESOLVIDO")), { modo: "REAL" });
   const aplicar = (acoes: AcaoMotor[], inicial = estadoInicialMotor("MANUAL")) => acoes.reduce((e, a) => reduzirMotor(e, a, roteiro), inicial);
   const esperar = (nome: string, real: unknown, esperado: unknown) => {
     if (JSON.stringify(real) !== JSON.stringify(esperado)) erros.push(`${nome}: ${JSON.stringify(real)}`);
   };
 
-  // Trailer (2 passos: vídeo e chamada) → CAT:POPULAR (3 passos).
-  let e = aplicar([{ tipo: "AVANCAR" }, { tipo: "AVANCAR" }, { tipo: "AVANCAR" }, { tipo: "AVANCAR" }]);
-  esperar("avançar", [e.cena, e.passo], [1, 2]);
+  // Trailer (2 passos: vídeo e chamada) → troféu (2 passos: contagem e vencedor).
+  let e = aplicar([{ tipo: "AVANCAR" }, { tipo: "AVANCAR" }, { tipo: "AVANCAR" }]);
+  esperar("avançar", [e.cena, e.passo], [1, 1]);
   e = reduzirMotor(e, { tipo: "AVANCAR" }, roteiro);
   esperar("troca de cena", [e.cena, e.passo], [2, 0]);
   e = reduzirMotor(e, { tipo: "VOLTAR" }, roteiro);
-  esperar("voltar do passo 0", [e.cena, e.passo], [1, 2]);
+  esperar("voltar do passo 0", [e.cena, e.passo], [1, 1]);
   esperar("voltar no início", [aplicar([{ tipo: "VOLTAR" }]).cena], [0]);
   const atrasado = aplicar([{ tipo: "AVANCAR" }, { tipo: "AVANCO_AUTOMATICO", cena: 0, passo: 0 }]);
   esperar("automático atrasado ignorado", [atrasado.cena, atrasado.passo], [0, 1]);
@@ -169,7 +189,7 @@ export function conferirMotor(): string[] {
   esperar("trailer falhou", aplicar([{ tipo: "TRAILER_FALHOU" }]).trailer, "GERADO");
   esperar("pular trailer", aplicar([{ tipo: "PULAR_TRAILER" }]).cena, 1);
   esperar("pular trailer na chamada", [aplicar([{ tipo: "AVANCAR" }, { tipo: "PULAR_TRAILER" }])].map((x) => [x.cena, x.passo])[0], [1, 0]);
-  esperar("voltar da categoria cai na chamada", [aplicar([{ tipo: "AVANCAR" }, { tipo: "AVANCAR" }, { tipo: "VOLTAR" }])].map((x) => [x.cena, x.passo])[0], [0, 1]);
+  esperar("voltar do troféu cai na chamada", [aplicar([{ tipo: "AVANCAR" }, { tipo: "AVANCAR" }, { tipo: "VOLTAR" }])].map((x) => [x.cena, x.passo])[0], [0, 1]);
   let ate = estadoInicialMotor("MANUAL");
   for (let i = 0; i < 100; i++) ate = reduzirMotor(ate, { tipo: "AVANCAR" }, roteiro);
   esperar("chega ao final concluída", [ate.cena, ate.situacao, ate.emergencia], [roteiro.length - 1, "CONCLUIDA", false]);

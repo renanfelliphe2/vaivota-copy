@@ -6,16 +6,18 @@ import { apurar } from "../apuracao";
 import { verificarInvariantes } from "../invariantes";
 import { resultadoAtual } from "../resultado";
 import { assinaturaDoResultado } from "./assinatura";
-import { conferirFixturesFestival, conferirMotor, conferirRoteiro, FIXTURES_FESTIVAL } from "./autotestes";
+import type { OrdemCerimonia } from "../tipos";
+import { conferirFixturesFestival, conferirMotor, conferirRoteiro, entradaPadrao, FIXTURES_FESTIVAL, texto } from "./autotestes";
+import { ordenarCerimonia } from "./cerimonia";
 import { resolverFasePalco } from "./fasePalco";
 import { lerRevelacao } from "./revelacao";
-import { montarFinal, montarProps } from "./roteiro";
+import { montarFinal, montarProps, montarRoteiro } from "./roteiro";
 import { interpretarLinkTrailer } from "./trailer";
 
 // Etapa 8 (D19 rev. 3): roteiro, motor, fase, trailer, assinatura e revelação.
 
 describe("autotestes", () => {
-  it("conferirRoteiro (10 cenários, real, ensaio, classificação e casos extremos)", () => expect(conferirRoteiro()).toEqual([]));
+  it("conferirRoteiro (10 cenários, real, ensaio e casos extremos)", () => expect(conferirRoteiro()).toEqual([]));
   it("conferirMotor", () => expect(conferirMotor()).toEqual([]));
   it("conferirFixturesFestival", () => expect(conferirFixturesFestival()).toEqual([]));
 });
@@ -105,27 +107,113 @@ describe("revelação cinematográfica (08/10/2026)", () => {
     expect(interpretarLinkTrailer("https://vimeo.com/76979871", { mudo: true })).toBe("https://player.vimeo.com/video/76979871?autoplay=1&muted=1&playsinline=1");
   });
 
-  it("o pódio de uma posição só traz os nomes já revelados (ela e as piores)", () => {
-    const props = montarProps(dados, { tipo: "PODIO", posicao: 2, passos: 3 }, 0);
-    if (props.tipo !== "PODIO") throw new Error("esperava PODIO");
-    expect(props.degraus.map((d) => [d.posicao, d.candidatos?.itens.map((c) => c.candidatoId) ?? null])).toEqual([
-      [1, null],
+  it("a posição só traz como revelados os lugares que vieram antes dela", () => {
+    const entrada = entradaPadrao(dados);
+    const roteiro = montarRoteiro(entrada, { modo: "REAL" });
+    const i = roteiro.findIndex((c) => c.tipo === "POSICAO" && c.posicao === 2);
+    const props = montarProps(entrada, roteiro, i, 0);
+    if (props.tipo !== "POSICAO") throw new Error("esperava POSICAO");
+    expect(props.vencedores.map((v) => v.candidatoId)).toEqual(["c02"]);
+    expect(props.revelados).toEqual([{ posicao: 3, candidatoIds: ["c03"] }]);
+    // Sem configuração gravada, só o 1º lugar mostra os votos.
+    expect(props.vencedores[0].contagem).toBeNull();
+  });
+
+  it("o resultado traz o pódio, os votos onde a configuração deixa e os troféus da categoria", () => {
+    const [r] = montarFinal(entradaPadrao(dados));
+    expect(r.podio.map((p) => [p.posicao, p.itens.map((i) => i.candidatoId)])).toEqual([
+      [1, ["c01"]],
       [2, ["c02"]],
       [3, ["c03"]],
     ]);
+    const c01 = r.podio[0].itens[0].contagem!;
+    expect([c01.votos, Math.round(c01.percentual * 10) / 10]).toEqual([40, 16.7]);
+    expect(r.podio[1].itens[0].contagem).toBeNull();
+    expect(r.premiados.map((p) => [p.titulo, p.candidatoIds])).toEqual([
+      ["Queridinho do público", ["c03"]],
+      ["Escolha dos jurados", ["c01"]],
+      ["Preferido das crianças", ["c01"]],
+    ]);
+  });
+});
+
+describe("cerimônia: ordem da revelação (25/11/2026)", () => {
+  const cats = [
+    { id: "A", podioTamanho: 3 },
+    { id: "B", podioTamanho: 3 },
+    { id: "C", podioTamanho: 3 },
+  ];
+  const doEvento = Object.fromEntries((["POPULAR", "JURI", "INFANTIL"] as const).map((g) => [g, { ativo: true, escopo: "EVENTO", mostrarVotos: true }])) as Parameters<
+    typeof ordenarCerimonia
+  >[1];
+  const todos = ["POPULAR", "JURI", "INFANTIL"] as const;
+  const ids = (modelo: OrdemCerimonia["modelo"], extra: Partial<OrdemCerimonia> = {}, trofeus = doEvento, categorias = cats) =>
+    ordenarCerimonia(categorias, trofeus, todos, { modelo, ultimoPrimeiro: false, itens: [], ...extra }).map((x) => x.id);
+
+  it("por categoria (1º exemplo)", () => {
+    expect(ids("CATEGORIA")).toEqual(["T:POPULAR", "T:JURI", "T:INFANTIL", "P:A:1", "P:A:2", "P:A:3", "P:B:1", "P:B:2", "P:B:3", "P:C:1", "P:C:2", "P:C:3"]);
+  });
+  it("por posição (2º exemplo)", () => {
+    expect(ids("POSICAO")).toEqual(["T:POPULAR", "T:JURI", "T:INFANTIL", "P:A:1", "P:B:1", "P:C:1", "P:A:2", "P:B:2", "P:C:2", "P:A:3", "P:B:3", "P:C:3"]);
+  });
+  it("troféus intercalados (3º exemplo)", () => {
+    expect(ids("INTERCALADO")).toEqual(["T:POPULAR", "P:A:1", "P:B:1", "P:C:1", "T:JURI", "P:A:2", "P:B:2", "P:C:2", "T:INFANTIL", "P:A:3", "P:B:3", "P:C:3"]);
+  });
+  it("do último lugar para o 1º e pódios de tamanhos diferentes", () => {
+    const desiguais = [{ id: "A", podioTamanho: 2 }, { id: "B", podioTamanho: 1 }];
+    expect(ids("POSICAO", { ultimoPrimeiro: true }, doEvento, desiguais)).toEqual(["T:POPULAR", "T:JURI", "T:INFANTIL", "P:A:2", "P:A:1", "P:B:1"]);
+  });
+  it("troféu por categoria entra no bloco da categoria; desligado ou de votação desligada, sai", () => {
+    const misto = { ...doEvento, JURI: { ativo: true, escopo: "CATEGORIA", mostrarVotos: true }, INFANTIL: { ativo: false, escopo: "EVENTO", mostrarVotos: true } } as typeof doEvento;
+    expect(ids("CATEGORIA", {}, misto, cats.slice(0, 2))).toEqual(["T:POPULAR", "T:JURI:A", "P:A:1", "P:A:2", "P:A:3", "T:JURI:B", "P:B:1", "P:B:2", "P:B:3"]);
+    expect(ordenarCerimonia(cats.slice(0, 1), doEvento, ["POPULAR"], { modelo: "CATEGORIA", ultimoPrimeiro: false, itens: [] }).map((x) => x.id)).toEqual([
+      "T:POPULAR",
+      "P:A:1",
+      "P:A:2",
+      "P:A:3",
+    ]);
+  });
+  it("personalizada: a lista gravada e, no fim, o que faltar", () => {
+    expect(ids("PERSONALIZADA", { itens: ["P:C:3", "T:JURI", "nao-existe", "P:C:3"] }, doEvento, cats.slice(2))).toEqual(["P:C:3", "T:JURI", "T:POPULAR", "T:INFANTIL", "P:C:1", "P:C:2"]);
   });
 
-  it("o final traz votos, percentuais e selos de cada candidato do pódio", () => {
-    const final = montarFinal(dados);
-    const c01 = final.podio[0].candidatos.itens[0];
-    expect(c01.candidatoId).toBe("c01");
-    expect(c01.detalhe.selos).toEqual(["INFANTIL", "JURI"]);
-    expect(c01.detalhe.votos.map((v) => [v.grupo, v.votos, Math.round(v.percentual * 10) / 10])).toEqual([
-      ["POPULAR", 40, 16.7],
-      ["INFANTIL", 60, 43.5],
-      ["JURI", 1, 50],
+  it("com categorias: o resultado de cada uma logo depois do último item dela", () => {
+    const lista = (ids: string[], votos: number[]) => ({ ids, votos });
+    const grupos = [lista(["a1", "a2", "a3"], [30, 20, 10]), lista(["b1", "b2"], [5, 15])];
+    const apurarLista = (l: { ids: string[]; votos: number[] }) =>
+      apurar({
+        candidatos: l.ids.map((id, i) => ({ id, ordem: i + 1, desqualificado: false })),
+        votos: { POPULAR: Object.fromEntries(l.ids.map((id, i) => [id, l.votos[i]])), JURI: {}, INFANTIL: {} },
+        pesos: { POPULAR: 100, JURI: 0, INFANTIL: 0 },
+        gruposAtivos: ["POPULAR"],
+        criterio: "PUBLICO",
+      });
+    const geral = apurarLista({ ids: [...grupos[0].ids, ...grupos[1].ids], votos: [...grupos[0].votos, ...grupos[1].votos] });
+    geral.porCategoria = [
+      { categoriaId: "A", nome: "Usina", premio: null, dados: apurarLista(grupos[0]) },
+      { categoriaId: "B", nome: "Mostra", premio: null, dados: apurarLista(grupos[1]) },
+    ];
+    const categorias = [
+      { id: "A", nome: "Usina", premio: null, canal: "ONLINE" as const, ordem: 1, podioTamanho: 3, podioVotos: [true, true, true] },
+      { id: "B", nome: "Mostra", premio: null, canal: "TOTEM" as const, ordem: 2, podioTamanho: 1, podioVotos: [] },
+    ];
+    const base = entradaPadrao(geral);
+    const entrada = { ...base, categorias, config: { ...base.config, trofeus: { ...base.config.trofeus, POPULAR: { ativo: true, escopo: "EVENTO" as const, mostrarVotos: false } } } };
+    const porPosicao = { ...entrada, config: { ...entrada.config, ordemRevelacao: { modelo: "POSICAO" as const, ultimoPrimeiro: true, itens: [] } } };
+    expect(texto(montarRoteiro(porPosicao, { modo: "REAL" }))).toBe("TRAILER, T:POPULAR, P:A:3, P:A:2, P:A:1, R:A, P:B:1, R:B, FINAL");
+    expect(texto(montarRoteiro(entrada, { modo: "REAL" }))).toBe("TRAILER, T:POPULAR, P:A:3, P:A:2, P:A:1, R:A, P:B:1, R:B, FINAL");
+
+    const roteiro = montarRoteiro(entrada, { modo: "REAL" });
+    const trofeu = montarProps(entrada, roteiro, 1, 1);
+    expect(trofeu.tipo === "TROFEU" && [trofeu.categoria, trofeu.vencedores]).toEqual([null, [{ candidatoId: "a1", contagem: null }]]);
+    const segundo = montarProps(entrada, roteiro, 3, 1);
+    expect(segundo.tipo === "POSICAO" && segundo.vencedores[0].contagem?.votos).toBe(20);
+    const final = montarFinal(entrada);
+    expect(final.map((r) => [r.nome, r.unico, r.podio.length])).toEqual([
+      ["Usina", false, 3],
+      ["Mostra", true, 1],
     ]);
-    expect(final.podio[2].candidatos.itens[0].detalhe.selos).toEqual(["POPULAR"]);
-    expect(final.destaques).toEqual([]);
+    // O troféu do evento aparece no resultado da categoria do vencedor.
+    expect(final.map((r) => r.premiados.map((p) => p.candidatoIds))).toEqual([[["a1"]], []]);
   });
 });

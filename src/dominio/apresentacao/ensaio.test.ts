@@ -1,3 +1,4 @@
+import { ORDEM_PADRAO, TROFEUS_PADRAO } from "./cerimonia";
 import { describe, expect, it } from "vitest";
 import type { ConfigApresentacao } from "../tipos";
 import { CENARIOS_ENSAIO, cenariosDoEnsaio, type ModulosEvento } from "./cenariosEnsaio";
@@ -19,6 +20,8 @@ const CONFIG: ConfigApresentacao = {
   limiarRetaFinalSegundos: 300,
   telaoIntervaloSegundos: 15,
   telaoMostrar: { candidatos: true, tempo: true, qr: true, link: true },
+  trofeus: structuredClone(TROFEUS_PADRAO),
+  ordemRevelacao: structuredClone(ORDEM_PADRAO),
   atualizadoEm: "2026-11-02T10:00:00-03:00",
 };
 
@@ -57,9 +60,10 @@ describe.each(MODULOS)("ensaio com $nome", ({ modulos }) => {
       expect(d.dados.ranking).toHaveLength(n);
       expect(d.totalGeral).toBeGreaterThan(0);
       expect(d.votosPorMinutoSimulados.reduce((s, v) => s + v, 0)).toBe(d.totalGeral);
-      const cenas = montarRoteiro(d.dados, { classificacaoCompleta: false, modo: "ENSAIO", candidatosNaDisputa: d.candidatosNaDisputa });
+      const cenas = montarRoteiro(d, { modo: "ENSAIO" });
       expect(cenas.at(-1)?.tipo).toBe("FINAL");
-      expect(cenas.some((c) => c.tipo === "PODIO")).toBe(true);
+      expect(cenas.some((c) => c.tipo === "POSICAO")).toBe(true);
+      expect(cenas.some((c) => c.tipo === "RESULTADO")).toBe(true);
     }
   });
 
@@ -95,6 +99,24 @@ describe.each(MODULOS.filter((m) => m.modulos.juri || m.modulos.infantil))("empa
     // O empate é de pontuação exata: os dois têm a mesma pontuação final.
     const [b, c] = dados.ranking.slice(1, 3);
     expect(b.pontuacao).toBe(c.pontuacao);
+  });
+});
+
+describe("ensaio com categorias (25/11/2026)", () => {
+  it("cada categoria ganha a sua apuração e a cerimônia passa por todas", () => {
+    const lista = candidatos(7).map((c, i) => ({ ...c, categoriaId: i < 4 ? "A" : "B" }));
+    const categorias = [
+      { id: "A", nome: "Usina", premio: null, canal: "ONLINE" as const, ordem: 1, podioTamanho: 3, podioVotos: [] },
+      { id: "B", nome: "Mostra", premio: null, canal: "TOTEM" as const, ordem: 2, podioTamanho: 1, podioVotos: [] },
+    ];
+    const d = montarDadosEnsaio({ cenarioId: "SEM_EMPATE", candidatos: lista, categorias, modulos: { juri: true, infantil: true }, config: CONFIG, calculadoEm: "2026-11-02T10:00:00-03:00" })!;
+    expect(d.dados.porCategoria?.map((c) => [c.categoriaId, c.dados.ranking.length])).toEqual([
+      ["A", 4],
+      ["B", 3],
+    ]);
+    const cenas = montarRoteiro(d, { modo: "REAL" });
+    expect(cenas.filter((c) => c.tipo === "RESULTADO").map((c) => c.tipo === "RESULTADO" && c.categoriaId)).toEqual(["A", "B"]);
+    expect(cenas.filter((c) => c.tipo === "POSICAO" && c.categoriaId === "B")).toHaveLength(1);
   });
 });
 

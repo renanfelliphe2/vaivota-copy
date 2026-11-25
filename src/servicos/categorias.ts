@@ -18,6 +18,10 @@ export type CategoriaEditada = {
   canal: CanalCategoria;
   /** D1 (25/11/2026): só na categoria nova, de qual categoria copiar os campos extras. */
   copiarCamposDe?: string | null;
+  /** Telão (25/11/2026): quantos lugares a revelação mostra, em quais aparecem os votos e, no totem, a frase no lugar do QR Code. */
+  podioTamanho?: number;
+  podioVotos?: boolean[];
+  mensagemTelao?: string | null;
 };
 
 /** Os itens da categoria (24/11/2026), a lista inteira: quem entra muda de categoria, quem sai fica sem categoria. */

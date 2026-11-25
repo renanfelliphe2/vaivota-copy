@@ -2,7 +2,7 @@ import { apurar } from "../apuracao";
 import type { ConfigApresentacao, Grupo, Instante, RegraDesempate } from "../tipos";
 import { assinaturaDoResultado } from "./assinatura";
 import { cenariosDoEnsaio, gruposLigados, type ModulosEvento } from "./cenariosEnsaio";
-import type { CandidatoPalco, DadosEnsaio } from "./tipos";
+import type { CandidatoPalco, CategoriaPalco, DadosEnsaio } from "./tipos";
 
 // Ensaio da cerimônia: um resultado INVENTADO, montado em cima dos itens e dos módulos do evento e apurado pela mesma `apurar` do
 // resultado oficial. Nada aqui lê voto real nem escreve no banco. Os votos são desenhados para os empates saírem exatos:
@@ -81,8 +81,10 @@ function repartir(total: number, partes: readonly number[]): number[] {
 
 export type EntradaEnsaio = {
   cenarioId: string;
-  /** Itens votáveis do evento (publicados e não desqualificados), com título e cartaz. */
+  /** Itens votáveis do evento (publicados e não desqualificados), com título, cartaz e categoria. */
   candidatos: readonly CandidatoPalco[];
+  /** As categorias do evento (25/11/2026): cada uma ganha a sua apuração inventada, como no resultado oficial. */
+  categorias?: readonly CategoriaPalco[];
   modulos: ModulosEvento;
   config: ConfigApresentacao;
   calculadoEm: Instante;
@@ -97,23 +99,35 @@ export function montarDadosEnsaio(entrada: EntradaEnsaio): DadosEnsaio | null {
   if (!tabela) return null;
 
   const grupos = gruposDe(entrada.modulos);
+  if (grupos.some((g) => !tabela[g])) return null;
+  // Com categorias, cada uma tem o seu A, B e C (e os seus empates); sem elas, o evento inteiro é uma lista só.
+  const categorias = (entrada.categorias ?? []).filter((cat) => candidatos.some((c) => c.categoriaId === cat.id));
+  const listas = categorias.length ? categorias.map((cat) => candidatos.filter((c) => c.categoriaId === cat.id)) : [candidatos];
   const votos: Record<Grupo, Record<string, number>> = { POPULAR: {}, JURI: {}, INFANTIL: {} };
   for (const g of grupos) {
-    const trio = tabela[g];
-    if (!trio) return null;
-    candidatos.forEach((c, i) => {
-      votos[g][c.id] = (i < 3 ? trio[i] : Math.max(1, VOTOS_DA_CAUDA - (i - 3))) * ESCALA;
-    });
+    const trio = tabela[g]!;
+    for (const lista of listas)
+      lista.forEach((c, i) => {
+        votos[g][c.id] = (i < 3 ? trio[i] : Math.max(1, VOTOS_DA_CAUDA - (i - 3))) * ESCALA;
+      });
   }
 
   const pesos = pesosDoEnsaio(entrada.modulos);
-  const dados = apurar({
-    candidatos: candidatos.map((c) => ({ id: c.id, ordem: c.ordem, desqualificado: false })),
-    votos,
-    pesos,
-    gruposAtivos: grupos,
-    criterio: criterioDoEnsaio(entrada.modulos),
-  });
+  const apurarLista = (lista: readonly CandidatoPalco[]) =>
+    apurar({
+      candidatos: lista.map((c) => ({ id: c.id, ordem: c.ordem, desqualificado: false })),
+      votos: {
+        POPULAR: Object.fromEntries(lista.map((c) => [c.id, votos.POPULAR[c.id] ?? 0])),
+        JURI: Object.fromEntries(lista.map((c) => [c.id, votos.JURI[c.id] ?? 0])),
+        INFANTIL: Object.fromEntries(lista.map((c) => [c.id, votos.INFANTIL[c.id] ?? 0])),
+      },
+      pesos,
+      gruposAtivos: grupos,
+      criterio: criterioDoEnsaio(entrada.modulos),
+    });
+  const dados = apurarLista(candidatos);
+  if (categorias.length)
+    dados.porCategoria = categorias.map((cat, i) => ({ categoriaId: cat.id, nome: cat.nome, premio: cat.premio, dados: apurarLista(listas[i]) }));
   const totalGeral = grupos.reduce((s, g) => s + dados.totais[g], 0);
   const base = { versao: 1, motivo: "ENCERRAMENTO" as const, calculadoEm: entrada.calculadoEm };
   return {
@@ -122,6 +136,7 @@ export function montarDadosEnsaio(entrada: EntradaEnsaio): DadosEnsaio | null {
     pesos,
     dados,
     candidatos,
+    categorias: [...(entrada.categorias ?? [])],
     config: entrada.config,
     modulos: entrada.modulos,
     candidatosNaDisputa: dados.ranking.length,

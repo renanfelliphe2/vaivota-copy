@@ -68,7 +68,15 @@ export function gerarSlugCategoria(nome: string, existentes: readonly string[]):
  * `descricao` ausente conta como vazia (opcional). `canal` ausente: a categoria salva mantém o dela, a nova nasce ONLINE. O
  * endereço não vem de quem edita: é gerado do nome (enderecosDasCategorias).
  */
-export type CategoriaEditada = { nome: string; premio: string; descricao?: string; canal?: CanalCategoria };
+export type CategoriaEditada = {
+  nome: string;
+  premio: string;
+  descricao?: string;
+  canal?: CanalCategoria;
+  /** Telão (25/11/2026): ausentes, ficam como estão. */
+  podioTamanho?: number;
+  mensagemTelao?: string | null;
+};
 
 /**
  * Endereço de cada categoria (24/11/2026): sempre gerado do nome, nunca digitado. As que estão em `manter` (índice → endereço
@@ -101,6 +109,9 @@ export function validarCategorias(lista: readonly CategoriaEditada[]): Record<st
     nomes.add(chave);
     if (c.premio.trim().length > LIMITES_CATEGORIA.premio) erros[`premio-${i}`] = "Use até 60 caracteres.";
     if ((c.descricao ?? "").trim().length > LIMITES_CATEGORIA.descricao) erros[`descricao-${i}`] = `Use até ${LIMITES_CATEGORIA.descricao} caracteres.`;
+    if (c.podioTamanho !== undefined && (!Number.isInteger(c.podioTamanho) || c.podioTamanho < 1 || c.podioTamanho > 10))
+      erros[`podio-${i}`] = "Use de 1 a 10 lugares.";
+    if ((c.mensagemTelao ?? "").trim().length > 60) erros[`mensagem-${i}`] = "Use até 60 caracteres.";
   });
   return erros;
 }

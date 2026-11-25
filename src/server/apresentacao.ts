@@ -2,7 +2,8 @@ import "server-only";
 import { assinaturaDoResultado } from "@/dominio/apresentacao/assinatura";
 import { cenariosDoEnsaio } from "@/dominio/apresentacao/cenariosEnsaio";
 import { MINIMO_ITENS_ENSAIO, montarDadosEnsaio } from "@/dominio/apresentacao/ensaio";
-import type { AcaoApresentacao, CandidatoPalco, DadosEnsaio, DadosRevelacao, EstadoAoVivo, StatusResultado } from "@/dominio/apresentacao/tipos";
+import { tamanhoDoPodio } from "@/dominio/apresentacao/cerimonia";
+import type { AcaoApresentacao, CandidatoPalco, CategoriaPalco, DadosEnsaio, DadosRevelacao, EstadoAoVivo, StatusResultado } from "@/dominio/apresentacao/tipos";
 import type { DadosResultado, MotivoResultado } from "@/dominio/tipos";
 import { resolverFaseConfig } from "@/dominio/travas";
 import { contarVotosPopulares } from "./apuracao";
@@ -25,17 +26,8 @@ async function resultadoAtual(eventoId: string): Promise<ResultadoLinha | null> 
   return db().resultadoOficial.findFirst({ where: { eventoId }, orderBy: { versao: "desc" } });
 }
 
-/**
- * Evento com categorias (09/11/2026): a apuração da categoria pedida (null se a versão não tem essa categoria); sem categoria
- * pedida, a do evento. A assinatura leva a categoria: a revelação de cada uma tem o seu próprio progresso.
- */
-function escopoDoResultado(dados: DadosResultado, categoriaId: string | undefined): DadosResultado | null {
-  if (!categoriaId) return dados;
-  return dados.porCategoria?.find((c) => c.categoriaId === categoriaId)?.dados ?? null;
-}
-
-function assinaturaDe(r: ResultadoLinha, fuso: string, categoriaId?: string): string {
-  const base = assinaturaDoResultado({
+function assinaturaDe(r: ResultadoLinha, fuso: string): string {
+  return assinaturaDoResultado({
     versao: r.versao,
     motivo: r.motivo as MotivoResultado,
     calculadoEm: instante(r.calculadoEm, fuso),
@@ -44,25 +36,43 @@ function assinaturaDe(r: ResultadoLinha, fuso: string, categoriaId?: string): st
     pesoInfantil: r.pesoInfantil,
     dados: r.dados as DadosResultado,
   });
-  return categoriaId ? `${base}:${categoriaId}` : base;
 }
 
-export async function obterStatusResultado(
-  usuario: UsuarioSessao | null,
-  eventoId: string,
-  categoriaId?: string,
-): Promise<Resultado<StatusResultado>> {
+/** As categorias como a cerimônia as usa (25/11/2026): ordem, pódio e os rótulos dos campos (para o crédito do vencedor). */
+async function categoriasDaCerimonia(eventoId: string): Promise<CategoriaPalco[]> {
+  const [categorias, campos] = await Promise.all([
+    db().categoria.findMany({ where: { eventoId }, orderBy: [{ ordem: "asc" }, { id: "asc" }] }),
+    db().campoCandidato.findMany({ where: { eventoId }, select: { categoriaId: true, chave: true, rotulo: true } }),
+  ]);
+  return categorias.map((c) => ({
+    id: c.id,
+    nome: c.nome,
+    premio: c.premio,
+    canal: c.canal,
+    ordem: c.ordem,
+    podioTamanho: tamanhoDoPodio(c.podioTamanho),
+    podioVotos: c.podioVotos ?? [],
+    campos: campos.filter((x) => x.categoriaId === c.id).map((x) => ({ chave: x.chave, rotulo: x.rotulo })),
+  }));
+}
+
+function extrasDe(v: unknown): Record<string, string> | null {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  return Object.fromEntries(Object.entries(v as Record<string, unknown>).filter((e): e is [string, string] => typeof e[1] === "string"));
+}
+
+/** Cerimônia (25/11/2026): uma revelação só para o evento inteiro; o status é do resultado do evento. */
+export async function obterStatusResultado(usuario: UsuarioSessao | null, eventoId: string): Promise<Resultado<StatusResultado>> {
   const admin = await exigirAdmin(usuario, eventoId);
   if (!admin.ok) return admin;
   const { evento } = admin.dados;
   try {
     // Sem resultado fora das fases de encerramento: a versão só existe depois que a urna fecha.
     const atual = faseComResultado(evento) ? await resultadoAtual(eventoId) : null;
-    const existe = atual !== null && escopoDoResultado(atual.dados as DadosResultado, categoriaId) !== null;
     return sucesso({
-      existe,
-      versao: existe ? atual.versao : null,
-      assinatura: existe ? assinaturaDe(atual, evento.fusoHorario, categoriaId) : null,
+      existe: atual !== null,
+      versao: atual?.versao ?? null,
+      assinatura: atual ? assinaturaDe(atual, evento.fusoHorario) : null,
     });
   } catch (e) {
     return falhaInterna(e, "obterStatusResultado");
@@ -74,7 +84,7 @@ async function candidatosVotaveis(eventoId: string) {
   return db().candidato.findMany({
     where: { eventoId, publicado: true, desqualificado: false },
     orderBy: [{ ordem: "asc" }, { id: "asc" }],
-    select: { id: true, titulo: true, imagemUrl: true, ordem: true },
+    select: { id: true, titulo: true, imagemUrl: true, ordem: true, categoriaId: true, camposExtras: true },
   });
 }
 
@@ -103,36 +113,37 @@ export async function obterEstadoAoVivo(usuario: UsuarioSessao | null, eventoId:
 }
 
 /**
- * Uma vez por cerimônia: o resultado oficial como o palco o lê (a versão mais recente, com os itens publicados no momento).
- * Evento com categorias (09/11/2026): a revelação é de uma categoria por vez (`categoriaId`), com a apuração e os itens dela.
+ * Uma vez por cerimônia: o resultado oficial como o palco o lê (a versão mais recente, com os itens publicados no momento). Cerimônia
+ * (25/11/2026): o evento inteiro de uma vez (a ordem da revelação atravessa as categorias), com a configuração de cada categoria.
  */
-export async function carregarRevelacao(usuario: UsuarioSessao | null, eventoId: string, categoriaId?: string): Promise<Resultado<DadosRevelacao>> {
+export async function carregarRevelacao(usuario: UsuarioSessao | null, eventoId: string): Promise<Resultado<DadosRevelacao>> {
   const admin = await exigirAdmin(usuario, eventoId);
   if (!admin.ok) return admin;
   const { evento } = admin.dados;
   if (!faseComResultado(evento)) return falha("RESULTADO_INDISPONIVEL", { detalhe: "revelação fora da fase" });
   try {
-    const [atual, config, publicados] = await Promise.all([
+    const [atual, config, publicados, categorias] = await Promise.all([
       resultadoAtual(eventoId),
       db().configApresentacao.findUnique({ where: { eventoId } }),
       db().candidato.findMany({
-        where: { eventoId, publicado: true, ...(categoriaId ? { categoriaId } : {}) },
+        where: { eventoId, publicado: true },
         orderBy: [{ ordem: "asc" }, { id: "asc" }],
-        select: { id: true, titulo: true, imagemUrl: true, ordem: true },
+        select: { id: true, titulo: true, imagemUrl: true, ordem: true, categoriaId: true, camposExtras: true },
       }),
+      categoriasDaCerimonia(eventoId),
     ]);
     if (!atual || !config) return falha("RESULTADO_INDISPONIVEL", { detalhe: "sem versão" });
-    const dados = escopoDoResultado(atual.dados as unknown as DadosResultado, categoriaId);
-    if (!dados) return falha("RESULTADO_INDISPONIVEL", { detalhe: `versão ${atual.versao} sem a categoria ${categoriaId}` });
+    const dados = atual.dados as unknown as DadosResultado;
     const fuso = evento.fusoHorario;
     return sucesso({
       versao: atual.versao,
       motivo: atual.motivo as MotivoResultado,
       calculadoEm: instante(atual.calculadoEm, fuso),
-      assinatura: assinaturaDe(atual, fuso, categoriaId),
+      assinatura: assinaturaDe(atual, fuso),
       pesos: { POPULAR: atual.pesoPopular, JURI: atual.pesoJuri, INFANTIL: atual.pesoInfantil },
       dados,
-      candidatos: publicados,
+      candidatos: publicados.map((c) => ({ ...c, camposExtras: extrasDe(c.camposExtras) })),
+      categorias,
       config: apresentacaoParaDominio(config, fuso),
       modulos: { juri: evento.moduloJuri, infantil: evento.moduloInfantil },
       candidatosNaDisputa: dados.ranking.length,
@@ -151,14 +162,19 @@ export async function obterDadosEnsaio(usuario: UsuarioSessao | null, eventoId: 
   if (!cenariosDoEnsaio(modulos).includes(cenarioId))
     return falha("VALIDACAO", { mensagem: "Este cenário não está disponível neste evento.", detalhe: cenarioId });
   try {
-    const [config, votaveis] = await Promise.all([db().configApresentacao.findUnique({ where: { eventoId } }), candidatosVotaveis(eventoId)]);
+    const [config, votaveis, categorias] = await Promise.all([
+      db().configApresentacao.findUnique({ where: { eventoId } }),
+      candidatosVotaveis(eventoId),
+      categoriasDaCerimonia(eventoId),
+    ]);
     if (!config) return falha("NAO_ENCONTRADO", { detalhe: "evento sem ConfigApresentacao" });
     if (votaveis.length < MINIMO_ITENS_ENSAIO)
       return falha("VALIDACAO", { mensagem: `Publique pelo menos ${MINIMO_ITENS_ENSAIO} itens para ensaiar a cerimônia.`, detalhe: `${votaveis.length} votáveis` });
-    const candidatos: CandidatoPalco[] = votaveis;
+    const candidatos: CandidatoPalco[] = votaveis.map((c) => ({ ...c, camposExtras: extrasDe(c.camposExtras) }));
     const dados = montarDadosEnsaio({
       cenarioId,
       candidatos,
+      categorias,
       modulos,
       config: apresentacaoParaDominio(config, evento.fusoHorario),
       calculadoEm: instante(new Date(), evento.fusoHorario),

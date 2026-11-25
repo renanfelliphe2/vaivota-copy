@@ -75,25 +75,28 @@ export function duracaoDoPasso(cena: Cena, passo: number, trailer: EstadoTrailer
     case "TRAILER":
       if (passo === 1) return DURACOES.chamadaVencedores;
       return trailer === "CARREGANDO" ? null : trailer === "LINK" ? DURACOES.trailerLink : DURACOES.trailerGerado;
-    case "CATEGORIA":
-      return [DURACOES.suspense, DURACOES.nome, DURACOES.detalhe][passo] ?? DURACOES.detalhe;
+    case "TROFEU":
+    case "POSICAO":
+      return passo === 0 ? DURACOES.contagem : DURACOES.revelado;
     case "DESEMPATE":
       return DURACOES.desempatePasso;
-    case "PODIO":
-      return DURACOES.podioPasso;
-    case "CLASSIFICACAO":
-      return DURACOES.classificacaoPagina;
+    case "RESULTADO":
+      return DURACOES.resultadoCategoria;
     case "FINAL":
       return null;
   }
 }
 
 /**
- * As duas cenas iniciais do ensaio seguem tempos fixos mesmo no modo manual; a chamada depois do trailer
- * (08/10/2026) também, como uma vinheta.
+ * As duas cenas iniciais do ensaio seguem tempos fixos mesmo no modo manual; a chamada depois do trailer (08/10/2026) também,
+ * como uma vinheta, e a contagem 3, 2, 1 antes de cada vencedor (25/11/2026): o admin avança para a contagem e ela revela sozinha.
  */
 export function avancaSozinha(cena: Cena, modo: ModoAvanco, passo = 0): boolean {
   return (
-    modo === "AUTOMATICO" || cena.tipo === "AO_VIVO_ENSAIO" || cena.tipo === "ENCERRADA_ENSAIO" || (cena.tipo === "TRAILER" && passo === 1)
+    modo === "AUTOMATICO" ||
+    cena.tipo === "AO_VIVO_ENSAIO" ||
+    cena.tipo === "ENCERRADA_ENSAIO" ||
+    (cena.tipo === "TRAILER" && passo === 1) ||
+    ((cena.tipo === "TROFEU" || cena.tipo === "POSICAO") && passo === 0)
   );
 }

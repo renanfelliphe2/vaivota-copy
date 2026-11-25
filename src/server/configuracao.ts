@@ -1,8 +1,9 @@
 import "server-only";
+import { lerOrdem, lerTrofeus } from "@/dominio/apresentacao/cerimonia";
 import { avaliarContrasteTema } from "@/dominio/contrasteTema";
 import { validarSobre } from "@/dominio/sobreEvento";
 import { validarConfigTelao } from "@/dominio/telao";
-import type { Evento, OpcoesTelao, RegraDesempate } from "@/dominio/tipos";
+import type { ConfigTrofeu, Evento, Grupo, OpcoesTelao, OrdemCerimonia, RegraDesempate } from "@/dominio/tipos";
 import { exigirAcao, resolverFaseConfig, type AcaoConfig } from "@/dominio/travas";
 import {
   validarDescricaoEvento,
@@ -259,6 +260,67 @@ export async function salvarApresentacao(usuario: UsuarioSessao | null, eventoId
     return sucesso(null);
   } catch (e) {
     return falhaInterna(e, "salvarApresentacao");
+  }
+}
+
+export type DadosCerimonia = {
+  trofeus: Record<Grupo, ConfigTrofeu>;
+  /** Nome de cada troféu (os `rotuloCategoria*` da configuração). */
+  rotulos: Record<Grupo, string>;
+  ordem: OrdemCerimonia;
+};
+
+/**
+ * Cerimônia no telão (25/11/2026): troféus (ligado, nome, por categoria ou no evento todo, com ou sem os votos) e a ordem da
+ * revelação. Livre em toda fase, como o resto do telão: muda só o que a tela mostra, nunca a apuração.
+ */
+export async function salvarCerimonia(usuario: UsuarioSessao | null, eventoId: string, dados: DadosCerimonia): Promise<Resultado<null>> {
+  const admin = await exigirAdmin(usuario, eventoId);
+  if (!admin.ok) return admin;
+  const { evento, usuarioId } = admin.dados;
+  const trava = exigirAcao(evento, "APRESENTACAO");
+  if (!trava.ok) return trava;
+  const rotulos = { POPULAR: dados.rotulos.POPULAR.trim(), JURI: dados.rotulos.JURI.trim(), INFANTIL: dados.rotulos.INFANTIL.trim() };
+  const erros: Record<string, string> = {};
+  for (const g of ["POPULAR", "JURI", "INFANTIL"] as const)
+    if (rotulos[g].length < 2 || rotulos[g].length > 60) erros[`rotulo-${g}`] = "Use de 2 a 60 caracteres.";
+  if (Object.keys(erros).length) return falha("VALIDACAO", { campos: erros });
+  const trofeus = lerTrofeus(dados.trofeus);
+  const ordem = lerOrdem(dados.ordem);
+  const atual = await db().configApresentacao.findUnique({ where: { eventoId } });
+  if (!atual) return falha("NAO_ENCONTRADO");
+  const de = {
+    trofeus: lerTrofeus(atual.trofeus),
+    rotulos: { POPULAR: atual.rotuloCategoriaPublico, JURI: atual.rotuloCategoriaJuri, INFANTIL: atual.rotuloCategoriaInfantil },
+    ordem: lerOrdem(atual.ordemRevelacao),
+  };
+  const para = { trofeus, rotulos, ordem };
+  if (JSON.stringify(de) === JSON.stringify(para)) return sucesso(null);
+  try {
+    await db().$transaction(async (tx) => {
+      await tx.configApresentacao.update({
+        where: { eventoId },
+        data: {
+          trofeus,
+          ordemRevelacao: ordem,
+          rotuloCategoriaPublico: rotulos.POPULAR,
+          rotuloCategoriaJuri: rotulos.JURI,
+          rotuloCategoriaInfantil: rotulos.INFANTIL,
+        },
+      });
+      await registrarAuditoria(tx, {
+        eventoId,
+        usuarioId,
+        acao: "CONFIG_ALTERADA",
+        entidade: "config_apresentacao",
+        entidadeId: eventoId,
+        detalhes: { cerimonia: { trofeus, rotulos, modelo: ordem.modelo, ultimoPrimeiro: ordem.ultimoPrimeiro, itens: ordem.itens.length } },
+      });
+    });
+    invalidarEstadoPublico();
+    return sucesso(null);
+  } catch (e) {
+    return falhaInterna(e, "salvarCerimonia");
   }
 }
 

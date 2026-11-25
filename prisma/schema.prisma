@@ -327,6 +327,10 @@ model ConfigApresentacao {
   telaoMostrarTempo        Boolean    @default(true) @map("telao_mostrar_tempo")
   telaoMostrarQr           Boolean    @default(true) @map("telao_mostrar_qr")
   telaoMostrarLink         Boolean    @default(true) @map("telao_mostrar_link")
+  // Cerimônia (25/11/2026): os troféus por tipo de votação (ligado, por categoria ou no evento todo, com ou sem os votos) e a
+  // ordem da revelação (modelo, do último para o 1º, lista personalizada). JSON validado no domínio (cerimonia.ts); null = padrão.
+  trofeus                  Json?      @map("trofeus")
+  ordemRevelacao           Json?      @map("ordem_revelacao")
   atualizadoEm             DateTime   @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
   evento Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
@@ -369,6 +373,11 @@ model Categoria {
   descricao    String?        @db.VarChar(600)
   canal        CanalCategoria @default(ONLINE)
   ordem        Int            @default(0)
+  // Telão (25/11/2026): quantas posições a revelação mostra (1 = só o vencedor; CHECK de 1 a 10), em quais delas aparecem os
+  // votos e a porcentagem (índice 0 = 1º lugar; sem valor, só o 1º mostra) e, na categoria do totem, a frase no lugar do QR Code.
+  podioTamanho Int            @default(3) @map("podio_tamanho")
+  podioVotos   Boolean[]      @default([]) @map("podio_votos")
+  mensagemTelao String?       @map("mensagem_telao") @db.VarChar(60)
   criadoEm     DateTime       @default(now()) @map("criado_em") @db.Timestamptz(3)
   atualizadoEm DateTime       @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 

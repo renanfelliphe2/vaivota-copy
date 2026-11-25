@@ -1,13 +1,13 @@
 // Etapa 8 (seção 5.5, P3): durações em ms, ajustáveis.
 
 export const DURACOES = {
-  /** 08/10/2026: roleta de suspense da categoria (era 2500). */
-  suspense: 3500,
-  nome: 4000,
-  detalhe: 4000,
+  /** Cerimônia (25/11/2026): a contagem 3, 2, 1 antes de cada vencedor (um segundo por número, mais a virada). */
+  contagem: 3300,
+  /** O vencedor revelado, no modo automático. */
+  revelado: 8000,
+  /** O resultado de uma categoria, no modo automático; no final, o tempo de cada categoria na rotação. */
+  resultadoCategoria: 15000,
   desempatePasso: 5000,
-  podioPasso: 4000,
-  classificacaoPagina: 6000,
   trailerLink: 60000,
   trailerGerado: 12000,
   limiteCargaTrailer: 8000,

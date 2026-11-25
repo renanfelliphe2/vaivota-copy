@@ -1,5 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
+import { PODIO } from "@/dominio/apresentacao/cerimonia";
 import { enderecosDasCategorias, validarCategorias } from "@/dominio/categorias";
 import type { CanalCategoria, TipoCampo } from "@/dominio/tipos";
 import { exigirAcao } from "@/dominio/travas";
@@ -29,6 +30,10 @@ export type CategoriaEditadaServidor = {
   slug?: string;
   /** D1 (25/11/2026): só na categoria nova, a categoria (do mesmo evento) de onde copiar os campos extras. */
   copiarCamposDe?: string | null;
+  /** Telão (25/11/2026): ausentes, a categoria mantém os dela (a nova nasce com o padrão). */
+  podioTamanho?: number;
+  podioVotos?: boolean[];
+  mensagemTelao?: string | null;
 };
 
 export async function salvarCategorias(
@@ -42,7 +47,17 @@ export async function salvarCategorias(
   const { usuarioId } = admin.dados;
   const trava = exigirAcao(admin.dados.evento, "CATEGORIAS_ROTULO");
   if (!trava.ok) return trava;
-  const limpa = lista.map((c) => ({ id: c.id, nome: c.nome.trim(), premio: c.premio.trim(), descricao: c.descricao?.trim(), canal: c.canal, copiarCamposDe: c.copiarCamposDe }));
+  const limpa = lista.map((c) => ({
+    id: c.id,
+    nome: c.nome.trim(),
+    premio: c.premio.trim(),
+    descricao: c.descricao?.trim(),
+    canal: c.canal,
+    copiarCamposDe: c.copiarCamposDe,
+    podioTamanho: c.podioTamanho,
+    podioVotos: c.podioVotos?.slice(0, PODIO.maximo),
+    mensagemTelao: c.mensagemTelao === undefined ? undefined : c.mensagemTelao?.trim() || null,
+  }));
   const campos = validarCategorias(limpa);
   if (Object.keys(campos).length > 0) return falha("VALIDACAO", { campos });
   const ids = limpa.flatMap((c) => (c.id ? [c.id] : []));
@@ -115,7 +130,17 @@ export async function salvarCategorias(
     }
     const camposCopiados: { categoria: string; de: string; campos: number }[] = [];
     for (const [i, c] of comSlug.entries()) {
-      const dados = { nome: c.nome, premio: c.premio || null, ...(c.descricao !== undefined && { descricao: c.descricao || null }), slug: c.slug, canal: c.canal, ordem: i + 1 };
+      const dados = {
+        nome: c.nome,
+        premio: c.premio || null,
+        ...(c.descricao !== undefined && { descricao: c.descricao || null }),
+        ...(c.podioTamanho !== undefined && { podioTamanho: c.podioTamanho }),
+        ...(c.podioVotos !== undefined && { podioVotos: c.podioVotos }),
+        ...(c.mensagemTelao !== undefined && { mensagemTelao: c.mensagemTelao }),
+        slug: c.slug,
+        canal: c.canal,
+        ordem: i + 1,
+      };
       if (c.id) await tx.categoria.update({ where: { id: c.id }, data: dados });
       else {
         const nova = await tx.categoria.create({ data: { eventoId, ...dados }, select: { id: true } });

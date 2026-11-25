@@ -1,3 +1,4 @@
+import { ORDEM_PADRAO, TROFEUS_PADRAO } from "@/dominio/apresentacao/cerimonia";
 import type { EstadoPublico } from "@/dominio/estadoPublico";
 import type { Candidato, Evento } from "@/dominio/tipos";
 
@@ -97,6 +98,8 @@ export function publico(sobrescrever: Partial<EstadoPublico> = {}): EstadoPublic
           limiarRetaFinalSegundos: 300,
           telaoIntervaloSegundos: 15,
           telaoMostrar: { candidatos: true, tempo: true, qr: true, link: true },
+          trofeus: structuredClone(TROFEUS_PADRAO),
+          ordemRevelacao: structuredClone(ORDEM_PADRAO),
           atualizadoEm: AGORA,
         },
         camposCandidato: [{ id: "c1", eventoId: "evt-1", categoriaId: "cat-1", chave: "equipe", rotulo: "Equipe", tipo: "TEXTO", ordem: 1 }],

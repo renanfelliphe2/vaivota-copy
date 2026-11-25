@@ -288,22 +288,19 @@ describe("resultado e telão por categoria", () => {
     expect(totalDe(0) + totalDe(1) + totalDe(2)).toBe(dados.totais.POPULAR);
   });
 
-  it("o telão revela uma categoria por vez: itens, apuração e assinatura dela", async () => {
-    const [a, b] = categorias;
-    const statusA = await obterStatusResultado(admin, eventoId, a.id);
-    const statusB = await obterStatusResultado(admin, eventoId, b.id);
-    expect(statusA.ok && statusA.dados.existe).toBe(true);
-    expect(statusA.ok && statusB.ok && statusA.dados.assinatura !== statusB.dados.assinatura).toBe(true);
+  it("o telão carrega a cerimônia do evento inteiro: todas as categorias, com a apuração e o pódio de cada uma", async () => {
+    const status = await obterStatusResultado(admin, eventoId);
+    expect(status.ok && status.dados.existe).toBe(true);
 
-    const revelacao = await carregarRevelacao(admin, eventoId, a.id);
+    const revelacao = await carregarRevelacao(admin, eventoId);
     expect(revelacao.ok).toBe(true);
     if (!revelacao.ok) return;
-    expect(revelacao.dados.candidatos.map((c) => c.id).sort()).toEqual([...itens[0]].sort());
-    expect(revelacao.dados.dados.ranking.find((r) => r.posicao === 1)?.candidatoId).toBe(itens[0][1]);
-    expect(revelacao.dados.assinatura).toBe(statusA.ok ? statusA.dados.assinatura : null);
-
-    expect(await obterStatusResultado(admin, eventoId, "nao-existe")).toMatchObject({ ok: true, dados: { existe: false, assinatura: null } });
-    expect(await carregarRevelacao(admin, eventoId, "nao-existe")).toMatchObject({ ok: false, erro: { codigo: "RESULTADO_INDISPONIVEL" } });
+    expect(revelacao.dados.assinatura).toBe(status.ok ? status.dados.assinatura : null);
+    expect(revelacao.dados.candidatos.map((c) => c.id).sort()).toEqual(itens.flat().sort());
+    expect(revelacao.dados.categorias.map((c) => c.id)).toEqual(categorias.map((c) => c.id));
+    expect(revelacao.dados.categorias.every((c) => c.podioTamanho === 3)).toBe(true);
+    const primeira = revelacao.dados.dados.porCategoria!.find((c) => c.categoriaId === categorias[0].id)!;
+    expect(primeira.dados.ranking.find((r) => r.posicao === 1)?.candidatoId).toBe(itens[0][1]);
   });
 });
 
