@@ -148,7 +148,7 @@ describe("cerimônia: ordem da revelação (25/11/2026)", () => {
   >[1];
   const todos = ["POPULAR", "JURI", "INFANTIL"] as const;
   const ids = (modelo: OrdemCerimonia["modelo"], extra: Partial<OrdemCerimonia> = {}, trofeus = doEvento, categorias = cats) =>
-    ordenarCerimonia(categorias, trofeus, todos, { modelo, ultimoPrimeiro: false, itens: [], ...extra }).map((x) => x.id);
+    ordenarCerimonia(categorias, trofeus, todos, { modelo, ultimoPrimeiro: false, itens: [], mostrarDesempate: true, ...extra }).map((x) => x.id);
 
   it("por categoria (1º exemplo)", () => {
     expect(ids("CATEGORIA")).toEqual(["T:POPULAR", "T:JURI", "T:INFANTIL", "P:A:1", "P:A:2", "P:A:3", "P:B:1", "P:B:2", "P:B:3", "P:C:1", "P:C:2", "P:C:3"]);
@@ -166,7 +166,7 @@ describe("cerimônia: ordem da revelação (25/11/2026)", () => {
   it("troféu por categoria entra no bloco da categoria; desligado ou de votação desligada, sai", () => {
     const misto = { ...doEvento, JURI: { ativo: true, escopo: "CATEGORIA", mostrarVotos: true }, INFANTIL: { ativo: false, escopo: "EVENTO", mostrarVotos: true } } as typeof doEvento;
     expect(ids("CATEGORIA", {}, misto, cats.slice(0, 2))).toEqual(["T:POPULAR", "T:JURI:A", "P:A:1", "P:A:2", "P:A:3", "T:JURI:B", "P:B:1", "P:B:2", "P:B:3"]);
-    expect(ordenarCerimonia(cats.slice(0, 1), doEvento, ["POPULAR"], { modelo: "CATEGORIA", ultimoPrimeiro: false, itens: [] }).map((x) => x.id)).toEqual([
+    expect(ordenarCerimonia(cats.slice(0, 1), doEvento, ["POPULAR"], { modelo: "CATEGORIA", ultimoPrimeiro: false, itens: [], mostrarDesempate: true }).map((x) => x.id)).toEqual([
       "T:POPULAR",
       "P:A:1",
       "P:A:2",
@@ -177,7 +177,7 @@ describe("cerimônia: ordem da revelação (25/11/2026)", () => {
     expect(ids("PERSONALIZADA", { itens: ["P:C:3", "T:JURI", "nao-existe", "P:C:3"] }, doEvento, cats.slice(2))).toEqual(["P:C:3", "T:JURI", "T:POPULAR", "T:INFANTIL", "P:C:1", "P:C:2"]);
   });
 
-  it("com categorias: o resultado de cada uma logo depois do último item dela", () => {
+  it("com categorias: o resultado de cada uma logo depois do último item dela (nenhum na que revela só o vencedor)", () => {
     const lista = (ids: string[], votos: number[]) => ({ ids, votos });
     const grupos = [lista(["a1", "a2", "a3"], [30, 20, 10]), lista(["b1", "b2"], [5, 15])];
     const apurarLista = (l: { ids: string[]; votos: number[] }) =>
@@ -199,9 +199,9 @@ describe("cerimônia: ordem da revelação (25/11/2026)", () => {
     ];
     const base = entradaPadrao(geral);
     const entrada = { ...base, categorias, config: { ...base.config, trofeus: { ...base.config.trofeus, POPULAR: { ativo: true, escopo: "EVENTO" as const, mostrarVotos: false } } } };
-    const porPosicao = { ...entrada, config: { ...entrada.config, ordemRevelacao: { modelo: "POSICAO" as const, ultimoPrimeiro: true, itens: [] } } };
-    expect(texto(montarRoteiro(porPosicao, { modo: "REAL" }))).toBe("TRAILER, T:POPULAR, P:A:3, P:A:2, P:A:1, R:A, P:B:1, R:B, FINAL");
-    expect(texto(montarRoteiro(entrada, { modo: "REAL" }))).toBe("TRAILER, T:POPULAR, P:A:3, P:A:2, P:A:1, R:A, P:B:1, R:B, FINAL");
+    const porPosicao = { ...entrada, config: { ...entrada.config, ordemRevelacao: { modelo: "POSICAO" as const, ultimoPrimeiro: true, itens: [], mostrarDesempate: true } } };
+    expect(texto(montarRoteiro(porPosicao, { modo: "REAL" }))).toBe("TRAILER, T:POPULAR, P:A:3, P:A:2, P:A:1, R:A, P:B:1, FINAL");
+    expect(texto(montarRoteiro(entrada, { modo: "REAL" }))).toBe("TRAILER, T:POPULAR, P:A:3, P:A:2, P:A:1, R:A, P:B:1, FINAL");
 
     const roteiro = montarRoteiro(entrada, { modo: "REAL" });
     const trofeu = montarProps(entrada, roteiro, 1, 1);

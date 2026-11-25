@@ -20,7 +20,7 @@ export const TROFEUS_PADRAO: Record<Grupo, ConfigTrofeu> = {
   INFANTIL: { ativo: true, escopo: "CATEGORIA", mostrarVotos: true },
 };
 
-export const ORDEM_PADRAO: OrdemCerimonia = { modelo: "CATEGORIA", ultimoPrimeiro: true, itens: [] };
+export const ORDEM_PADRAO: OrdemCerimonia = { modelo: "CATEGORIA", ultimoPrimeiro: true, itens: [], mostrarDesempate: true };
 
 export const MODELOS_ORDEM: readonly ModeloOrdemCerimonia[] = ["CATEGORIA", "POSICAO", "INTERCALADO", "PERSONALIZADA"];
 
@@ -55,7 +55,12 @@ export function lerOrdem(v: unknown): OrdemCerimonia {
   const o = objeto(v);
   const modelo = MODELOS_ORDEM.includes(o?.modelo as ModeloOrdemCerimonia) ? (o!.modelo as ModeloOrdemCerimonia) : ORDEM_PADRAO.modelo;
   const itens = Array.isArray(o?.itens) ? (o!.itens as unknown[]).filter((x): x is string => typeof x === "string").slice(0, LIMITE_ITENS_ORDEM) : [];
-  return { modelo, ultimoPrimeiro: typeof o?.ultimoPrimeiro === "boolean" ? o.ultimoPrimeiro : ORDEM_PADRAO.ultimoPrimeiro, itens };
+  return {
+    modelo,
+    ultimoPrimeiro: typeof o?.ultimoPrimeiro === "boolean" ? o.ultimoPrimeiro : ORDEM_PADRAO.ultimoPrimeiro,
+    itens,
+    mostrarDesempate: typeof o?.mostrarDesempate === "boolean" ? o.mostrarDesempate : ORDEM_PADRAO.mostrarDesempate,
+  };
 }
 
 /** Os votos e a porcentagem aparecem nesta posição? Sem valor gravado, só no 1º lugar. */

@@ -156,7 +156,7 @@ function Form({ evento, config, categorias, travas }: { evento: Evento; config: 
 
       <fieldset disabled={!pode} className="flex flex-col gap-3">
         <legend className="mb-1 font-semibold">Ordem da apresentação</legend>
-        <p className="-mt-1 text-sm text-tema-texto-suave">Comece por um modelo e ajuste com as setas. O resultado de cada categoria entra logo depois do último item dela.</p>
+        <p className="-mt-1 text-sm text-tema-texto-suave">Comece por um modelo e ajuste com as setas. O resultado de cada categoria entra logo depois do último item dela (menos nas que revelam só o vencedor). No fim, uma tela com os vencedores de todas.</p>
         <div className="flex flex-wrap items-center gap-3">
           <div role="group" aria-label="Modelo da ordem" className="inline-flex flex-wrap overflow-hidden rounded-xl border border-tema-borda">
             {MODELOS.map((m) => (
@@ -173,14 +173,22 @@ function Form({ evento, config, categorias, travas }: { evento: Evento; config: 
             <input type="checkbox" checked={ordem.ultimoPrimeiro} onChange={(e) => mudarOrdem({ ultimoPrimeiro: e.target.checked })} className="size-5 accent-tema-primaria" />
             Do último lugar para o 1º
           </label>
+          <label className="inline-flex items-center gap-2 text-sm font-semibold">
+            <input type="checkbox" checked={ordem.mostrarDesempate} onChange={(e) => mudarOrdem({ mostrarDesempate: e.target.checked })} className="size-5 accent-tema-primaria" />
+            Mostrar a tela do critério de desempate
+          </label>
         </div>
+        {!ordem.mostrarDesempate && (
+          <p className="-mt-1 text-sm text-tema-texto-suave">Em caso de empate, a revelação vai direto para quem ficou com a posição.</p>
+        )}
         {itens.length === 0 ? (
           <Alerta variante="informacao">Nenhum item para revelar: ligue um troféu ou crie uma categoria.</Alerta>
         ) : (
           <ol className="flex flex-col gap-1.5">
             {itens.map((x, i) => {
               const r = rotuloDoItem(x, cats, configAtual);
-              const fim = x.categoriaId && ultimoDa.get(x.categoriaId) === i ? cats.find((c) => c.id === x.categoriaId) : null;
+              // Só o vencedor: sem tela de resultado (ele acabou de aparecer; volta no final, com os de todas as categorias).
+              const fim = x.categoriaId && ultimoDa.get(x.categoriaId) === i ? cats.find((c) => c.id === x.categoriaId && c.podioTamanho > 1) : null;
               return (
                 <li key={x.id} className="flex flex-col gap-1.5">
                   <div className={cx("grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-tema-borda py-1.5 pr-1.5 pl-3", x.tipo === "TROFEU" ? "bg-tema-superficie" : "bg-tema-fundo")}>

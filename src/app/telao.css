@@ -10,6 +10,8 @@
   --tc-pelicula: #141110;
   --tc-quadro: #221a16;
   --tc-luz: #fff4e0;
+  /* Os holofotes do trailer (Cinema.tsx) varrem todas as cenas do telão, com a mesma luz. */
+  --cinema-luz: color-mix(in srgb, var(--tema-secundaria) 40%, #ffffff);
   --tc-suave: color-mix(in srgb, #fff4e0 80%, transparent);
   --tc-apagado: color-mix(in srgb, #fff4e0 56%, transparent);
   --tc-linha: color-mix(in srgb, #fff4e0 14%, transparent);

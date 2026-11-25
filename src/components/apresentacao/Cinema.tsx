@@ -22,8 +22,8 @@ export function atraso(ms: number, extra: Record<string, string | number> = {}):
   return vars({ "--atraso": `${ms}ms`, ...extra });
 }
 
-/** Feixes que varrem o palco, vindos de cima. */
-function Holofotes({ rapidos }: { rapidos?: boolean }) {
+/** Feixes que varrem o palco, vindos de cima. Também no fundo de todas as cenas do telão (FundoSala, 25/11/2026). */
+export function Holofotes({ rapidos }: { rapidos?: boolean }) {
   const feixes = [
     { left: "18%", de: "-32deg", ate: "18deg", dur: rapidos ? "2.4s" : "7s", atraso: "0ms" },
     { left: "82%", de: "30deg", ate: "-16deg", dur: rapidos ? "2.1s" : "8s", atraso: "-2s" },

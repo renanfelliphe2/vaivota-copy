@@ -84,9 +84,10 @@ export function montarRoteiro(entrada: EntradaCerimonia, opcoes: { modo: ModoRev
     }
   }
 
-  // Desempate antes da primeira posição que ele decide (só os que mexem no pódio daquela categoria).
+  // Desempate antes da primeira posição que ele decide (só os que mexem no pódio daquela categoria). Desligado na configuração
+  // (25/11/2026), a revelação vai direto para quem ficou com a posição.
   const antes = new Map<number, Cena[]>();
-  for (const e of escopos) {
+  for (const e of entrada.config.ordemRevelacao.mostrarDesempate ? escopos : []) {
     e.dados.empates.forEach((empate, empateIndex) => {
       const posicoes = new Set(empate.candidatoIds.map((id) => posicaoDoItem(e.dados, id)).filter((p) => p <= e.categoria.podioTamanho));
       if (posicoes.size === 0) return;
@@ -97,11 +98,13 @@ export function montarRoteiro(entrada: EntradaCerimonia, opcoes: { modo: ModoRev
   }
   const comDesempates = sequencia.flatMap((c, i) => [...(antes.get(i) ?? []), c]);
 
-  // O resultado de cada categoria logo depois do último item dela.
+  // O resultado de cada categoria logo depois do último item dela. Categoria que revela só o vencedor não tem (25/11/2026): ele
+  // acabou de aparecer, a tela só repetiria; os vencedores voltam todos juntos no FINAL.
   const ultimo = new Map<string, number>();
   comDesempates.forEach((c, i) => {
     if ((c.tipo === "TROFEU" && c.categoriaId) || c.tipo === "POSICAO" || c.tipo === "DESEMPATE") ultimo.set(c.categoriaId!, i);
   });
+  for (const e of escopos) if (e.categoria.podioTamanho === 1) ultimo.delete(e.categoria.id);
   comDesempates.forEach((c, i) => {
     cenas.push(c);
     for (const [categoriaId, j] of ultimo) if (j === i) cenas.push({ tipo: "RESULTADO", categoriaId });
@@ -253,7 +256,7 @@ export function montarResultado(entrada: EntradaCerimonia, e: EscopoCategoria): 
   };
 }
 
-/** Os resultados de todas as categorias com itens, na ordem (cena FINAL e final estático). */
+/** Os resultados de todas as categorias com itens, na ordem (cena FINAL e final estático: o vencedor de cada uma). */
 export function montarFinal(entrada: EntradaCerimonia): PropsResultado[] {
   return escoposDaCerimonia(entrada)
     .filter((e) => e.dados.ranking.length > 0)

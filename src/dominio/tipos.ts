@@ -219,7 +219,13 @@ export type ConfigTrofeu = { ativo: boolean; escopo: EscopoTrofeu; mostrarVotos:
  * (ids de `itensDaCerimonia`), e o que faltar nela entra no fim. `ultimoPrimeiro`: cada pódio vai do último lugar ao 1º.
  */
 export type ModeloOrdemCerimonia = "CATEGORIA" | "POSICAO" | "INTERCALADO" | "PERSONALIZADA";
-export type OrdemCerimonia = { modelo: ModeloOrdemCerimonia; ultimoPrimeiro: boolean; itens: string[] };
+export type OrdemCerimonia = {
+  modelo: ModeloOrdemCerimonia;
+  ultimoPrimeiro: boolean;
+  itens: string[];
+  /** 25/11/2026: sem a tela do critério de desempate, a revelação vai direto para quem ficou com a posição. */
+  mostrarDesempate: boolean;
+};
 
 /** 24/11/2026: o valor é sempre texto; o tipo decide a validação, o controle do formulário e a exibição. */
 export type TipoCampo = "TEXTO" | "NUMERO" | "DATA" | "LINK" | "VIDEO";

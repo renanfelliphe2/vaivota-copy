@@ -190,7 +190,7 @@ export function CenaAoVivo({
           </div>
         </div>
       </div>
-      <MarcaVaiVota vertical className="right-[30px] bottom-[70px]" />
+      <MarcaVaiVota className="right-[30px] bottom-[70px]" />
     </div>
   );
 }
@@ -226,7 +226,7 @@ function TelaDeEspera({ nome, logoUrl, titulo, texto, rodape }: { nome: string; 
         {rodape && <div className="mt-auto flex items-end gap-[72px]">{rodape}</div>}
       </div>
       <PeliculaEmPe />
-      <MarcaVaiVota vertical className="right-[120px] bottom-[58px]" />
+      <MarcaVaiVota className="right-[120px] bottom-[58px]" />
     </div>
   );
 }

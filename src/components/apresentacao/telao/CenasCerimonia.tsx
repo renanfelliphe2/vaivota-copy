@@ -8,6 +8,7 @@ import type { CandidatoPalco, CategoriaPalco } from "@/dominio/apresentacao/tipo
 import { cx } from "@/lib/classes";
 import { formatarNumero, formatarPercentual } from "@/lib/formatar";
 import { TEXTOS_PALCO } from "@/lib/textosPalco";
+import { Holofotes } from "../Cinema";
 import { usePaginaRotativa } from "../hooks";
 import { atrasoTc, BordasPelicula, CartazTelao, FundoSala, LogoTelao, Louros, MarcaVaiVota, QuadroContagem, Sobretitulo } from "./Sala";
 
@@ -82,7 +83,7 @@ export function CenaVencedor({ props, ctx }: { props: Extract<PropsCena, { tipo:
   return (
     <div className="telao-cine tc-sala-revelacao relative h-full overflow-hidden">
       <FundoSala feixe={false} />
-      <MarcaVaiVota vertical className="bottom-[110px] left-11" />
+      <MarcaVaiVota className="bottom-[110px] left-11" />
 
       <div className="absolute top-[110px] bottom-[110px] left-[120px] flex w-[860px] flex-col">
         {sobretitulo && <Sobretitulo>{sobretitulo}</Sobretitulo>}
@@ -162,7 +163,7 @@ export function CenaDesempate({ props, ctx }: { props: Extract<PropsCena, { tipo
   return (
     <div className="telao-cine tc-sala-revelacao relative h-full overflow-hidden">
       <FundoSala feixe={false} />
-      <MarcaVaiVota vertical className="right-10 bottom-[120px]" />
+      <MarcaVaiVota className="right-10 bottom-[120px]" />
       <div className="absolute top-[120px] bottom-[120px] left-[120px] flex w-[640px] flex-col">
         <Sobretitulo>{props.categoria}</Sobretitulo>
         <h1 className="m-0 mt-7 font-cine text-[112px] font-bold uppercase leading-[0.96] tracking-[-0.01em] text-balance">
@@ -220,7 +221,8 @@ function Creditos({ creditos }: { creditos: CreditosParceiros }) {
   const um = creditos.length === 1;
   const itens = creditos.flatMap((g) => [...(um ? [] : [{ grupo: true, texto: g.titulo }]), ...g.nomes.map((n) => ({ grupo: false, texto: n }))]);
   return (
-    <div className="absolute inset-x-0 top-[868px] flex h-[120px] items-center overflow-hidden border-t border-tc-linha">
+    // 25/11/2026: colada no pé da tela, logo acima da película.
+    <div className="absolute inset-x-0 bottom-[34px] flex h-[92px] items-center overflow-hidden border-t border-tc-linha">
       {um && (
         <p className="relative z-10 m-0 flex items-center self-stretch bg-[linear-gradient(90deg,var(--tc-sala)_82%,transparent)] pr-9 pl-[120px] font-cine text-[20px] font-bold uppercase tracking-[0.22em] text-tc-primaria-clara">
           {creditos[0].titulo}
@@ -375,30 +377,90 @@ export function CenaResultado({
         ))}
 
       <Creditos creditos={creditos} />
-      <MarcaVaiVota className="right-[120px] bottom-[52px] text-[18px]!" />
+      <MarcaVaiVota className="right-10 bottom-[150px]" />
       <BordasPelicula alto={false} />
     </div>
   );
 }
 
-/** Final: os resultados de todas as categorias, um de cada vez. */
+/** Vencedores por página na tela final (4 colunas × 2 linhas); mais que isso, as páginas se revezam. */
+const VENCEDORES_POR_PAGINA = 8;
+
+/** Colunas e altura do cartaz conforme quantos vencedores dividem a tela. */
+function gradeDosVencedores(n: number): { colunas: number; alturaCartaz: number; fonteNome: number } {
+  if (n <= 1) return { colunas: 1, alturaCartaz: 560, fonteNome: 64 };
+  if (n <= 4) return { colunas: n, alturaCartaz: n === 4 ? 470 : 520, fonteNome: n === 4 ? 40 : 48 };
+  return { colunas: n <= 6 ? 3 : 4, alturaCartaz: 210, fonteNome: 32 };
+}
+
+/** Um vencedor na tela final: o cartaz, a categoria e quem ganhou (co-vencedores juntos). */
+function VencedorDaCategoria({ resultado, ctx, alturaCartaz, fonteNome, indice }: { resultado: PropsResultado; ctx: ContextoCerimonia; alturaCartaz: number; fonteNome: number; indice: number }) {
+  const primeiro = resultado.podio.find((p) => p.posicao === 1) ?? resultado.podio[0];
+  const ids = primeiro?.itens.map((i) => i.candidatoId) ?? [];
+  if (ids.length === 0) return null;
+  const nomes = ids.map((id) => ctx.catalogo(id).titulo).join(" e ");
+  return (
+    <figure className="tc-surgir m-0 flex min-w-0 flex-col items-center gap-5 text-center" style={atrasoTc(300 + indice * 180)}>
+      <div style={{ width: Math.round(alturaCartaz * 0.75) }}>
+        <CartazTelao candidato={ctx.catalogo(ids[0])} sizes={`${Math.round(alturaCartaz * 0.75)}px`} className="w-full shadow-[0_0_0_1px_var(--tc-linha),0_30px_80px_rgb(0_0_0/0.6)]" />
+      </div>
+      <figcaption className="flex w-full min-w-0 flex-col items-center gap-2">
+        <p className="m-0 line-clamp-1 font-cine text-[20px] font-bold uppercase tracking-[0.18em] text-tc-primaria-clara">{resultado.nome || resultado.premio || TEXTOS_PALCO.vencedor}</p>
+        <p className="m-0 line-clamp-2 font-cine font-bold leading-[1.05] text-balance" style={{ fontSize: fonteNome }}>
+          {nomes}
+        </p>
+      </figcaption>
+    </figure>
+  );
+}
+
+/** Final (25/11/2026): os vencedores de todas as categorias numa tela só (em páginas, se não couberem). */
 export function CenaFinal(props: { resultados: PropsResultado[]; ctx: ContextoCerimonia; nome: string; logoUrl: string | null; creditos: CreditosParceiros }) {
-  const pagina = usePaginaRotativa(props.resultados.length, DURACOES.resultadoCategoria);
-  const atual = props.resultados[pagina];
-  if (!atual)
+  const comVencedor = props.resultados.filter((r) => r.podio.some((p) => p.itens.length > 0));
+  const paginas = Math.max(1, Math.ceil(comVencedor.length / VENCEDORES_POR_PAGINA));
+  const pagina = usePaginaRotativa(paginas, DURACOES.resultadoCategoria);
+  const naTela = comVencedor.slice(pagina * VENCEDORES_POR_PAGINA, (pagina + 1) * VENCEDORES_POR_PAGINA);
+  if (naTela.length === 0)
     return (
-      <div className="telao-cine relative flex h-full items-center justify-center">
+      <div className="telao-cine relative flex h-full items-center justify-center overflow-hidden">
         <FundoSala />
-        <p className="m-0 font-cine text-[96px] font-bold">{TEXTOS_PALCO.semCandidatos}</p>
+        <p className="relative m-0 font-cine text-[96px] font-bold">{TEXTOS_PALCO.semCandidatos}</p>
       </div>
     );
-  return <CenaResultado key={atual.categoriaId} resultado={atual} ctx={props.ctx} nome={props.nome} logoUrl={props.logoUrl} creditos={props.creditos} />;
+  const { colunas, alturaCartaz, fonteNome } = gradeDosVencedores(naTela.length);
+  return (
+    <div className="telao-cine relative h-full overflow-hidden">
+      <FundoSala />
+      <div className="absolute top-16 right-[120px] left-[120px] flex items-center justify-between gap-10">
+        <LogoTelao nome={props.nome} logoUrl={props.logoUrl} className="h-[68px]" />
+        <div className="flex flex-col items-end gap-1.5">
+          <Sobretitulo className="text-[22px]! tracking-[0.22em]!">{paginas > 1 ? `Resultado final · ${pagina + 1} de ${paginas}` : "Resultado final"}</Sobretitulo>
+          <p className="m-0 font-cine text-[40px] font-bold uppercase leading-none">Os vencedores</p>
+        </div>
+      </div>
+      <div
+        key={pagina}
+        className="absolute top-[180px] right-[120px] bottom-[150px] left-[120px] grid content-center justify-center gap-x-12 gap-y-10"
+        style={{ gridTemplateColumns: `repeat(${colunas}, minmax(0, ${Math.max(Math.round(alturaCartaz * 0.75), 300)}px))` }}
+      >
+        {naTela.map((r, i) => (
+          <VencedorDaCategoria key={r.categoriaId} resultado={r} ctx={props.ctx} alturaCartaz={alturaCartaz} fonteNome={fonteNome} indice={i} />
+        ))}
+      </div>
+      <Creditos creditos={props.creditos} />
+      <MarcaVaiVota className="right-10 bottom-[150px]" />
+      <BordasPelicula alto={false} />
+    </div>
+  );
 }
 
 /** Depois do trailer: o festival apresenta os vencedores (protótipo, quadro 4). */
 export function ChamadaCerimonia({ nome, logoUrl, ano }: { nome: string; logoUrl: string | null; ano: string | null }) {
   return (
     <div className="telao-cine relative h-full overflow-hidden bg-[radial-gradient(40%_60%_at_50%_46%,color-mix(in_srgb,var(--tc-luz)_7%,transparent),transparent_75%),var(--tc-sala-funda)]!">
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <Holofotes />
+      </div>
       <div aria-hidden className="tc-cone" />
       <svg aria-hidden viewBox="-72 -72 144 144" width={980} height={980} className="absolute top-[60px] left-[470px] opacity-[0.07]">
         <g fill="none" stroke="var(--tc-secundaria-clara)" strokeWidth={1.1}>
@@ -419,7 +481,7 @@ export function ChamadaCerimonia({ nome, logoUrl, ano }: { nome: string; logoUrl
           Os vencedores{ano ? <><br />de {ano}</> : null}
         </h1>
       </div>
-      <MarcaVaiVota className="right-[120px] bottom-[62px]" />
+      <MarcaVaiVota className="right-10 bottom-[90px]" />
       <BordasPelicula alto={false} />
     </div>
   );

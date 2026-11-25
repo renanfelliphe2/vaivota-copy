@@ -254,6 +254,7 @@ const servicos = {
         ordem: z.object({
           modelo: z.enum(["CATEGORIA", "POSICAO", "INTERCALADO", "PERSONALIZADA"]),
           ultimoPrimeiro: z.boolean(),
+          mostrarDesempate: z.boolean().optional(),
           itens: z.array(texto(100)).max(400),
         }),
       }),

@@ -6,6 +6,7 @@ import { LogoEvento } from "@/components/evento/LogoEvento";
 import type { CandidatoPalco } from "@/dominio/apresentacao/tipos";
 import { cx } from "@/lib/classes";
 import { TEXTOS_PALCO } from "@/lib/textosPalco";
+import { Holofotes } from "../Cinema";
 
 // Telão (cerimônia, 25/11/2026; protótipo aprovado "Telão do Festival"): as peças da sala de cinema, comuns a todas as cenas. Tudo no
 // canvas lógico de 1920×1080 (telao.css). Decorações são aria-hidden.
@@ -15,10 +16,13 @@ export function atrasoTc(ms: number): CSSProperties {
   return { "--tc-atraso": `${ms}ms` } as CSSProperties;
 }
 
-/** Granulação e feixe do projetor (fundo de toda cena). */
+/** Granulação, feixe do projetor e os holofotes do trailer varrendo a sala (fundo de toda cena; holofotes em todas, 25/11/2026). */
 export function FundoSala({ feixe = true }: { feixe?: boolean }) {
   return (
     <>
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <Holofotes />
+      </div>
       {feixe && <div aria-hidden className="tc-feixe" />}
       <div aria-hidden className="tc-grao" />
     </>
@@ -46,12 +50,12 @@ export function BordasPelicula({ alto = true, pe = true }: { alto?: boolean; pe?
   );
 }
 
-/** "Apuração por VaiVota", discreta (na vertical numa borda ou na horizontal no pé). */
-export function MarcaVaiVota({ vertical = false, className }: { vertical?: boolean; className?: string }) {
+/** "Apuração por VaiVota", discreta, sempre na vertical numa borda (25/11/2026: em toda cena). */
+export function MarcaVaiVota({ className }: { className?: string }) {
   return (
     <p
       className={cx("absolute m-0 text-[20px] font-semibold tracking-[0.06em] text-tc-apagado", className)}
-      style={vertical ? { writingMode: "vertical-rl", transform: "rotate(180deg)" } : undefined}
+      style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
     >
       {TEXTOS_PALCO.marca}
     </p>

@@ -115,7 +115,7 @@ describe("ensaio com categorias (25/11/2026)", () => {
       ["B", 3],
     ]);
     const cenas = montarRoteiro(d, { modo: "REAL" });
-    expect(cenas.filter((c) => c.tipo === "RESULTADO").map((c) => c.tipo === "RESULTADO" && c.categoriaId)).toEqual(["A", "B"]);
+    expect(cenas.filter((c) => c.tipo === "RESULTADO").map((c) => c.tipo === "RESULTADO" && c.categoriaId)).toEqual(["A"]); // B revela só o vencedor: sem tela de resultado (25/11/2026)
     expect(cenas.filter((c) => c.tipo === "POSICAO" && c.categoriaId === "B")).toHaveLength(1);
   });
 });
@@ -132,5 +132,16 @@ describe("limites do ensaio", () => {
     const a = ensaio("SEM_EMPATE", { juri: true, infantil: true }, 6);
     const b = ensaio("SEM_EMPATE", { juri: true, infantil: true }, 6);
     expect(a.assinatura).toBe(b.assinatura);
+  });
+});
+
+describe("tela do critério de desempate (25/11/2026)", () => {
+  it("desligada, a revelação vai direto para a posição, sem perder nenhuma", () => {
+    const d = ensaio("EMPATE_RESOLVIDO", { juri: true, infantil: false }, 6);
+    const com = montarRoteiro(d, { modo: "REAL" });
+    expect(com.some((c) => c.tipo === "DESEMPATE")).toBe(true);
+    const sem = montarRoteiro({ ...d, config: { ...d.config, ordemRevelacao: { ...d.config.ordemRevelacao, mostrarDesempate: false } } }, { modo: "REAL" });
+    expect(sem.some((c) => c.tipo === "DESEMPATE")).toBe(false);
+    expect(sem).toEqual(com.filter((c) => c.tipo !== "DESEMPATE"));
   });
 });

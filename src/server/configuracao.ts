@@ -314,7 +314,7 @@ export async function salvarCerimonia(usuario: UsuarioSessao | null, eventoId: s
         acao: "CONFIG_ALTERADA",
         entidade: "config_apresentacao",
         entidadeId: eventoId,
-        detalhes: { cerimonia: { trofeus, rotulos, modelo: ordem.modelo, ultimoPrimeiro: ordem.ultimoPrimeiro, itens: ordem.itens.length } },
+        detalhes: { cerimonia: { trofeus, rotulos, modelo: ordem.modelo, ultimoPrimeiro: ordem.ultimoPrimeiro, mostrarDesempate: ordem.mostrarDesempate, itens: ordem.itens.length } },
       });
     });
     invalidarEstadoPublico();
