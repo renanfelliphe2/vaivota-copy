@@ -2,25 +2,23 @@
 
 import { Copy } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
-import { ContagemRegressiva } from "@/components/ui/ContagemRegressiva";
 import { Dialogo } from "@/components/ui/Dialogo";
 import { useToast } from "@/components/ui/Toast";
-import type { CodigoPareamentoGerado } from "@/dominio/totem";
-import { formatarDataHora, paraMs } from "@/lib/tempo";
 
-export type CodigoParaMostrar = CodigoPareamentoGerado & {
+export type CodigoParaMostrar = {
+  codigo: string;
+  nome: string;
   /** Endereço da página de pareamento no tablet (com a origem do navegador do admin). */
   url: string;
 };
 
 /**
- * Mostra o código de pareamento UMA vez (Base/VotoInfantil.md §4: curto, de uso único e com validade). O código legível vive só
- * no estado local deste diálogo (nunca no store, no console nem na auditoria) e some ao fechar. O QR leva à página de pareamento
- * do tablet; o código é digitado lá.
+ * Mostra o código de pareamento (Base/VotoInfantil.md §4: curto e de uso único). 25/11/2026: o código não vence mais e pode ser
+ * visto de novo em "Códigos esperando o tablet", na seção Totens, até ser usado ou descartado. O QR leva à página de pareamento do
+ * tablet; o código é digitado lá.
  */
-export function CodigoPareamentoDialog({ codigo, fuso, aoFechar }: { codigo: CodigoParaMostrar | null; fuso: string; aoFechar: () => void }) {
+export function CodigoPareamentoDialog({ codigo, aoFechar }: { codigo: CodigoParaMostrar | null; aoFechar: () => void }) {
   const toast = useToast();
 
   async function copiar() {
@@ -52,7 +50,6 @@ export function CodigoPareamentoDialog({ codigo, fuso, aoFechar }: { codigo: Cod
     >
       {codigo && (
         <div className="flex flex-col gap-4">
-          <Alerta variante="aviso">Depois de fechar, não será possível ver o código novamente. Se precisar, gere outro.</Alerta>
           <ol className="flex list-decimal flex-col gap-3 pl-5 text-sm">
             <li>
               No tablet, abra <span className="break-all font-mono">{codigo.url.replace(/^https?:\/\//, "")}</span> ou leia o QR Code.
@@ -63,10 +60,7 @@ export function CodigoPareamentoDialog({ codigo, fuso, aoFechar }: { codigo: Cod
             <code aria-label={`Código de pareamento ${codigo.codigo}`} className="font-mono text-3xl font-bold tracking-widest">
               {codigo.codigo}
             </code>
-            <p className="text-sm text-tema-texto-suave">
-              Vale até {formatarDataHora(paraMs(codigo.validadeAte), fuso)} (
-              <ContagemRegressiva alvoMs={paraMs(codigo.validadeAte)} rotulo="Vence em" textoZerado="vencido" />) e só funciona uma vez.
-            </p>
+            <p className="text-center text-sm text-tema-texto-suave">Não vence e só funciona uma vez. Depois de fechar, ele continua em &quot;Códigos esperando o tablet&quot;.</p>
             <div className="rounded-xl bg-white p-3 text-black">
               <QRCodeSVG value={codigo.url} size={168} level="M" marginSize={1} aria-label="QR Code da página de pareamento" role="img" />
             </div>

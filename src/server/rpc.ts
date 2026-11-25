@@ -130,6 +130,10 @@ const servicos = {
   gerarCodigoPareamento: definir(z.object({ eventoId: id, nome: texto(100), pin: texto(20), categoriaIds: z.array(id).max(30) }), (ctx, u, a) =>
     dispositivos.gerarCodigoPareamento(u, a.eventoId, { nome: a.nome, pin: a.pin, categoriaIds: a.categoriaIds }, { ip: ctx.ip }),
   ),
+  listarCodigosPareamento: definir(z.object({ eventoId: id }), (_c, u, a) => dispositivos.listarCodigosPareamento(u, a.eventoId)),
+  descartarCodigoPareamento: definir(z.object({ eventoId: id, codigoId: id }), (ctx, u, a) =>
+    dispositivos.descartarCodigoPareamento(u, a.eventoId, a.codigoId, { ip: ctx.ip }),
+  ),
   alterarCategoriasDispositivo: definir(z.object({ eventoId: id, dispositivoId: id, categoriaIds: z.array(id).max(30) }), (ctx, u, a) =>
     dispositivos.alterarCategoriasDispositivo(u, a.eventoId, a.dispositivoId, a.categoriaIds, { ip: ctx.ip }),
   ),

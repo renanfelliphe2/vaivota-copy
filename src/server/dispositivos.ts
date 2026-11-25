@@ -5,8 +5,8 @@ import { redistribuirPesos } from "@/dominio/placar";
 import {
   ehSituacaoTotem,
   MAX_CODIGOS_PENDENTES,
-  VALIDADE_CODIGO_PAREAMENTO_MS,
   type CodigoPareamentoGerado,
+  type CodigoPendente,
   type DispositivoListado,
 } from "@/dominio/totem";
 import type { AcaoAuditoria, EstadoDispositivo } from "@/dominio/tipos";
@@ -39,11 +39,19 @@ function sorteio(): number {
 
 const mesmoNome = (a: string, b: string) => a.trim().toLocaleLowerCase("pt-BR") === b.trim().toLocaleLowerCase("pt-BR");
 
+/**
+ * Código ainda à espera do tablet: disponível e sem validade (25/11/2026: o código não vence mais) ou, nos gerados antes, dentro
+ * da validade de 15 minutos.
+ */
+export function codigoVigente(agora: Date) {
+  return { estado: "DISPONIVEL" as const, OR: [{ validadeAte: null }, { validadeAte: { gte: agora } }] };
+}
+
 /** Nomes já usados no evento: totens (em qualquer estado) e códigos de pareamento ainda válidos. */
 async function nomesEmUso(cliente: Banco | Transacao, eventoId: string, agora: Date, ignorarDispositivoId?: string): Promise<string[]> {
   const [dispositivos, pendentes] = await Promise.all([
     cliente.dispositivo.findMany({ where: { eventoId, ...(ignorarDispositivoId ? { id: { not: ignorarDispositivoId } } : {}) }, select: { nome: true } }),
-    cliente.codigoPareamento.findMany({ where: { eventoId, estado: "DISPONIVEL", validadeAte: { gte: agora } }, select: { nome: true } }),
+    cliente.codigoPareamento.findMany({ where: { eventoId, ...codigoVigente(agora) }, select: { nome: true } }),
   ]);
   return [...dispositivos.map((d) => d.nome), ...pendentes.flatMap((c) => (c.nome ? [c.nome] : []))];
 }
@@ -128,8 +136,9 @@ export async function forcarSincronizacaoTotens(usuario: UsuarioSessao | null, e
 // ─────────────────────────────────────────────
 
 /**
- * Gera o código de pareamento (curto, de uso único, com validade de 15 minutos). O admin já define o nome e o PIN de saída do
- * quiosque do totem; o código legível sai UMA vez, nesta resposta, e só o hash vai ao banco.
+ * Gera o código de pareamento (curto e de uso único). O admin já define o nome e o PIN de saída do quiosque do totem.
+ * 25/11/2026: o código não vence mais: vale até o tablet usá-lo ou o admin descartá-lo. O tablet é conferido pelo hash; o código
+ * legível fica guardado só enquanto estiver à espera, para o admin vê-lo de novo na tela Totens (apagado ao ser usado ou descartado).
  */
 export async function gerarCodigoPareamento(
   usuario: UsuarioSessao | null,
@@ -162,11 +171,11 @@ export async function gerarCodigoPareamento(
     const erroCategorias = await conferirCategoriasTotem(tx, eventoId, categoriaIds);
     if (erroCategorias) return falha("VALIDACAO", { campos: { categorias: erroCategorias } });
     const agora = new Date();
-    // Arrumação: o que venceu sem uso passa a EXPIRADO.
-    await tx.codigoPareamento.updateMany({ where: { eventoId, estado: "DISPONIVEL", validadeAte: { lt: agora } }, data: { estado: "EXPIRADO" } });
+    // Arrumação: os gerados antes de 25/11/2026 que venceram sem uso passam a EXPIRADO.
+    await tx.codigoPareamento.updateMany({ where: { eventoId, estado: "DISPONIVEL", validadeAte: { lt: agora } }, data: { estado: "EXPIRADO", codigo: null } });
     const pendentes = await tx.codigoPareamento.count({ where: { eventoId, estado: "DISPONIVEL" } });
     if (pendentes >= MAX_CODIGOS_PENDENTES)
-      return falha("CONFLITO", { mensagem: "Há códigos demais esperando para ser usados. Pareie os tablets ou aguarde os códigos vencerem." });
+      return falha("CONFLITO", { mensagem: "Há códigos demais esperando para ser usados. Pareie os tablets ou descarte os códigos que não vai usar." });
     if ((await nomesEmUso(tx, eventoId, agora)).some((n) => mesmoNome(n, nome))) return falha("VALIDACAO", { campos: { nome: "Já existe um totem com este nome." } });
 
     let codigo = gerarCodigo(sorteio);
@@ -176,19 +185,69 @@ export async function gerarCodigoPareamento(
       codigo = gerarCodigo(sorteio);
       hash = hashDoCodigoPareamento(eventoId, codigo);
     }
-    const validadeAte = new Date(agora.getTime() + VALIDADE_CODIGO_PAREAMENTO_MS);
-    const criado = await tx.codigoPareamento.create({ data: { eventoId, hashCodigo: hash, nome, hashPin, categoriaIds, validadeAte } });
+    const criado = await tx.codigoPareamento.create({ data: { eventoId, hashCodigo: hash, codigo, nome, hashPin, categoriaIds, validadeAte: null } });
     await registrarAuditoria(tx, {
       eventoId,
       usuarioId,
       acao: "CODIGO_PAREAMENTO_GERADO",
       entidade: "codigo_pareamento",
       entidadeId: criado.id,
-      detalhes: { validadeAte: validadeAte.toISOString(), categorias: categoriaIds.length },
+      detalhes: { categorias: categoriaIds.length },
       ipHash: hashDoIp(ctx.ip),
     });
-    return sucesso({ codigo, nome, validadeAte: instante(validadeAte, atual.fusoHorario) });
+    return sucesso({ codigo, nome });
   });
+}
+
+/** Os códigos à espera do tablet, do mais antigo ao mais novo (tela Totens: ver de novo ou descartar). */
+export async function listarCodigosPareamento(usuario: UsuarioSessao | null, eventoId: string): Promise<Resultado<CodigoPendente[]>> {
+  const admin = await exigirAdmin(usuario, eventoId);
+  if (!admin.ok) return admin;
+  const fuso = admin.dados.evento.fusoHorario;
+  try {
+    const linhas = await db().codigoPareamento.findMany({
+      where: { eventoId, ...codigoVigente(new Date()) },
+      orderBy: [{ criadoEm: "asc" }, { id: "asc" }],
+      select: { id: true, codigo: true, nome: true, categoriaIds: true, criadoEm: true, validadeAte: true },
+    });
+    return sucesso(
+      linhas.map((c) => ({
+        id: c.id,
+        codigo: c.codigo,
+        nome: c.nome ?? "Totem",
+        categoriaIds: c.categoriaIds,
+        criadoEm: instante(c.criadoEm, fuso),
+        validadeAte: instanteOuNulo(c.validadeAte, fuso),
+      })),
+    );
+  } catch (e) {
+    return falhaInterna(e, "listarCodigosPareamento");
+  }
+}
+
+/** Descarta um código que ainda não foi usado: o tablet não consegue mais parear com ele, e o nome fica livre de novo. */
+export async function descartarCodigoPareamento(usuario: UsuarioSessao | null, eventoId: string, codigoId: string, ctx: { ip: string }): Promise<Resultado<null>> {
+  const admin = await exigirAdmin(usuario, eventoId);
+  if (!admin.ok) return admin;
+  const { usuarioId } = admin.dados;
+  try {
+    return await db().$transaction(async (tx) => {
+      const { count } = await tx.codigoPareamento.updateMany({ where: { id: codigoId, eventoId, estado: "DISPONIVEL" }, data: { estado: "EXPIRADO", codigo: null } });
+      // Já usado, já descartado ou inexistente: nada a fazer (a lista se atualiza).
+      if (count === 0) return sucesso(null);
+      await registrarAuditoria(tx, {
+        eventoId,
+        usuarioId,
+        acao: "CODIGO_PAREAMENTO_DESCARTADO",
+        entidade: "codigo_pareamento",
+        entidadeId: codigoId,
+        ipHash: hashDoIp(ctx.ip),
+      });
+      return sucesso(null);
+    });
+  } catch (e) {
+    return falhaInterna(e, "descartarCodigoPareamento");
+  }
 }
 
 // ─────────────────────────────────────────────

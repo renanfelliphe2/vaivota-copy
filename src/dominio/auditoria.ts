@@ -135,6 +135,7 @@ export const CATALOGO_AUDITORIA: Record<AcaoAuditoria, ItemCatalogo> = {
       entidade === "nota_juri" ? "Notas de jurado alteradas" : entidade === "escolha_juri" ? "Escolha por critério alterada" : "Voto de jurado alterado",
   },
   CODIGO_PAREAMENTO_GERADO: { rotulo: "Código de pareamento gerado", grupo: "TOTEM", descrever: () => "Código de pareamento de totem gerado" },
+  CODIGO_PAREAMENTO_DESCARTADO: { rotulo: "Código de pareamento descartado", grupo: "TOTEM", descrever: () => "Código de pareamento de totem descartado sem uso" },
   DISPOSITIVO_PAREADO: { rotulo: "Totem pareado", grupo: "TOTEM", descrever: () => "Totem pareado com o evento" },
   DISPOSITIVO_PAUSADO: { rotulo: "Totem pausado", grupo: "TOTEM", descrever: () => "Totem pausado" },
   DISPOSITIVO_REATIVADO: { rotulo: "Totem reativado", grupo: "TOTEM", descrever: () => "Totem reativado" },

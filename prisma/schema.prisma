@@ -721,11 +721,14 @@ model CodigoPareamento {
   id            String                 @id @default(uuid())
   eventoId      String                 @map("evento_id")
   hashCodigo    String                 @map("hash_codigo") @db.VarChar(64)
+  // O código legível (25/11/2026), para o admin vê-lo de novo: só enquanto DISPONIVEL (apagado ao ser usado ou descartado).
+  codigo        String?                @db.VarChar(16)
   nome          String?                @db.VarChar(120)
   hashPin       String?                @map("hash_pin") @db.VarChar(255)
   // Categorias que o totem vai exibir (25/11/2026), escolhidas ao gerar o código; passam ao totem no pareamento.
   categoriaIds  String[]               @default([]) @map("categoria_ids")
-  validadeAte   DateTime               @map("validade_ate") @db.Timestamptz(3)
+  // Sem validade desde 25/11/2026 (o código vale até ser usado ou descartado); os gerados antes mantêm a sua.
+  validadeAte   DateTime?              @map("validade_ate") @db.Timestamptz(3)
   estado        EstadoCodigoPareamento @default(DISPONIVEL)
   dispositivoId String?                @map("dispositivo_id")
   criadoEm      DateTime               @default(now()) @map("criado_em") @db.Timestamptz(3)

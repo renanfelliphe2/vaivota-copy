@@ -60,6 +60,7 @@ export type AcaoAuditoria =
   | "CANDIDATO_CORRIGIDO"
   // Totem (voto infantil): nunca a escolha do voto; o PIN nunca vai em `detalhes`
   | "CODIGO_PAREAMENTO_GERADO"
+  | "CODIGO_PAREAMENTO_DESCARTADO"
   | "DISPOSITIVO_PAREADO"
   | "DISPOSITIVO_PAUSADO"
   | "DISPOSITIVO_REATIVADO"

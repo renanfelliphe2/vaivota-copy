@@ -8,7 +8,9 @@ import { db, desconectarBanco } from "@/server/db";
 import {
   alterarPinDispositivo,
   alternarModuloInfantil,
+  descartarCodigoPareamento,
   gerarCodigoPareamento,
+  listarCodigosPareamento,
   listarDispositivos,
   pausarDispositivo,
   reativarDispositivo,
@@ -182,31 +184,38 @@ describe("módulo infantil: ligar e desligar", () => {
 describe("código de pareamento: geração", () => {
   const ctx = { ip: "203.0.113.72" };
 
-  it("só o admin gera; o código sai uma vez e o banco guarda só o hash (e o PIN só como scrypt)", async () => {
+  it("só o admin gera; o código não vence, fica visível enquanto pendente e nunca vai à auditoria (o PIN só como scrypt)", async () => {
     const { eventoId, admin } = await eventoComTotens("teste-totem-codigo");
     const publico = await criarUsuarioDireto(eventoId);
     for (const quem of [publico, null])
       expect(await gerarCodigoPareamento(quem, eventoId, { nome: "Totem Hall", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).toMatchObject({ ok: false, erro: { codigo: "NAO_AUTORIZADO" } });
 
-    const antes = Date.now();
     const r = await gerarCodigoPareamento(admin, eventoId, { nome: "  Totem Hall  ", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.dados.nome).toBe("Totem Hall");
     expect(r.dados.codigo).toMatch(new RegExp(`^[${ALFABETO_CODIGO}]{4}-[${ALFABETO_CODIGO}]{4}$`));
-    const validade = Date.parse(r.dados.validadeAte) - antes;
-    expect(validade).toBeGreaterThan(14 * 60_000);
-    expect(validade).toBeLessThan(16 * 60_000);
 
     const linhas = await db().codigoPareamento.findMany({ where: { eventoId } });
     expect(linhas).toHaveLength(1);
-    expect(linhas[0]).toMatchObject({ estado: "DISPONIVEL", nome: "Totem Hall", dispositivoId: null });
+    expect(linhas[0]).toMatchObject({ estado: "DISPONIVEL", nome: "Totem Hall", dispositivoId: null, validadeAte: null, codigo: r.dados.codigo });
     expect(linhas[0].hashCodigo).toMatch(/^[0-9a-f]{64}$/);
     expect(linhas[0].hashPin).toMatch(/^scrypt\$/);
-    const guardado = JSON.stringify([linhas, await db().auditoria.findMany({ where: { eventoId } })]);
-    expect(guardado).not.toContain(r.dados.codigo.replace("-", ""));
-    expect(guardado).not.toContain(PIN);
+    const auditoria = JSON.stringify(await db().auditoria.findMany({ where: { eventoId } }));
+    expect(auditoria).not.toContain(r.dados.codigo.replace("-", ""));
+    expect(JSON.stringify([linhas, auditoria])).not.toContain(PIN);
     expect((await auditoriaDe(eventoId, "CODIGO_PAREAMENTO_GERADO"))).toHaveLength(1);
+
+    // O admin vê de novo (o público não); descartado, sai da lista, perde o código legível e o tablet não pareia mais.
+    expect(await listarCodigosPareamento(publico, eventoId)).toMatchObject({ ok: false, erro: { codigo: "NAO_AUTORIZADO" } });
+    const lista = await listarCodigosPareamento(admin, eventoId);
+    expect(lista.ok && lista.dados.map((c) => [c.nome, c.codigo, c.validadeAte])).toEqual([["Totem Hall", r.dados.codigo, null]]);
+    expect((await descartarCodigoPareamento(admin, eventoId, linhas[0].id, ctx)).ok).toBe(true);
+    expect((await descartarCodigoPareamento(admin, eventoId, linhas[0].id, ctx)).ok).toBe(true);
+    expect(await auditoriaDe(eventoId, "CODIGO_PAREAMENTO_DESCARTADO")).toHaveLength(1);
+    expect(await listarCodigosPareamento(admin, eventoId)).toMatchObject({ ok: true, dados: [] });
+    expect(await db().codigoPareamento.findUniqueOrThrow({ where: { id: linhas[0].id } })).toMatchObject({ estado: "EXPIRADO", codigo: null });
+    expect(await parearTotem({ headers: new Headers(), ip: novoIp(), cookies: [] }, { eventoId, codigo: r.dados.codigo })).toMatchObject({ ok: false, erro: { codigo: "CODIGO_EXPIRADO" } });
   });
 
   it("valida nome e PIN; nome repetido (também contra código pendente); módulo desligado e urna encerrada travam", async () => {
@@ -236,7 +245,7 @@ describe("código de pareamento: geração", () => {
     expect((await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Cedo", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).ok).toBe(true);
   });
 
-  it("no máximo 20 códigos pendentes por evento; os vencidos viram EXPIRADO e liberam vaga", async () => {
+  it("no máximo 20 códigos pendentes por evento; os antigos vencidos viram EXPIRADO e liberam vaga", async () => {
     const { eventoId, admin } = await eventoComTotens("teste-totem-codigo-limite");
     for (let i = 1; i <= 20; i++) expect((await gerarCodigoPareamento(admin, eventoId, { nome: `Totem ${i}`, pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).ok).toBe(true);
     expect(await gerarCodigoPareamento(admin, eventoId, { nome: "Totem 21", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).toMatchObject({ ok: false, erro: { codigo: "CONFLITO" } });
@@ -277,7 +286,7 @@ describe("pareamento do tablet", () => {
     expect(JSON.stringify(await db().dispositivo.findMany({ where: { eventoId } }))).not.toContain(token!);
 
     const codigo = await db().codigoPareamento.findFirstOrThrow({ where: { eventoId } });
-    expect(codigo).toMatchObject({ estado: "USADO", dispositivoId: aparelho.id });
+    expect(codigo).toMatchObject({ estado: "USADO", dispositivoId: aparelho.id, codigo: null });
 
     const pareado = await auditoriaDe(eventoId, "DISPOSITIVO_PAREADO");
     expect(pareado).toHaveLength(1);

@@ -4,6 +4,7 @@ import { validarFormatoCodigo } from "@/lib/codigos";
 import { registrarAuditoria } from "./auditoria";
 import { cookieDoTotem, gerarToken, hashDoCodigoPareamento, hashDoToken, pinConfere, tokenDoCookie } from "./credenciaisTotem";
 import { db, type Transacao } from "./db";
+import { codigoVigente } from "./dispositivos";
 import { hashDoIp } from "./ip";
 import { chaveDe, consumirEmMemoria, reservarTentativa, zerarTentativas } from "./limites";
 import { falha, falhaInterna, sucesso, type CodigoErro, type Resultado } from "./resultado";
@@ -69,7 +70,7 @@ function recusaDoEvento(e: { estado: string; estadoUrna: string; moduloInfantil:
 }
 
 /**
- * Troca o código de pareamento (uso único, com validade) por um token de longa duração, gravado no cookie do tablet. O
+ * Troca o código de pareamento (uso único; sem validade desde 25/11/2026) por um token de longa duração, gravado no cookie do tablet. O
  * totem nasce com o nome e o PIN que o admin definiu ao gerar o código. Cinco códigos errados bloqueiam por 60 s; todo código
  * recusado dá a mesma mensagem, e o motivo exato fica só na auditoria.
  */
@@ -113,8 +114,9 @@ export async function parearTotem(ctx: ContextoTotem, entrada: { eventoId: strin
 
         // O código é "tomado" com um UPDATE condicional: dois pareamentos com o mesmo código nunca passam.
         const tomado = await tx.codigoPareamento.updateMany({
-          where: { eventoId: evento.id, hashCodigo: hash, estado: "DISPONIVEL", validadeAte: { gte: new Date() } },
-          data: { estado: "USADO" },
+          // 25/11/2026: sem validade (os códigos antigos ainda têm a sua); o código legível some ao ser usado.
+          where: { eventoId: evento.id, hashCodigo: hash, ...codigoVigente(new Date()) },
+          data: { estado: "USADO", codigo: null },
         });
         if (tomado.count === 0) throw new PareamentoRecusado(await motivoDaRecusa(tx, evento.id, hash));
 

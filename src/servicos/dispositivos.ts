@@ -1,13 +1,13 @@
-import type { CodigoPareamentoGerado, DispositivoListado } from "@/dominio/totem";
+import type { CodigoPareamentoGerado, CodigoPendente, DispositivoListado } from "@/dominio/totem";
 import { recarregarEstado } from "@/store/servidor";
 import { chamar } from "./rpc";
 import type { Resultado } from "./resultado";
 
 // Totem (Base/VotoInfantil.md §4): gestão dos aparelhos pelo admin. Toda regra (trava da fase, validação, hash do código e do
-// PIN, auditoria) mora no servidor (src/server/dispositivos.ts). O código legível volta UMA vez, na resposta da geração; a lista
-// nunca traz hash. Depois de cada mudança o estado público é recarregado: o checklist de ativação lê os totens ativos dele.
+// PIN, auditoria) mora no servidor (src/server/dispositivos.ts). O código legível volta na geração e, enquanto não for usado, na
+// lista de códigos pendentes (25/11/2026); nada traz hash. Depois de cada mudança o estado público é recarregado: o checklist de ativação lê os totens ativos dele.
 
-export type { CodigoPareamentoGerado, DispositivoListado };
+export type { CodigoPareamentoGerado, CodigoPendente, DispositivoListado };
 
 export function listarDispositivos(eventoId: string): Promise<Resultado<DispositivoListado[]>> {
   return chamar<DispositivoListado[]>("listarDispositivos", { eventoId });
@@ -24,6 +24,16 @@ export async function gerarCodigoPareamento(
   entrada: { nome: string; pin: string; categoriaIds: readonly string[] },
 ): Promise<Resultado<CodigoPareamentoGerado>> {
   return chamar<CodigoPareamentoGerado>("gerarCodigoPareamento", { eventoId, ...entrada });
+}
+
+/** Os códigos ainda à espera do tablet (25/11/2026: não vencem; o admin pode vê-los de novo). */
+export function listarCodigosPareamento(eventoId: string): Promise<Resultado<CodigoPendente[]>> {
+  return chamar<CodigoPendente[]>("listarCodigosPareamento", { eventoId });
+}
+
+/** Descarta um código que não vai ser usado: o tablet não consegue mais parear com ele. */
+export function descartarCodigoPareamento(eventoId: string, codigoId: string): Promise<Resultado<null>> {
+  return chamar<null>("descartarCodigoPareamento", { eventoId, codigoId });
 }
 
 /** As categorias que o totem exibe (ao menos uma, todas do totem). */

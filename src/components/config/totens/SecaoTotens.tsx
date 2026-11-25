@@ -18,8 +18,11 @@ import {
   alterarCategoriasDispositivo,
   alterarPinDispositivo,
   alternarModuloInfantil,
+  descartarCodigoPareamento,
   gerarCodigoPareamento,
+  listarCodigosPareamento,
   listarDispositivos,
+  type CodigoPendente,
   pausarDispositivo,
   reativarDispositivo,
   renomearDispositivo,
@@ -35,6 +38,7 @@ import { AlterarPinDialog } from "./AlterarPinDialog";
 import { CategoriasTotemDialog } from "./CategoriasTotemDialog";
 import { EscolhaCategoriasTotem } from "./EscolhaCategoriasTotem";
 import { CodigoPareamentoDialog, type CodigoParaMostrar } from "./CodigoPareamentoDialog";
+import { CodigosPendentes } from "./CodigosPendentes";
 import { TabelaTotens } from "./TabelaTotens";
 
 /** O admin acompanha os votos e o último uso dos totens: a lista se atualiza sozinha. */
@@ -48,6 +52,9 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
   const ativo = useEventoAtivo();
   const eventoId = ativo?.evento.id ?? "";
   const consulta = useConsulta(() => listarDispositivos(eventoId), { chave: eventoId, ativo: Boolean(eventoId), intervaloMs: INTERVALO_LISTA_MS });
+  // 25/11/2026: os códigos não vencem; os que esperam o tablet ficam listados (somem quando o tablet os usa).
+  const codigos = useConsulta(() => listarCodigosPareamento(eventoId), { chave: eventoId, ativo: Boolean(eventoId), intervaloMs: INTERVALO_LISTA_MS });
+  const [descartando, setDescartando] = useState<CodigoPendente | null>(null);
   const servico = useServico();
   const idForm = useId();
   const [nome, setNome] = useState("");
@@ -73,6 +80,7 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
   const categoriasTotem = categoriasDoCanal(ativo.categorias, "TOTEM");
   const marcadas = categoriaIds.filter((id) => categoriasTotem.some((c) => c.id === id));
   const erroCategorias = marcadas.length === 0 ? "Escolha ao menos uma categoria para o totem." : null;
+  const urlPareamento = typeof window === "undefined" ? "" : `${window.location.origin}/e/${slug}/totem/parear`;
 
   async function gerar(e: FormEvent) {
     e.preventDefault();
@@ -80,12 +88,13 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
     if (erroNome || erroPin || erroCategorias || servico.carregando) return;
     const r = await servico.executar(() => gerarCodigoPareamento(eventoId, { nome, pin, categoriaIds: marcadas }), null);
     if (!r.ok) return;
-    setCodigo({ ...r.dados, url: `${window.location.origin}/e/${slug}/totem/parear` });
+    setCodigo({ ...r.dados, url: urlPareamento });
     setNome("");
     setPin("");
     setCategoriaIds([]);
     setTentou(false);
     consulta.recarregar();
+    codigos.recarregar();
   }
 
   /** Executa a ação do totem e recarrega a lista quando dá certo. */
@@ -144,7 +153,7 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
           <form onSubmit={(e) => void gerar(e)} noValidate className="flex flex-col gap-4 rounded-2xl border border-tema-borda p-5">
             <h3 className="text-lg font-bold">Parear um novo totem</h3>
             <p className="text-sm text-tema-texto-suave">
-              Defina o nome, o PIN de saída do modo totem e as categorias que ele exibe, e gere o código. No tablet, abra a página de pareamento e digite o código uma vez.
+              Defina o nome, o PIN de saída do modo totem e as categorias que ele exibe, e gere o código. Ele não vence: dá para gerar antes e vê-lo de novo abaixo. No tablet, abra a página de pareamento e digite o código uma vez.
             </p>
             <DicaTrava motivo={podeParear ? null : travas.motivo("DISPOSITIVOS_PAREAR")} />
             <div className="grid gap-4 sm:grid-cols-2">
@@ -176,6 +185,17 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
           </form>
         )}
       </div>
+
+      {ligado && (
+        <CodigosPendentes
+          codigos={codigos.dados ?? []}
+          categorias={ativo.categorias}
+          fuso={evento.fusoHorario}
+          podeDescartar={!servico.carregando}
+          aoVer={(c) => setCodigo({ codigo: c.codigo, nome: c.nome, url: urlPareamento })}
+          aoDescartar={setDescartando}
+        />
+      )}
 
       <h3 className="text-lg font-bold">Totens pareados</h3>
       {consulta.carregando && !consulta.dados ? (
@@ -210,7 +230,24 @@ export function SecaoTotens({ travas }: { travas: Travas }) {
         </>
       )}
 
-      <CodigoPareamentoDialog codigo={codigo} fuso={evento.fusoHorario} aoFechar={() => setCodigo(null)} />
+      <CodigoPareamentoDialog codigo={codigo} aoFechar={() => setCodigo(null)} />
+      <DialogoConfirmacao
+        aberto={descartando !== null}
+        aoFechar={() => setDescartando(null)}
+        titulo={`Descartar o código de ${descartando?.nome ?? "totem"}?`}
+        consequencia="O tablet não consegue mais parear com este código. Se precisar, gere outro."
+        rotuloConfirmar="Descartar"
+        perigo
+        carregando={servico.carregando}
+        aoConfirmar={async () => {
+          if (!descartando) return;
+          const r = await servico.executar(() => descartarCodigoPareamento(eventoId, descartando.id), "Código descartado");
+          if (r.ok) {
+            setDescartando(null);
+            codigos.recarregar();
+          }
+        }}
+      />
       <AlterarPinDialog
         key={trocandoPin?.id ?? "fechado"}
         nome={trocandoPin?.nome ?? null}

@@ -49,9 +49,10 @@ export function pinConfere(dispositivo: Pick<Dispositivo, "id" | "hashPin">, pin
   return hashPinTotem(dispositivo.id, pin) === dispositivo.hashPin;
 }
 
-/** Quanto tempo o código de pareamento vale depois de gerado (§4: curto, de uso único e com validade). */
-export const VALIDADE_CODIGO_PAREAMENTO_MS = 15 * 60_000;
-/** Códigos de pareamento ainda não usados nem vencidos que um evento pode ter ao mesmo tempo. */
+/**
+ * Códigos de pareamento ainda não usados que um evento pode ter ao mesmo tempo. Desde 25/11/2026 o código não vence (vale até ser
+ * usado ou descartado pelo admin, que pode vê-lo de novo na tela Totens); os gerados antes mantêm a validade de 15 minutos.
+ */
 export const MAX_CODIGOS_PENDENTES = 20;
 
 /**
@@ -160,8 +161,14 @@ export function itensDoTotem<T extends Pick<Candidato, "categoriaId">>(
   return exibidas.flatMap((id) => candidatos.filter((c) => c.categoriaId === id));
 }
 
-/** Resposta da geração do código: o código legível sai UMA vez (só o hash vai ao banco). */
-export type CodigoPareamentoGerado = { codigo: string; nome: string; validadeAte: Instante };
+/** Resposta da geração do código. */
+export type CodigoPareamentoGerado = { codigo: string; nome: string };
+
+/**
+ * Um código de pareamento esperando o tablet (25/11/2026): o admin pode vê-lo de novo ou descartá-lo. `codigo` é null nos gerados
+ * antes de o código ficar guardado (só o hash existia): esses só podem ser descartados.
+ */
+export type CodigoPendente = { id: string; codigo: string | null; nome: string; categoriaIds: string[]; criadoEm: Instante; validadeAte: Instante | null };
 
 /**
  * Chave aleatória de uma tentativa de voto (128 bits em hexadecimal). `getRandomValues` funciona também fora de HTTPS (um tablet na

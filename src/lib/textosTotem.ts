@@ -30,7 +30,7 @@ export const TEXTOS_TOTEM = {
   parearAparelho: "Parear este aparelho",
   // Pareamento (§4): feito uma vez por um adulto, com o código que o admin gerou.
   parearTitulo: "Parear este aparelho como totem",
-  parearDescricao: "Digite o código que a organização gerou na tela Totens da configuração. Ele vale por poucos minutos e só funciona uma vez.",
+  parearDescricao: "Digite o código que a organização gerou na tela Totens da configuração. Ele só funciona uma vez.",
   parearCampo: "Código de pareamento",
   parearConfirmar: "Parear",
   parearVoltar: "Voltar",
