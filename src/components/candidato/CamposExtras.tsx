@@ -1,6 +1,7 @@
-import { camposDaCategoria } from "@/dominio/camposExtras";
+import { camposDaCategoria, formatarValorCampo, hrefDoCampo } from "@/dominio/camposExtras";
 import type { CampoCandidato, Candidato } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
+import { VideoCampo } from "./VideoCampo";
 
 /**
  * Campos com valor, na ordem de `CampoCandidato.ordem`. D1 (25/11/2026): `campos` são os do evento; só valem os da categoria do
@@ -31,7 +32,8 @@ export type CamposExtrasProps = {
  */
 export function CamposExtras({ candidato, campos, modo, className }: CamposExtrasProps) {
   const lista = camposComValor(candidato, campos);
-  const visiveis = modo === "resumo" ? lista.slice(0, 2) : lista;
+  // O vídeo (25/11/2026) não cabe no resumo: só no completo, como player.
+  const visiveis = modo === "resumo" ? lista.filter(({ campo }) => campo.tipo !== "VIDEO").slice(0, 2) : lista;
   if (visiveis.length === 0) return null;
 
   if (modo === "resumo") {
@@ -45,7 +47,7 @@ export function CamposExtras({ candidato, campos, modo, className }: CamposExtra
             {rotulados.map(({ campo, valor }) => (
               <div key={campo.id} className="flex min-w-0 gap-1">
                 <dt className="shrink-0 text-tema-texto-suave">{campo.rotulo}:</dt>
-                <dd className="truncate font-medium">{valor}</dd>
+                <dd className="truncate font-medium">{formatarValorCampo(campo.tipo, valor)}</dd>
               </div>
             ))}
           </dl>
@@ -56,12 +58,25 @@ export function CamposExtras({ candidato, campos, modo, className }: CamposExtra
 
   return (
     <dl className={cx("flex flex-col gap-4 text-base", className)}>
-      {visiveis.map(({ campo, valor }) => (
-        <div key={campo.id} className="flex flex-col gap-1">
-          <dt className="text-xs font-bold uppercase tracking-wider text-tema-primaria-texto">{campo.rotulo}</dt>
-          <dd className={cx("leading-relaxed", campo.chave === "descricao" && "whitespace-pre-line")}>{valor}</dd>
-        </div>
-      ))}
+      {visiveis.map(({ campo, valor }) => {
+        const href = campo.tipo === "LINK" ? hrefDoCampo(valor) : null;
+        return (
+          <div key={campo.id} className="flex flex-col gap-1">
+            <dt className="text-xs font-bold uppercase tracking-wider text-tema-primaria-texto">{campo.rotulo}</dt>
+            <dd className={cx("leading-relaxed", campo.chave === "descricao" && "whitespace-pre-line")}>
+              {campo.tipo === "VIDEO" ? (
+                <VideoCampo valor={valor} titulo={`${campo.rotulo}: ${candidato.titulo}`} />
+              ) : href ? (
+                <a href={href} target="_blank" rel="noopener noreferrer" className="break-all font-medium text-tema-primaria-texto underline underline-offset-2">
+                  {formatarValorCampo(campo.tipo, valor)}
+                </a>
+              ) : (
+                formatarValorCampo(campo.tipo, valor)
+              )}
+            </dd>
+          </div>
+        );
+      })}
     </dl>
   );
 }

@@ -110,4 +110,35 @@ describe("campos extras por categoria (D1)", () => {
     expect(await db().campoCandidato.count({ where: { categoriaId: copiada.id } })).toBe(0);
     expect(await chavesDe(unica.id)).toEqual(["descricao", "equipe", "tecnologias"]);
   });
+
+  it("campo com tipo (24/11/2026): valida pelo tipo, normaliza o link e só troca o tipo se os valores servirem", async () => {
+    expect((await salvarCategorias(admin, eventoId, [...(await comoLista()), { id: null, nome: "Tipos", premio: "" }], ctx)).ok).toBe(true);
+    const tipos = (await categoriasDoEvento()).find((c) => c.nome === "Tipos")!;
+    const campos = [
+      { rotulo: "Ano", tipo: "NUMERO" as const },
+      { rotulo: "Site", tipo: "LINK" as const },
+      { rotulo: "Estreia", tipo: "DATA" as const },
+      { rotulo: "Nota" },
+    ];
+    expect(await salvarCamposExtras(admin, eventoId, tipos.id, campos)).toEqual({ ok: true, dados: null });
+    const tipoPorChave = async () =>
+      Object.fromEntries((await db().campoCandidato.findMany({ where: { categoriaId: tipos.id } })).map((c) => [c.chave, c.tipo]));
+    expect(await tipoPorChave()).toEqual({ ano: "NUMERO", site: "LINK", estreia: "DATA", nota: "TEXTO" });
+
+    const item = (camposExtras: Record<string, string>) => criarCandidato(admin, eventoId, { titulo: "Com tipo", imagemUrl: null, categoriaId: tipos.id, camposExtras });
+    expect(await item({ ano: "dois mil" })).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO", campos: { "campo:ano": expect.any(String) } } });
+    const bom = await item({ ano: "2026", site: "vaivota.space", estreia: "2026-11-28", nota: "12" });
+    const ruim = await item({ nota: "abc" });
+    if (!bom.ok || !ruim.ok) throw new Error("itens não criados");
+    expect((await db().candidato.findUniqueOrThrow({ where: { id: bom.dados.id } })).camposExtras).toMatchObject({ site: "https://vaivota.space" });
+
+    // "abc" não é número: a troca é recusada e nada muda.
+    const comNotaNumero = [{ chave: "ano", rotulo: "Ano" }, { chave: "site", rotulo: "Site" }, { chave: "estreia", rotulo: "Estreia" }, { chave: "nota", rotulo: "Nota", tipo: "NUMERO" as const }];
+    expect(await salvarCamposExtras(admin, eventoId, tipos.id, comNotaNumero)).toMatchObject({ ok: false, erro: { codigo: "VALIDACAO", campos: { "tipo:3": expect.stringContaining("1 item") } } });
+    expect((await tipoPorChave()).nota).toBe("TEXTO");
+    // Corrigido o valor, a troca passa.
+    expect((await salvarCandidato(admin, eventoId, ruim.dados.id, { titulo: "Com tipo", imagemUrl: null, camposExtras: { nota: "7" } })).ok).toBe(true);
+    expect(await salvarCamposExtras(admin, eventoId, tipos.id, comNotaNumero)).toEqual({ ok: true, dados: null });
+    expect(await tipoPorChave()).toMatchObject({ ano: "NUMERO", nota: "NUMERO" });
+  });
 });

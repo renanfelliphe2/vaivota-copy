@@ -1,4 +1,4 @@
-import type { CampoCandidato, Candidato } from "./tipos";
+import type { CampoCandidato, Candidato, TipoCampo } from "./tipos";
 
 // Etapa 6 (D13): campos extras. A `chave` nasce do rótulo e é imutável; remover o campo apaga os valores nos itens na mesma
 // operação. D1 (25/11/2026): os campos são de cada categoria; o item preenche os da categoria dele. A mesma chave em duas
@@ -67,6 +67,35 @@ export function camposPerdidosNaMudanca(
   return Object.keys(candidato.camposExtras ?? {})
     .filter((chave) => temValor(candidato, chave) && !doDestino.has(chave))
     .map((chave) => ({ chave, rotulo: rotuloDe(chave) }));
+}
+
+/** Os tipos na ordem do seletor, com o nome que a tela mostra (24/11/2026). */
+export const TIPOS_CAMPO: readonly { tipo: TipoCampo; nome: string }[] = [
+  { tipo: "TEXTO", nome: "Texto" },
+  { tipo: "NUMERO", nome: "Número" },
+  { tipo: "DATA", nome: "Data" },
+  { tipo: "LINK", nome: "Link" },
+  { tipo: "VIDEO", nome: "Vídeo" },
+];
+
+/** O valor como a página mostra: data em dd/mm/aaaa, link sem o "https://"; o resto como foi digitado. */
+export function formatarValorCampo(tipo: TipoCampo, valor: string): string {
+  if (tipo === "DATA") {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : valor;
+  }
+  if (tipo === "LINK" || tipo === "VIDEO") return valor.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+  return valor;
+}
+
+/** Endereço seguro para o `href` de um campo LINK: só http(s). Qualquer outra coisa (ou valor antigo) não vira link. */
+export function hrefDoCampo(valor: string): string | null {
+  try {
+    const url = new URL(valor);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
+  } catch {
+    return null;
+  }
 }
 
 /** "Direção", "Direção e Duração", "Direção, Duração e Elenco". */

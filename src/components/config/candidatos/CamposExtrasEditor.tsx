@@ -2,8 +2,8 @@
 
 import { ArrowDown, ArrowUp, Copy, Plus, Save, Trash2, Undo2 } from "lucide-react";
 import { useState } from "react";
-import { camposDaCategoria, contarValores } from "@/dominio/camposExtras";
-import type { CampoCandidato, Candidato, Categoria } from "@/dominio/tipos";
+import { camposDaCategoria, contarValores, TIPOS_CAMPO } from "@/dominio/camposExtras";
+import type { CampoCandidato, Candidato, Categoria, TipoCampo } from "@/dominio/tipos";
 import type { Travas } from "@/dominio/travas";
 import { LIMITES, validarRotuloCampo } from "@/dominio/validacoesConfig";
 import { Botao } from "@/components/ui/Botao";
@@ -34,13 +34,13 @@ type Props = {
  */
 export function CamposExtrasEditor(props: Props) {
   const meus = camposDaCategoria(props.campos, props.categoria.id);
-  return <Editor key={`${props.categoria.id}|${meus.map((c) => `${c.chave}:${c.rotulo}`).join("|")}`} meus={meus} {...props} />;
+  return <Editor key={`${props.categoria.id}|${meus.map((c) => `${c.chave}:${c.rotulo}:${c.tipo}`).join("|")}`} meus={meus} {...props} />;
 }
 
 type Linha = CampoEditado & { tempId: number; copiado?: boolean };
 
 function Editor({ eventoId, categoria, categorias, campos, candidatos, travas, aoSalvar, meus }: Props & { meus: CampoCandidato[] }) {
-  const inicial: CampoEditado[] = meus.map((c) => ({ chave: c.chave, rotulo: c.rotulo }));
+  const inicial: CampoEditado[] = meus.map((c) => ({ chave: c.chave, rotulo: c.rotulo, tipo: c.tipo }));
   const [lista, setLista] = useState<Linha[]>(inicial.map((c, i) => ({ ...c, tempId: i })));
   const [proximoId, setProximoId] = useState(inicial.length);
   const outras = categorias.filter((c) => c.id !== categoria.id && camposDaCategoria(campos, c.id).length > 0);
@@ -53,7 +53,7 @@ function Editor({ eventoId, categoria, categorias, campos, candidatos, travas, a
   const podeEstrutura = travas.permite("CAMPOS_EXTRAS_ESTRUTURA");
   const podeRotulo = travas.permite("CAMPOS_EXTRAS_ROTULO");
   const auditado = travas.nivel("CAMPOS_EXTRAS_ROTULO") === "AUDITADO";
-  const editado = lista.map(({ chave, rotulo }) => (chave ? { chave, rotulo } : { rotulo }));
+  const editado: CampoEditado[] = lista.map(({ chave, rotulo, tipo }) => (chave ? { chave, rotulo, tipo } : { rotulo, tipo }));
   const alterado = JSON.stringify(editado) !== JSON.stringify(inicial);
   const removidos = meus.filter((c) => !lista.some((l) => l.chave === c.chave));
   const afetados = removidos.reduce((s, c) => s + contarValores(candidatos, categoria.id, c.chave), 0);
@@ -64,6 +64,9 @@ function Editor({ eventoId, categoria, categorias, campos, candidatos, travas, a
     ),
   );
   const temErros = erros.some(Boolean);
+  const errosServidor = servico.erro?.campos ?? {};
+  // O tipo é estrutura, como adicionar e remover: trava com a urna aberta.
+  const tipoDe = (c: Linha): TipoCampo => c.tipo ?? "TEXTO";
 
   // O que "Copiar" traria da categoria escolhida: os campos que esta ainda não tem (pela chave ou pelo nome).
   const mesmoNome = (a: string, b: string) => a.trim().toLocaleLowerCase("pt-BR") === b.trim().toLocaleLowerCase("pt-BR");
@@ -80,7 +83,9 @@ function Editor({ eventoId, categoria, categorias, campos, candidatos, travas, a
     mudar(nova);
   };
   function copiar() {
-    const trazidos = aCopiar.slice(0, Math.max(0, vagas)).map((c, k) => ({ chave: c.chave, rotulo: c.rotulo, tempId: proximoId + k, copiado: true }));
+    const trazidos = aCopiar
+      .slice(0, Math.max(0, vagas))
+      .map((c, k) => ({ chave: c.chave, rotulo: c.rotulo, tipo: c.tipo, tempId: proximoId + k, copiado: true }));
     if (!trazidos.length) return;
     mudar([...lista, ...trazidos]);
     setProximoId(proximoId + trazidos.length);
@@ -129,6 +134,19 @@ function Editor({ eventoId, categoria, categorias, campos, candidatos, travas, a
                   className="max-w-xs flex-1"
                   maxLength={30}
                 />
+                <Select
+                  aria-label={`Tipo do campo ${c.rotulo || i + 1}`}
+                  value={tipoDe(c)}
+                  disabled={!podeEstrutura}
+                  onChange={(e) => mudar(lista.map((x, k) => (k === i ? { ...x, tipo: e.target.value as TipoCampo } : x)))}
+                  className="w-32"
+                >
+                  {TIPOS_CAMPO.map((t) => (
+                    <option key={t.tipo} value={t.tipo}>
+                      {t.nome}
+                    </option>
+                  ))}
+                </Select>
                 {c.chave && <code className="text-xs text-tema-texto-suave">{c.chave}</code>}
                 {c.copiado && <span className="text-xs font-semibold text-tema-primaria-texto">copiado</span>}
                 {podeRotulo && (
@@ -148,6 +166,7 @@ function Editor({ eventoId, categoria, categorias, campos, candidatos, travas, a
                 )}
               </div>
               {erros[i] && <p className="text-sm font-medium text-tema-erro">{erros[i]}</p>}
+              {errosServidor[`tipo:${i}`] && <p className="text-sm font-medium text-tema-erro">{errosServidor[`tipo:${i}`]}</p>}
             </li>
           ))}
         </ul>
@@ -188,7 +207,7 @@ function Editor({ eventoId, categoria, categorias, campos, candidatos, travas, a
               tamanho="pequeno"
               disabled={lista.length >= LIMITES.maxCampos}
               onClick={() => {
-                mudar([...lista, { rotulo: "", tempId: proximoId }]);
+                mudar([...lista, { rotulo: "", tipo: "TEXTO", tempId: proximoId }]);
                 setProximoId(proximoId + 1);
               }}
               icone={<Plus aria-hidden className="size-4" />}

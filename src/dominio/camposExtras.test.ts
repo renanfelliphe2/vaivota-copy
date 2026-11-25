@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { avisoCamposPerdidos, camposDaCategoria, camposPerdidosNaMudanca, chaveValida, listarNomes } from "./camposExtras";
+import {
+  avisoCamposPerdidos,
+  camposDaCategoria,
+  camposPerdidosNaMudanca,
+  chaveValida,
+  formatarValorCampo,
+  hrefDoCampo,
+  listarNomes,
+} from "./camposExtras";
 import type { CampoCandidato, Candidato } from "./tipos";
 
 // D1 (25/11/2026): campos extras por categoria.
@@ -10,6 +18,7 @@ const campo = (categoriaId: string, chave: string, rotulo: string, ordem: number
   categoriaId,
   chave,
   rotulo,
+  tipo: "TEXTO",
   ordem,
 });
 
@@ -69,5 +78,15 @@ describe("campos extras por categoria", () => {
     expect(chaveValida("direcao_de_arte")).toBe(true);
     expect(chaveValida("Direção")).toBe(false);
     expect(chaveValida("")).toBe(false);
+  });
+
+  it("formata o valor pelo tipo e só aceita link http(s) no href (24/11/2026)", () => {
+    expect(formatarValorCampo("DATA", "2026-11-28")).toBe("28/11/2026");
+    expect(formatarValorCampo("DATA", "valor antigo")).toBe("valor antigo");
+    expect(formatarValorCampo("LINK", "https://vaivota.space/")).toBe("vaivota.space");
+    expect(formatarValorCampo("NUMERO", "2026")).toBe("2026");
+    expect(hrefDoCampo("https://vaivota.space")).toBe("https://vaivota.space/");
+    expect(hrefDoCampo("javascript:alert(1)")).toBeNull();
+    expect(hrefDoCampo("texto")).toBeNull();
   });
 });

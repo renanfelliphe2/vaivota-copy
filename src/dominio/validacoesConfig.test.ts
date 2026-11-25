@@ -7,6 +7,8 @@ import { estadoExibidoConvite, proximoNumeroRotulo, resumirConvites } from "./co
 import { calcularExemploPlacar, liderDoExemplo } from "./placarExemplo";
 import {
   LIMITES,
+  limiteDoCampo,
+  normalizarValorCampo,
   validarArquivoImagem,
   validarCandidato,
   validarExtensaoFim,
@@ -64,7 +66,41 @@ describe("Candidatos", () => {
   it("descrição é um campo extra opcional, multilinha e com limite de 1500 caracteres", () => {
     expect(validarCandidato({ ...base, camposExtras: { descricao: "Linha 1\nLinha 2" } }, { naVotacao: false })).toEqual({});
     expect(validarCandidato({ ...base, camposExtras: { descricao: "x".repeat(1501) } }, { naVotacao: false })).toHaveProperty("campo:descricao");
-    expect(validarCandidato({ ...base, camposExtras: { equipe: "x".repeat(201) } }, { naVotacao: false })).toHaveProperty("campo:equipe");
+    expect(validarCandidato({ ...base, camposExtras: { equipe: "x".repeat(300) } }, { naVotacao: false })).toEqual({});
+    expect(validarCandidato({ ...base, camposExtras: { equipe: "x".repeat(301) } }, { naVotacao: false })).toEqual({
+      "campo:equipe": "Passou do limite: 301 de 300 caracteres.",
+    });
+  });
+
+  it("valida o valor pelo tipo do campo (24/11/2026)", () => {
+    const campos = [
+      { chave: "ano", tipo: "NUMERO" as const },
+      { chave: "estreia", tipo: "DATA" as const },
+      { chave: "site", tipo: "LINK" as const },
+    ];
+    const erros = (camposExtras: Record<string, string>) => validarCandidato({ ...base, camposExtras }, { naVotacao: false, campos });
+    expect(erros({ ano: "2026", estreia: "2026-11-28", site: "vaivota.space" })).toEqual({});
+    expect(erros({ ano: "12,5" })).toEqual({});
+    expect(erros({ ano: "dois mil" })).toHaveProperty("campo:ano");
+    expect(erros({ estreia: "2026-02-30" })).toHaveProperty("campo:estreia");
+    expect(erros({ estreia: "28/11/2026" })).toHaveProperty("campo:estreia");
+    expect(erros({ site: "javascript:alert(1)" })).toHaveProperty("campo:site");
+    expect(erros({ site: "sem ponto" })).toHaveProperty("campo:site");
+    expect(erros({ site: `https://a.com/${"x".repeat(490)}` })).toHaveProperty("campo:site");
+    expect(erros({ ano: "", estreia: " ", site: "" })).toEqual({});
+  });
+
+  it("normaliza o link sem protocolo e calcula o limite pelo tipo", () => {
+    expect(normalizarValorCampo("LINK", " vaivota.space ")).toBe("https://vaivota.space");
+    expect(normalizarValorCampo("LINK", "http://a.com")).toBe("http://a.com");
+    expect(normalizarValorCampo("TEXTO", " a ")).toBe("a");
+    expect(limiteDoCampo("descricao", "TEXTO")).toBe(1500);
+    expect(limiteDoCampo("direcao", "TEXTO")).toBe(300);
+    expect(limiteDoCampo("site", "LINK")).toBe(500);
+  });
+
+  it("título acima do limite diz quanto passou", () => {
+    expect(validarCandidato({ ...base, titulo: "x".repeat(151) }, { naVotacao: false }).titulo).toBe("Passou do limite: 151 de 150 caracteres.");
   });
 
   it("limites cobrem o seed", () => {

@@ -29,6 +29,7 @@ import { useSelecaoVoto } from "@/store/seletores/votacao";
 import { useVisaoEvento } from "@/store/seletores/visao";
 import { DialogoCoracao } from "./DialogoCoracao";
 import { BotaoFilme } from "./BotaoFilme";
+import { DetalhesItem, idDetalhes, temDetalhesItem } from "./DetalhesItem";
 import { BarraPesquisa, BotaoPesquisar } from "./BuscaItens";
 import { ID_SECAO_CATEGORIAS } from "./SecaoCategorias";
 import { useMeusVotos } from "@/store/meusVotos";
@@ -81,6 +82,15 @@ export function PaginaCategoria() {
     router.replace(pathname, { scroll: false });
   }, [votarUrl, itemVotarUrl, modo, eventoId, pathname, router]);
 
+  // Chegou com #detalhes-<id> (o "Ver mais" da revisão na página do evento): a página é montada no cliente, então a rolagem
+  // até a âncora é feita aqui, uma vez, quando o bloco existir.
+  const temItens = (atual?.itens.length ?? 0) > 0;
+  useEffect(() => {
+    if (!temItens || !window.location.hash.startsWith("#detalhes-")) return;
+    const id = decodeURIComponent(window.location.hash.slice("#detalhes-".length));
+    irParaDetalhes(id, false);
+  }, [temItens]);
+
   if (!ativo || !categorias || !visao) return null;
   if (visao.variante === "INDISPONIVEL") {
     return (
@@ -124,6 +134,10 @@ export function PaginaCategoria() {
 
   const clicavel = modo === "ESCOLHA" || modo === "VISITANTE";
   const visiveis = filtrarPorTitulo(itens, termo, (i) => i.candidato.titulo);
+  // Detalhes (25/11/2026): os campos extras de cada item, na seção "Conheça", logo abaixo da grade de voto.
+  const campos = ativo.camposCandidato;
+  const comDetalhes = visiveis.filter((i) => temDetalhesItem(i, campos));
+  const rotuloItens = tema.rotuloCandidatos.toLocaleLowerCase("pt-BR");
   const fecharBusca = () => {
     setBuscaAberta(false);
     setTermo("");
@@ -183,7 +197,7 @@ export function PaginaCategoria() {
           ) : (
             <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
               {visiveis.map((item) => (
-                <li key={item.candidato.id} className="flex">
+                <li key={item.candidato.id} className="flex flex-col gap-2">
                   <BotaoFilme
                     item={item}
                     clicavel={clicavel && !item.bloqueadoVotoProprio}
@@ -191,9 +205,52 @@ export function PaginaCategoria() {
                     cinema={cinema}
                     aoTocar={() => tocar(item)}
                   />
+                  {temDetalhesItem(item, campos) && (
+                    <a
+                      href={`#${idDetalhes(item.candidato.id)}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        irParaDetalhes(item.candidato.id);
+                      }}
+                      className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full text-sm font-semibold text-tema-primaria-texto hover:underline"
+                    >
+                      <Info aria-hidden className="size-4" />
+                      Ver detalhes<span className="sr-only"> de {item.candidato.titulo}</span>
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
+          )}
+
+          {comDetalhes.length > 0 && (
+            <div className="mt-6 flex flex-col gap-6 sm:mt-10">
+              <div className="flex flex-col gap-2">
+                <h2 id="titulo-detalhes" className={cx("text-2xl tracking-tight sm:text-3xl", cinema ? "font-cine font-bold" : "font-display font-extrabold")}>
+                  Conheça os {rotuloItens}
+                </h2>
+                <p className="max-w-2xl text-tema-texto-suave">
+                  {comDetalhes.length < itens.length && !termo
+                    ? "Para conhecer antes de votar. Nem todos têm detalhes: os demais aparecem só na lista acima."
+                    : "Para conhecer cada um antes de votar."}
+                </p>
+              </div>
+              <ul className="flex flex-col gap-6 sm:gap-8">
+                {comDetalhes.map((item) => (
+                  <li key={item.candidato.id}>
+                    <DetalhesItem
+                      item={item}
+                      campos={campos}
+                      clicavel={clicavel}
+                      meuVoto={item.candidato.id === meuItem?.candidato.id}
+                      cinema={cinema}
+                      rotuloFicha={cinema ? "Ficha técnica" : "Informações"}
+                      aoVotar={() => tocar(item)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       </section>
@@ -212,6 +269,12 @@ export function PaginaCategoria() {
         aoConfirmar={() => itemSelecionado && void enviar(itemSelecionado.candidato.id)}
         aoTrocar={() => selecionarCandidato(eventoId, null)}
         aoVerificar={() => void verificarNovamente()}
+        temVerMais={(i) => temDetalhesItem(i, campos)}
+        aoVerMais={(i) => {
+          // Fecha a revisão (a escolha some) e leva aos detalhes; votar de novo é um toque no botão do bloco.
+          selecionarCandidato(eventoId, null);
+          window.setTimeout(() => irParaDetalhes(i.candidato.id), 60);
+        }}
       />
 
       <DialogoCoracao
@@ -227,6 +290,16 @@ export function PaginaCategoria() {
 }
 
 const atraso = (ms: number) => ({ "--atraso": `${ms}ms` }) as CSSProperties;
+
+/** Rola até os detalhes do item e põe o foco no título dele (para o teclado e o leitor de tela seguirem junto). */
+function irParaDetalhes(candidatoId: string, suave = true) {
+  const bloco = document.getElementById(idDetalhes(candidatoId));
+  if (!bloco) return;
+  const reduzir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  bloco.scrollIntoView({ behavior: suave && !reduzir ? "smooth" : "auto", block: "start" });
+  document.getElementById(`titulo-${idDetalhes(candidatoId)}`)?.focus({ preventScroll: true });
+  if (window.location.hash !== `#${idDetalhes(candidatoId)}`) window.history.replaceState(window.history.state, "", `#${idDetalhes(candidatoId)}`);
+}
 
 /** Faixa do topo: a sala escura do estilo cinema, com o caminho de volta, o nome da categoria e o prêmio. */
 function CabecaCategoria({ dados }: { dados: CategoriaComItens }) {

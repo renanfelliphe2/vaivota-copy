@@ -1,4 +1,4 @@
-import type { OrdemCandidatos } from "@/dominio/tipos";
+import type { OrdemCandidatos, TipoCampo } from "@/dominio/tipos";
 import type { DadosCandidato } from "@/dominio/validacoesConfig";
 import { recarregarEstado } from "@/store/servidor";
 import { chamar } from "./rpc";
@@ -44,7 +44,7 @@ export function desqualificarCandidato(eventoId: string, candidatoId: string, mo
 }
 
 /** `chave` ausente: campo novo. `chave` que a categoria ainda não tem (copiada de outra categoria): campo novo com essa chave. */
-export type CampoEditado = { chave?: string; rotulo: string };
+export type CampoEditado = { chave?: string; rotulo: string; tipo?: TipoCampo };
 
 /** D1 (25/11/2026): os campos extras de UMA categoria. Remover apaga os valores nos itens dela na mesma operação. */
 export function salvarCamposExtras(eventoId: string, categoriaId: string, campos: CampoEditado[], motivo?: string): Promise<Resultado<null>> {

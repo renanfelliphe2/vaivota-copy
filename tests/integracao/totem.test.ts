@@ -368,11 +368,11 @@ describe("pareamento do tablet", () => {
     const { eventoId, admin } = await eventoComTotens("teste-totem-estado");
     const t = await criarTotem(admin, eventoId, { nome: "Totem Estado" });
     const ip = novoIp();
-    expect(await obterEstadoTotem({ headers: new Headers(), ip, cookies: [] })).toEqual({ ok: true, dados: { dispositivo: null } });
+    expect(await obterEstadoTotem({ headers: new Headers(), ip, cookies: [] })).toEqual({ ok: true, dados: { dispositivo: null, sincronizar: false } });
     const falso = randomBytes(32).toString("base64url");
-    expect(await obterEstadoTotem({ headers: new Headers({ cookie: `${COOKIE_TOTEM}=${falso}` }), ip, cookies: [] })).toEqual({ ok: true, dados: { dispositivo: null } });
+    expect(await obterEstadoTotem({ headers: new Headers({ cookie: `${COOKIE_TOTEM}=${falso}` }), ip, cookies: [] })).toEqual({ ok: true, dados: { dispositivo: null, sincronizar: false } });
 
-    expect(await obterEstadoTotem(t.ctx)).toEqual({ ok: true, dados: { dispositivo: { id: t.id, eventoId, nome: "Totem Estado", estado: "ATIVO", categoriaIds: await categoriasTotem(eventoId) } } });
+    expect(await obterEstadoTotem(t.ctx)).toEqual({ ok: true, dados: { dispositivo: { id: t.id, eventoId, nome: "Totem Estado", estado: "ATIVO", categoriaIds: await categoriasTotem(eventoId) }, sincronizar: false } });
     await pausarDispositivo(admin, eventoId, t.id, { ip });
     expect(await obterEstadoTotem(t.ctx)).toMatchObject({ ok: true, dados: { dispositivo: { estado: "PAUSADO" } } });
     await revogarDispositivo(admin, eventoId, t.id, {}, { ip });

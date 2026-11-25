@@ -1,9 +1,17 @@
 import "server-only";
 import type { Evento as EventoLinha, Prisma } from "@/generated/prisma/client";
 import { chaveValida, gerarChave } from "@/dominio/camposExtras";
-import type { OrdemCandidatos } from "@/dominio/tipos";
+import type { OrdemCandidatos, TipoCampo } from "@/dominio/tipos";
 import { exigirAcao, resolverFaseConfig, type AcaoConfig } from "@/dominio/travas";
-import { LIMITES, validarCandidato, validarMotivo, validarRotuloCampo, type DadosCandidato } from "@/dominio/validacoesConfig";
+import {
+  LIMITES,
+  normalizarValorCampo,
+  validarCandidato,
+  validarMotivo,
+  validarRotuloCampo,
+  validarValorCampo,
+  type DadosCandidato,
+} from "@/dominio/validacoesConfig";
 import { congelarResultado } from "./apuracao";
 import { registrarAuditoria } from "./auditoria";
 import { db, type Transacao } from "./db";
@@ -15,19 +23,23 @@ import { urlDeImagemValida } from "./storage";
 // ST2: candidatos (os "projetos" da Maratona Tech Tivit) e campos extras (equipe, tecnologias). Só o admin do evento chama.
 // A imagem vem do upload (src/server/upload.ts): aqui `imagemUrl` só aceita o que o próprio sistema gravou.
 
-function limparCampos(chavesDaCategoria: Set<string>, campos: Record<string, string>): Record<string, string> {
+type CampoDoItem = { chave: string; tipo: TipoCampo };
+
+/** Só os campos da categoria, sem os vazios, com o valor normalizado pelo tipo (link ganha "https://"). */
+function limparCampos(camposDaCategoria: readonly CampoDoItem[], valores: Record<string, string>): Record<string, string> {
   return Object.fromEntries(
-    Object.entries(campos)
-      .filter(([k, v]) => chavesDaCategoria.has(k) && v.trim() !== "")
-      .map(([k, v]) => [k, v.trim()]),
+    Object.entries(valores).flatMap(([k, v]) => {
+      const campo = camposDaCategoria.find((c) => c.chave === k);
+      const valor = campo ? normalizarValorCampo(campo.tipo, v) : "";
+      return valor ? [[k, valor]] : [];
+    }),
   );
 }
 
 /** D1 (25/11/2026): os campos são da categoria do item. Item sem categoria não tem campos. */
-async function chavesDosCampos(categoriaId: string | null, cliente: Pick<Transacao, "campoCandidato"> = db()): Promise<Set<string>> {
-  if (!categoriaId) return new Set();
-  const campos = await cliente.campoCandidato.findMany({ where: { categoriaId }, select: { chave: true } });
-  return new Set(campos.map((c) => c.chave));
+async function camposDoItem(categoriaId: string | null, cliente: Pick<Transacao, "campoCandidato"> = db()): Promise<CampoDoItem[]> {
+  if (!categoriaId) return [];
+  return cliente.campoCandidato.findMany({ where: { categoriaId }, select: { chave: true, tipo: true } });
 }
 
 function imagemInvalida(eventoId: string, imagemUrl: string | null) {
@@ -75,19 +87,20 @@ export async function criarCandidato(usuario: UsuarioSessao | null, eventoId: st
   if (!admin.ok) return admin;
   const trava = exigirAcao(admin.dados.evento, "CANDIDATOS_PUBLICACAO");
   if (!trava.ok) return trava;
-  const erros = validarCandidato(dados, { naVotacao: false });
+  const recusaCategoria = await categoriaInvalida(eventoId, dados.categoriaId);
+  if (recusaCategoria) return recusaCategoria;
+  // 25/11/2026: no evento de categoria única (ex.: "Melhor Projeto"), o item novo já entra nela; com várias, o admin escolhe.
+  const categorias = dados.categoriaId ? [] : await db().categoria.findMany({ where: { eventoId }, select: { id: true }, take: 2 });
+  const categoriaId = dados.categoriaId ?? (categorias.length === 1 ? categorias[0].id : null);
+  const campos = await camposDoItem(categoriaId);
+  const erros = validarCandidato(dados, { naVotacao: false, campos });
   if (Object.keys(erros).length) return falha("VALIDACAO", { campos: erros });
   const recusaImagem = imagemInvalida(eventoId, dados.imagemUrl);
   if (recusaImagem) return recusaImagem;
-  const recusaCategoria = await categoriaInvalida(eventoId, dados.categoriaId);
-  if (recusaCategoria) return recusaCategoria;
 
   const r = await comEventoTravado(eventoId, "CANDIDATOS_PUBLICACAO", async (tx) => {
     const maior = await tx.candidato.aggregate({ where: { eventoId }, _max: { ordem: true } });
-    // 25/11/2026: no evento de categoria única (ex.: "Melhor Projeto"), o item novo já entra nela; com várias, o admin escolhe.
-    const categorias = dados.categoriaId ? [] : await tx.categoria.findMany({ where: { eventoId }, select: { id: true }, take: 2 });
-    const categoriaId = dados.categoriaId ?? (categorias.length === 1 ? categorias[0].id : null);
-    const chaves = await chavesDosCampos(categoriaId, tx);
+    const chaves = await camposDoItem(categoriaId, tx);
     const novo = await tx.candidato.create({
       data: {
         eventoId,
@@ -121,12 +134,13 @@ export async function salvarCandidato(
   if (!trava.ok) return trava;
   const atual = await db().candidato.findFirst({ where: { id: candidatoId, eventoId } });
   if (!atual) return falha("NAO_ENCONTRADO");
-  const erros = validarCandidato(dados, { naVotacao: atual.publicado });
+  // Mudar de categoria (09/11/2026) é estrutura: trava com a urna aberta (o voto de cada pessoa é por categoria).
+  const categoriaId = dados.categoriaId === undefined ? atual.categoriaId : dados.categoriaId;
+  const campos = await camposDoItem(categoriaId);
+  const erros = validarCandidato(dados, { naVotacao: atual.publicado, campos });
   if (Object.keys(erros).length) return falha("VALIDACAO", { campos: erros });
   const recusaImagem = imagemInvalida(eventoId, dados.imagemUrl);
   if (recusaImagem) return recusaImagem;
-  // Mudar de categoria (09/11/2026) é estrutura: trava com a urna aberta (o voto de cada pessoa é por categoria).
-  const categoriaId = dados.categoriaId === undefined ? atual.categoriaId : dados.categoriaId;
   if (categoriaId !== atual.categoriaId) {
     const travaCategoria = exigirAcao(evento, "CATEGORIAS_ESTRUTURA");
     if (!travaCategoria.ok) return travaCategoria;
@@ -142,7 +156,7 @@ export async function salvarCandidato(
     const camposExtras =
       categoriaId === null
         ? ((atual.camposExtras as Record<string, string> | null) ?? {})
-        : limparCampos(await chavesDosCampos(categoriaId), dados.camposExtras);
+        : limparCampos(campos, dados.camposExtras);
     const titulo = dados.titulo.trim();
     const alterados: string[] = [];
     if (titulo !== atual.titulo) alterados.push("titulo");
@@ -311,12 +325,13 @@ export async function desqualificarCandidato(
  * D1: `chave` que a categoria ainda não tem (copiar campos de outra categoria): campo novo com essa mesma chave, para o valor
  * continuar valendo quando o item muda entre as duas.
  */
-export type CampoEditado = { chave?: string; rotulo: string };
+export type CampoEditado = { chave?: string; rotulo: string; tipo?: TipoCampo };
 
 /**
  * Cria, renomeia, reordena e remove os campos extras de UMA categoria (D1, 25/11/2026). Remover apaga os valores nos itens da
- * categoria na mesma operação. Estrutura (adicionar e remover) trava com a urna aberta; rótulo e ordem são corrigíveis com
- * auditoria.
+ * categoria na mesma operação. Estrutura (adicionar, remover e trocar o tipo) trava com a urna aberta; rótulo e ordem são
+ * corrigíveis com auditoria. Trocar o tipo (24/11/2026) é recusado se algum item tem valor que não serve ao tipo novo; os que
+ * servem são normalizados (ex.: o link ganha "https://").
  */
 export async function salvarCamposExtras(
   usuario: UsuarioSessao | null,
@@ -338,8 +353,10 @@ export async function salvarCamposExtras(
   const renomeados = campos.filter((c) => existente(c) && existente(c)!.rotulo !== c.rotulo.trim()).map((c) => c.chave!);
   const reordenado =
     campos.filter((c) => existente(c)).map((c) => c.chave).join() !== atuais.filter((a) => chavesNovas.has(a.chave)).map((a) => a.chave).join();
+  const tipoDe = (c: CampoEditado): TipoCampo => c.tipo ?? existente(c)?.tipo ?? "TEXTO";
+  const tipoTrocado = campos.filter((c) => existente(c) && existente(c)!.tipo !== tipoDe(c)).map((c) => ({ chave: c.chave!, tipo: tipoDe(c) }));
 
-  if (removidos.length || adicionados.length) {
+  if (removidos.length || adicionados.length || tipoTrocado.length) {
     const trava = exigirAcao(evento, "CAMPOS_EXTRAS_ESTRUTURA");
     if (!trava.ok) return trava;
   }
@@ -347,7 +364,7 @@ export async function salvarCamposExtras(
     const trava = exigirAcao(evento, "CAMPOS_EXTRAS_ROTULO");
     if (!trava.ok) return trava;
   }
-  if (!removidos.length && !adicionados.length && !renomeados.length && !reordenado) return sucesso(null);
+  if (!removidos.length && !adicionados.length && !renomeados.length && !reordenado && !tipoTrocado.length) return sucesso(null);
 
   if (campos.length > LIMITES.maxCampos) return falha("VALIDACAO", { campos: { campos: `Use no máximo ${LIMITES.maxCampos} campos.` } });
   if (new Set(campos.filter((c) => c.chave).map((c) => c.chave)).size !== campos.filter((c) => c.chave).length)
@@ -360,6 +377,21 @@ export async function salvarCamposExtras(
   });
   if (Object.keys(erros).length) return falha("VALIDACAO", { campos: erros });
 
+  // Tipo trocado: todos os valores já preenchidos precisam servir ao tipo novo.
+  const valoresDe = (v: Prisma.JsonValue | null) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, string>) : {});
+  if (tipoTrocado.length) {
+    const itens = await db().candidato.findMany({ where: { eventoId, categoriaId }, select: { camposExtras: true } });
+    for (const { chave, tipo } of tipoTrocado) {
+      const ruins = itens.filter((it) => {
+        const v = valoresDe(it.camposExtras)[chave];
+        return typeof v === "string" && validarValorCampo(chave, tipo, v) !== null;
+      }).length;
+      const i = campos.findIndex((c) => c.chave === chave);
+      if (ruins) erros[`tipo:${i}`] = `${ruins} item(ns) têm um valor que não serve a este tipo. Corrija o valor antes de trocar o tipo.`;
+    }
+    if (Object.keys(erros).length) return falha("VALIDACAO", { campos: erros });
+  }
+
   try {
     await db().$transaction(async (tx) => {
       await travarEvento(tx, eventoId);
@@ -369,20 +401,27 @@ export async function salvarCamposExtras(
       for (const [i, c] of campos.entries()) {
         const atual = existente(c);
         if (atual) {
-          await tx.campoCandidato.update({ where: { id: atual.id }, data: { rotulo: c.rotulo.trim(), ordem: i + 1 } });
+          await tx.campoCandidato.update({ where: { id: atual.id }, data: { rotulo: c.rotulo.trim(), tipo: tipoDe(c), ordem: i + 1 } });
         } else {
           const chave = c.chave && chaveValida(c.chave) ? c.chave : gerarChave(c.rotulo, chaves);
           chaves.push(chave);
-          await tx.campoCandidato.create({ data: { eventoId, categoriaId, chave, rotulo: c.rotulo.trim(), ordem: i + 1 } });
+          await tx.campoCandidato.create({ data: { eventoId, categoriaId, chave, rotulo: c.rotulo.trim(), tipo: tipoDe(c), ordem: i + 1 } });
         }
       }
-      if (removidos.length) {
+      if (removidos.length || tipoTrocado.length) {
         const candidatos = await tx.candidato.findMany({ where: { eventoId, categoriaId }, select: { id: true, camposExtras: true } });
         for (const c of candidatos) {
-          const valores = c.camposExtras as Record<string, string> | null;
-          if (!valores || !removidos.some((k) => k in valores)) continue;
-          const restantes = Object.fromEntries(Object.entries(valores).filter(([k]) => !removidos.includes(k)));
-          await tx.candidato.update({ where: { id: c.id }, data: { camposExtras: restantes as Prisma.InputJsonValue } });
+          const valores = valoresDe(c.camposExtras);
+          const novos = Object.fromEntries(
+            Object.entries(valores)
+              .filter(([k]) => !removidos.includes(k))
+              .map(([k, v]) => {
+                const trocado = tipoTrocado.find((t) => t.chave === k);
+                return [k, trocado && typeof v === "string" ? normalizarValorCampo(trocado.tipo, v) : v];
+              }),
+          );
+          if (JSON.stringify(novos) === JSON.stringify(valores)) continue;
+          await tx.candidato.update({ where: { id: c.id }, data: { camposExtras: novos as Prisma.InputJsonValue } });
         }
       }
       await registrarAuditoria(tx, {
@@ -391,7 +430,15 @@ export async function salvarCamposExtras(
         acao: "CONFIG_ALTERADA",
         entidade: "campo_candidato",
         entidadeId: categoriaId,
-        detalhes: { categoria: categoria.nome, adicionados, removidos, renomeados, reordenado, ...(motivo?.trim() ? { motivo: motivo.trim() } : {}) },
+        detalhes: {
+          categoria: categoria.nome,
+          adicionados,
+          removidos,
+          renomeados,
+          reordenado,
+          ...(tipoTrocado.length ? { tipos: tipoTrocado } : {}),
+          ...(motivo?.trim() ? { motivo: motivo.trim() } : {}),
+        },
       });
     });
     invalidarEstadoPublico();

@@ -100,6 +100,17 @@ enum CanalCategoria {
   TOTEM
 }
 
+// Tipo do campo extra (24/11/2026). O valor segue guardado como texto em candidato.campos_extras; o tipo decide a validação,
+// o controle do formulário e a exibição (DATA em AAAA-MM-DD, mostrada como dd/mm/aaaa; LINK sempre http(s); VIDEO é o link de
+// um vídeo do YouTube, Vimeo ou Google Drive, mostrado num iframe: o vídeo não fica no sistema).
+enum TipoCampo {
+  TEXTO
+  NUMERO
+  DATA
+  LINK
+  VIDEO
+}
+
 // Como os votos do júri viram o placar do júri (Festival). VOTO_UNICO: um candidato por jurado (`voto_juri`).
 // NOTAS_POR_CRITERIO: nota inteira de 0 a 10 por candidato e critério (`nota_juri`); o placar é a média simples das notas.
 // MELHOR_POR_CRITERIO: um candidato por critério (`escolha_criterio_juri`); cada escolha vale 1 voto. Só o modo ativo
@@ -331,8 +342,9 @@ model CampoCandidato {
   eventoId    String @map("evento_id")
   categoriaId String @map("categoria_id")
   chave       String @db.VarChar(40)
-  rotulo      String @db.VarChar(80)
-  ordem       Int    @default(0)
+  rotulo      String    @db.VarChar(80)
+  tipo        TipoCampo @default(TEXTO)
+  ordem       Int       @default(0)
 
   evento    Evento    @relation(fields: [eventoId], references: [id], onDelete: Cascade)
   categoria Categoria @relation(fields: [categoriaId, eventoId], references: [id, eventoId], onDelete: Cascade)

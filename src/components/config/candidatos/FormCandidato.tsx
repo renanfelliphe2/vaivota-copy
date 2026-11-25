@@ -4,7 +4,8 @@ import { Save } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { CampoCandidato, Candidato } from "@/dominio/tipos";
 import type { Travas } from "@/dominio/travas";
-import { validarCandidato, type DadosCandidato } from "@/dominio/validacoesConfig";
+import type { TipoCampo } from "@/dominio/tipos";
+import { LIMITES, limiteDoCampo, validarCandidato, type DadosCandidato } from "@/dominio/validacoesConfig";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Campo, Input, Textarea } from "@/components/ui/Campo";
@@ -34,6 +35,13 @@ function inicial(c: Candidato | null): DadosCandidato {
   return { titulo: c?.titulo ?? "", imagemUrl: c?.imagemUrl ?? null, camposExtras: { ...(c?.camposExtras ?? {}) } };
 }
 
+/** Dica no lugar do contador (24/11/2026): número e data são curtos; o texto e o link mostram "usados/limite". */
+const DICA_TIPO: Partial<Record<TipoCampo, string>> = {
+  NUMERO: "Só números, como 2026 ou 12,5.",
+  DATA: "",
+  VIDEO: "Link do YouTube, do Vimeo ou do Google Drive. O vídeo não fica guardado aqui: a página mostra o player do site.",
+};
+
 /** Etapa 6 (CP4): título, imagem e valores dos campos extras. Nunca muda publicação nem ordem. */
 export function FormCandidato({ eventoId, candidato, campos, semCategoria = false, travas, aoSalvar, aoCancelar }: FormCandidatoProps) {
   const salvo = inicial(candidato);
@@ -47,9 +55,13 @@ export function FormCandidato({ eventoId, candidato, campos, semCategoria = fals
   const auditado = candidato !== null && nivel === "AUDITADO";
   const pode = candidato ? travas.permite("CANDIDATOS_CORRIGIR") : travas.permite("CANDIDATOS_PUBLICACAO");
 
-  const erros = { ...validarCandidato(d, { naVotacao }), ...(servico.erro?.campos ?? {}) };
+  const [tocados, setTocados] = useState<ReadonlySet<string>>(new Set());
+  const erros = { ...validarCandidato(d, { naVotacao, campos }), ...(servico.erro?.campos ?? {}) };
   const temErros = Object.keys(erros).length > 0;
-  const mostrar = (c: string) => (tentou ? (erros[c] ?? null) : null);
+  // 24/11/2026: passar do limite aparece na hora (o texto não é cortado); os demais erros, ao sair do campo ou ao salvar.
+  const mostrar = (c: string, passou = false) => (tentou || passou || tocados.has(c) ? (erros[c] ?? null) : null);
+  const tocar = (c: string) => setTocados((t) => (t.has(c) ? t : new Set(t).add(c)));
+  const mudarCampo = (chave: string, valor: string) => mudar({ camposExtras: { ...d.camposExtras, [chave]: valor } });
   const alterado = JSON.stringify(d) !== JSON.stringify(salvo);
 
   const mudar = (mudanca: Partial<DadosCandidato>) => {
@@ -93,8 +105,14 @@ export function FormCandidato({ eventoId, candidato, campos, semCategoria = fals
       )}
       {tentou && temErros && <Alerta variante="erro">Confira os campos destacados.</Alerta>}
       <fieldset disabled={!pode} className="flex flex-col gap-4">
-        <Campo id="cand-titulo" rotulo="Título" obrigatorio erro={mostrar("titulo")} dica={`${d.titulo.length}/150`}>
-          <Input value={d.titulo} onChange={(e) => mudar({ titulo: e.target.value })} maxLength={150} />
+        <Campo
+          id="cand-titulo"
+          rotulo="Título"
+          obrigatorio
+          erro={mostrar("titulo", d.titulo.trim().length > LIMITES.tituloCandidato)}
+          dica={`${d.titulo.length}/${LIMITES.tituloCandidato}`}
+        >
+          <Input value={d.titulo} onChange={(e) => mudar({ titulo: e.target.value })} onBlur={() => tocar("titulo")} />
         </Campo>
         <SeletorImagem
           titulo={d.titulo}
@@ -106,30 +124,39 @@ export function FormCandidato({ eventoId, candidato, campos, semCategoria = fals
             mudar({ imagemUrl: url });
           }}
         />
-        {campos.map((campo) => (
-          <Campo
-            key={campo.chave}
-            id={`cand-campo-${campo.chave}`}
-            rotulo={campo.rotulo}
-            erro={mostrar(`campo:${campo.chave}`)}
-            dica={campo.chave === "descricao" ? `${(d.camposExtras[campo.chave] ?? "").length}/1500` : undefined}
-          >
-            {campo.chave === "descricao" ? (
-              <Textarea
-                value={d.camposExtras[campo.chave] ?? ""}
-                onChange={(e) => mudar({ camposExtras: { ...d.camposExtras, [campo.chave]: e.target.value } })}
-                maxLength={1500}
-                className="min-h-32"
-              />
-            ) : (
-              <Input
-                value={d.camposExtras[campo.chave] ?? ""}
-                onChange={(e) => mudar({ camposExtras: { ...d.camposExtras, [campo.chave]: e.target.value } })}
-                maxLength={200}
-              />
-            )}
-          </Campo>
-        ))}
+        {campos.map((campo) => {
+          const valor = d.camposExtras[campo.chave] ?? "";
+          const limite = limiteDoCampo(campo.chave, campo.tipo);
+          const chaveErro = `campo:${campo.chave}`;
+          const comum = { value: valor, onBlur: () => tocar(chaveErro) };
+          return (
+            <Campo
+              key={campo.chave}
+              id={`cand-campo-${campo.chave}`}
+              rotulo={campo.rotulo}
+              erro={mostrar(chaveErro, valor.trim().length > limite)}
+              dica={DICA_TIPO[campo.tipo] ?? `${valor.length}/${limite}`}
+            >
+              {campo.tipo === "DATA" ? (
+                <Input type="date" {...comum} onChange={(e) => mudarCampo(campo.chave, e.target.value)} className="max-w-48" />
+              ) : campo.tipo === "NUMERO" ? (
+                <Input inputMode="decimal" {...comum} onChange={(e) => mudarCampo(campo.chave, e.target.value)} className="max-w-48" />
+              ) : campo.tipo === "LINK" || campo.tipo === "VIDEO" ? (
+                <Input
+                  type="url"
+                  inputMode="url"
+                  placeholder={campo.tipo === "VIDEO" ? "https://www.youtube.com/watch?v=..." : "https://"}
+                  {...comum}
+                  onChange={(e) => mudarCampo(campo.chave, e.target.value)}
+                />
+              ) : campo.chave === "descricao" ? (
+                <Textarea {...comum} onChange={(e) => mudarCampo(campo.chave, e.target.value)} className="min-h-32" />
+              ) : (
+                <Input {...comum} onChange={(e) => mudarCampo(campo.chave, e.target.value)} />
+              )}
+            </Campo>
+          );
+        })}
         {semCategoria && (
           <p className="text-sm text-tema-texto-suave">
             Os campos extras (como Direção ou Duração) são da categoria. Vincule este item a uma categoria em Configuração &gt; Categorias para preenchê-los.

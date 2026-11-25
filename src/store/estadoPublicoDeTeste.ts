@@ -99,7 +99,7 @@ export function publico(sobrescrever: Partial<EstadoPublico> = {}): EstadoPublic
           telaoMostrar: { candidatos: true, tempo: true, qr: true, link: true },
           atualizadoEm: AGORA,
         },
-        camposCandidato: [{ id: "c1", eventoId: "evt-1", categoriaId: "cat-1", chave: "equipe", rotulo: "Equipe", ordem: 1 }],
+        camposCandidato: [{ id: "c1", eventoId: "evt-1", categoriaId: "cat-1", chave: "equipe", rotulo: "Equipe", tipo: "TEXTO", ordem: 1 }],
         candidatos: [candidato("k1", 1), candidato("k2", 2)],
         categorias: [],
         criteriosJuri: [],

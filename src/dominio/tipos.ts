@@ -206,6 +206,9 @@ export type ConfigApresentacao = {
 
 export type OpcoesTelao = { candidatos: boolean; tempo: boolean; qr: boolean; link: boolean };
 
+/** 24/11/2026: o valor é sempre texto; o tipo decide a validação, o controle do formulário e a exibição. */
+export type TipoCampo = "TEXTO" | "NUMERO" | "DATA" | "LINK" | "VIDEO";
+
 /** D1 (25/11/2026): cada categoria define os seus campos; o item preenche os da categoria dele. */
 export type CampoCandidato = {
   id: string;
@@ -213,6 +216,7 @@ export type CampoCandidato = {
   categoriaId: string;
   chave: string;
   rotulo: string;
+  tipo: TipoCampo;
   ordem: number;
 };
 

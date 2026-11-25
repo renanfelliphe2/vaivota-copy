@@ -8,6 +8,7 @@ import { useAnunciar } from "@/components/a11y/LiveRegion";
 import { useIdentidadePagina } from "@/components/evento/identidadePagina";
 import { AvisoVotacao } from "@/components/votacao/AvisoVotacao";
 import { DialogoRevisao } from "@/components/votacao/DialogoRevisao";
+import { idDetalhes, temDetalhesItem } from "./DetalhesItem";
 import { useEnviarVoto } from "@/components/votacao/useEnviarVoto";
 import { filtrarPorTitulo } from "@/dominio/busca";
 import { rotaCategoria } from "@/dominio/categorias";
@@ -207,6 +208,13 @@ export function SecaoCategorias() {
         aoConfirmar={() => daSelecao && void enviar(daSelecao.item.candidato.id)}
         aoTrocar={() => selecionarCandidato(eventoId, null)}
         aoVerificar={() => void verificarNovamente()}
+        // 25/11/2026: os detalhes ficam na página da categoria; "Ver mais" leva até o bloco do item lá.
+        temVerMais={(i) => temDetalhesItem(i, ativo.camposCandidato)}
+        aoVerMais={(i) => {
+          if (!daSelecao) return;
+          selecionarCandidato(eventoId, null);
+          router.push(`${rotaCategoria(slug, daSelecao.c.categoria.slug)}#${idDetalhes(i.candidato.id)}`);
+        }}
       />
 
       <DialogoCoracao

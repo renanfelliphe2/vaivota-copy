@@ -1,7 +1,7 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { enderecosDasCategorias, validarCategorias } from "@/dominio/categorias";
-import type { CanalCategoria } from "@/dominio/tipos";
+import type { CanalCategoria, TipoCampo } from "@/dominio/tipos";
 import { exigirAcao } from "@/dominio/travas";
 import { registrarAuditoria } from "./auditoria";
 import { invalidarEstadoPublico } from "./estadoPublico";
@@ -107,11 +107,11 @@ export async function salvarCategorias(
     for (const c of enderecoTrocado) await tx.categoria.update({ where: { id: c.id! }, data: { slug: `x${randomBytes(8).toString("hex")}` } });
     // D1: a categoria nova pode nascer com os campos extras de outra (que continue no evento), com as mesmas chaves.
     const origem = (c: (typeof comSlug)[number]) => (c.id === null && c.copiarCamposDe && porId.has(c.copiarCamposDe) && mantidas.has(c.copiarCamposDe) ? c.copiarCamposDe : null);
-    const copias = new Map<string, { chave: string; rotulo: string; ordem: number }[]>();
+    const copias = new Map<string, { chave: string; rotulo: string; tipo: TipoCampo; ordem: number }[]>();
     for (const c of comSlug) {
       const de = origem(c);
       if (de && !copias.has(de))
-        copias.set(de, await tx.campoCandidato.findMany({ where: { categoriaId: de }, select: { chave: true, rotulo: true, ordem: true }, orderBy: { ordem: "asc" } }));
+        copias.set(de, await tx.campoCandidato.findMany({ where: { categoriaId: de }, select: { chave: true, rotulo: true, tipo: true, ordem: true }, orderBy: { ordem: "asc" } }));
     }
     const camposCopiados: { categoria: string; de: string; campos: number }[] = [];
     for (const [i, c] of comSlug.entries()) {
@@ -122,7 +122,7 @@ export async function salvarCategorias(
         const de = origem(c);
         const campos = de ? (copias.get(de) ?? []) : [];
         if (campos.length) {
-          await tx.campoCandidato.createMany({ data: campos.map((k) => ({ eventoId, categoriaId: nova.id, chave: k.chave, rotulo: k.rotulo, ordem: k.ordem })) });
+          await tx.campoCandidato.createMany({ data: campos.map((k) => ({ eventoId, categoriaId: nova.id, chave: k.chave, rotulo: k.rotulo, tipo: k.tipo, ordem: k.ordem })) });
           camposCopiados.push({ categoria: c.nome, de: porId.get(de!)!.nome, campos: campos.length });
         }
       }

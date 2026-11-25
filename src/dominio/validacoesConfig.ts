@@ -1,5 +1,7 @@
 import { ehFusoSuportado } from "@/lib/fusoHorario";
 import { GRUPOS, type GruposLigados, type Pesos } from "./placar";
+import type { TipoCampo } from "./tipos";
+import { videoIncorporado } from "./video";
 
 // Etapa 6 (D6, seção 5.3): validações de campo, puras. A UI mostra o erro inline e o serviço valida
 // de novo antes de mutar (VALIDACAO). Cada função devolve a mensagem ou null.
@@ -12,9 +14,13 @@ export const LIMITES = {
   descricaoEvento: 600,
   tituloCandidato: 150,
   descricaoCandidato: 1500,
-  valorCampoExtra: 200,
+  // 24/11/2026: era 200. Por tipo: texto 300 (a "descricao" segue com 1500), link e vídeo 500, número 30.
+  valorCampoExtra: 300,
+  valorCampoLink: 500,
+  valorCampoNumero: 30,
   rotuloCampo: [2, 30],
-  maxCampos: 7,
+  // 24/11/2026: era 7. A ficha técnica de um filme vira um campo por função (Direção, Roteiro, Montagem...).
+  maxCampos: 60,
   nomeCriterio: [2, 30],
   maxCriterios: 8,
   nomeParceiro: [2, 60],
@@ -103,16 +109,72 @@ export type DadosCandidato = {
   categoriaId?: string | null;
 };
 
-/** `naVotacao`: o candidato já está na votação (imagem obrigatória, D12). */
-export function validarCandidato(dados: DadosCandidato, { naVotacao }: { naVotacao: boolean }): Erros {
+/** "Passou do limite: 312 de 300 caracteres." (24/11/2026: a tela não corta o texto; mostra quanto passou.) */
+export function mensagemLimite(tamanho: number, limite: number): string {
+  return `Passou do limite: ${tamanho} de ${limite} caracteres.`;
+}
+
+/** Tamanho máximo do valor de um campo extra, pelo tipo. A "descricao" (texto) é o parágrafo que apresenta o item. */
+export function limiteDoCampo(chave: string, tipo: TipoCampo): number {
+  if (tipo === "LINK" || tipo === "VIDEO") return LIMITES.valorCampoLink;
+  if (tipo === "NUMERO") return LIMITES.valorCampoNumero;
+  if (tipo === "DATA") return 10;
+  return chave === "descricao" ? LIMITES.descricaoCandidato : LIMITES.valorCampoExtra;
+}
+
+/** Como o valor é guardado: sem espaços nas pontas; link sem protocolo ganha "https://". */
+export function normalizarValorCampo(tipo: TipoCampo, valor: string): string {
+  const v = valor.trim();
+  if ((tipo === "LINK" || tipo === "VIDEO") && v && !/^[a-z][a-z0-9+.-]*:/i.test(v)) return `https://${v}`;
+  return v;
+}
+
+function dataValida(v: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  if (!m) return false;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  return d.getUTCFullYear() === Number(m[1]) && d.getUTCMonth() === Number(m[2]) - 1 && d.getUTCDate() === Number(m[3]);
+}
+
+function linkValido(v: string): boolean {
+  try {
+    const url = new URL(v);
+    return (url.protocol === "https:" || url.protocol === "http:") && url.hostname.includes(".");
+  } catch {
+    return false;
+  }
+}
+
+/** O erro do valor de um campo extra (vazio é sempre aceito: o campo é opcional). */
+export function validarValorCampo(chave: string, tipo: TipoCampo, valor: string): string | null {
+  const v = normalizarValorCampo(tipo, valor);
+  if (!v) return null;
+  const limite = limiteDoCampo(chave, tipo);
+  if (v.length > limite) return mensagemLimite(v.length, limite);
+  if (tipo === "NUMERO" && !/^-?\d+(?:[.,]\d+)*$/.test(v)) return "Use só números, como 2026 ou 12,5.";
+  if (tipo === "DATA" && !dataValida(v)) return "Informe uma data válida.";
+  if (tipo === "LINK" && !linkValido(v)) return "Use um link válido, como https://site.com.br.";
+  if (tipo === "VIDEO" && !videoIncorporado(v)) return "Use o link de um vídeo do YouTube, do Vimeo ou do Google Drive.";
+  return null;
+}
+
+/**
+ * `naVotacao`: o candidato já está na votação (imagem obrigatória, D12). `campos`: os campos da categoria do item, com o tipo
+ * (24/11/2026); a chave que não estiver na lista vale como texto.
+ */
+export function validarCandidato(
+  dados: DadosCandidato,
+  { naVotacao, campos = [] }: { naVotacao: boolean; campos?: readonly { chave: string; tipo: TipoCampo }[] },
+): Erros {
   const erros: Erros = {};
   const titulo = dados.titulo.trim();
   if (!titulo) erros.titulo = "Informe o título.";
-  else if (titulo.length > LIMITES.tituloCandidato) erros.titulo = "Use até 150 caracteres.";
+  else if (titulo.length > LIMITES.tituloCandidato) erros.titulo = mensagemLimite(titulo.length, LIMITES.tituloCandidato);
   if (naVotacao && !dados.imagemUrl) erros.imagemUrl = "Imagem obrigatória enquanto estiver na votação.";
   for (const [chave, valor] of Object.entries(dados.camposExtras)) {
-    const limite = chave === "descricao" ? LIMITES.descricaoCandidato : LIMITES.valorCampoExtra;
-    if (valor.length > limite) erros[`campo:${chave}`] = `Use até ${limite} caracteres.`;
+    const tipo = campos.find((c) => c.chave === chave)?.tipo ?? "TEXTO";
+    const erro = validarValorCampo(chave, tipo, valor);
+    if (erro) erros[`campo:${chave}`] = erro;
   }
   return erros;
 }

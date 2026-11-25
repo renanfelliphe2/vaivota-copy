@@ -185,7 +185,9 @@ const servicos = {
     z.object({
       eventoId: id,
       categoriaId: id,
-      campos: z.array(z.object({ chave: z.string().max(60).optional(), rotulo: texto(100) })).max(20),
+      campos: z
+        .array(z.object({ chave: z.string().max(60).optional(), rotulo: texto(100), tipo: z.enum(["TEXTO", "NUMERO", "DATA", "LINK", "VIDEO"]).optional() }))
+        .max(100),
       motivo: texto(500).optional(),
     }),
     (_c, u, a) => candidatos.salvarCamposExtras(u, a.eventoId, a.categoriaId, a.campos, a.motivo),

@@ -171,7 +171,7 @@ export function categoriaParaDominio(c: P.Categoria): Categoria {
 }
 
 export function campoParaDominio(c: P.CampoCandidato): CampoCandidato {
-  return { id: c.id, eventoId: c.eventoId, categoriaId: c.categoriaId, chave: c.chave, rotulo: c.rotulo, ordem: c.ordem };
+  return { id: c.id, eventoId: c.eventoId, categoriaId: c.categoriaId, chave: c.chave, rotulo: c.rotulo, tipo: c.tipo, ordem: c.ordem };
 }
 
 function camposExtrasDe(valor: P.Candidato["camposExtras"]): Record<string, string> | null {

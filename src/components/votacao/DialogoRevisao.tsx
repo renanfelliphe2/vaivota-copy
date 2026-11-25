@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Check, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import type { PapelVoto } from "@/dominio/estadoVotar";
 import type { EstadoUiVotacao } from "@/dominio/tipos";
@@ -32,6 +32,12 @@ export type DialogoRevisaoProps = {
   titulo?: string;
   /** "cartaz": a miniatura no formato do cartaz (estilo cinema). */
   formato?: FormatoCartao;
+  /**
+   * "Ver mais" (25/11/2026): leva aos detalhes do item na página da categoria. Ausente (ou null para o item) quando ele não tem
+   * detalhes. Votar segue direto: a revisão não vira tela de detalhes.
+   */
+  aoVerMais?: ((item: ItemLista) => void) | null;
+  temVerMais?: (item: ItemLista) => boolean;
 };
 
 /**
@@ -84,6 +90,17 @@ function ConteudoRevisao(props: DialogoRevisaoProps & { item: ItemLista }) {
           <p className={cx("text-xl leading-tight wrap-anywhere", formato === "cartaz" ? "font-cine font-bold" : "font-display font-extrabold")}>
             {candidato.titulo}
           </p>
+          {props.aoVerMais && (props.temVerMais?.(item) ?? true) && (
+            <button
+              type="button"
+              onClick={() => props.aoVerMais?.(item)}
+              disabled={ocupado || naoConfirmado}
+              className="inline-flex min-h-9 cursor-pointer items-center gap-1 self-start text-sm font-semibold text-tema-primaria-texto hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Ver mais
+              <ArrowRight aria-hidden className="size-4" />
+            </button>
+          )}
         </div>
       </div>
 
