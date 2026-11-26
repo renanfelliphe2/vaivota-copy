@@ -67,6 +67,10 @@ export type AcaoAuditoria =
   | "DISPOSITIVO_REVOGADO"
   | "DISPOSITIVO_RENOMEADO"
   | "PIN_DISPOSITIVO_ALTERADO"
+  // Sessões do totem (logTotem.md): só agrupam votos; nunca a escolha
+  | "SESSAO_TOTEM_ABERTA"
+  | "SESSAO_TOTEM_ENCERRADA"
+  | "TOTEM_CONFIGURADO"
   // Etapa 7 (exportação)
   | "EXPORTACAO_CSV"
   | "RELATORIO_GERADO"

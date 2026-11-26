@@ -244,12 +244,15 @@ export async function resetarEvento(
           await tx.participacaoCategoria.deleteMany({ where: { eventoId } });
           c.votosPublico = (await tx.voto.deleteMany({ where: { eventoId } })).count;
           c.votosTotem = (await tx.votoInfantil.deleteMany({ where: { eventoId } })).count;
+          // As sessões do totem só agrupam votos: sem os votos, não sobra o que agrupar.
+          await tx.sessaoTotem.deleteMany({ where: { eventoId } });
           c.resultados = (await tx.resultadoOficial.deleteMany({ where: { eventoId } })).count;
           await tx.participacao.updateMany({ where: { eventoId, votou: true }, data: { votou: false } });
         }
         if (opcoes.totens) {
           c.codigosPareamento = (await tx.codigoPareamento.deleteMany({ where: { eventoId } })).count;
-          // As categorias do totem saem em cascata; a auditoria fica (o ator do aparelho vira nulo).
+          // As categorias do totem saem em cascata; a auditoria fica (o ator do aparelho vira nulo). As sessões (RESTRICT) antes.
+          await tx.sessaoTotem.deleteMany({ where: { eventoId, votos: { none: {} } } });
           c.totens = (await tx.dispositivo.deleteMany({ where: { eventoId } })).count;
         }
         if (opcoes.jurados) {

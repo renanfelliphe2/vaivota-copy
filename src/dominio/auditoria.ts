@@ -142,6 +142,31 @@ export const CATALOGO_AUDITORIA: Record<AcaoAuditoria, ItemCatalogo> = {
   DISPOSITIVO_REVOGADO: { rotulo: "Totem revogado", grupo: "TOTEM", descrever: () => "Totem revogado: não recebe mais votos" },
   DISPOSITIVO_RENOMEADO: { rotulo: "Totem renomeado", grupo: "TOTEM", descrever: () => "Totem renomeado" },
   PIN_DISPOSITIVO_ALTERADO: { rotulo: "PIN de totem alterado", grupo: "TOTEM", descrever: () => "PIN de saída de um totem alterado" },
+  SESSAO_TOTEM_ABERTA: {
+    rotulo: "Sessão do totem aberta",
+    grupo: "TOTEM",
+    descrever: (d) => {
+      const n = numero(d?.numero);
+      return n === null ? "Sessão do totem aberta" : `Sessão ${n} do totem aberta`;
+    },
+  },
+  SESSAO_TOTEM_ENCERRADA: {
+    rotulo: "Sessão do totem encerrada",
+    grupo: "TOTEM",
+    descrever: (d) => {
+      const n = numero(d?.numero);
+      const como = d?.motivo === "INATIVIDADE" ? " por inatividade" : d?.motivo === "MANUAL" ? " pelo mediador" : "";
+      return `${n === null ? "Sessão do totem" : `Sessão ${n} do totem`} encerrada${como}`;
+    },
+  },
+  TOTEM_CONFIGURADO: {
+    rotulo: "Totem configurado",
+    grupo: "TOTEM",
+    descrever: (d) => {
+      const n = numero(d?.inatividadeMin);
+      return n === null ? "Configuração do totem alterada" : `Sessão do totem encerra após ${n} min sem voto`;
+    },
+  },
   TENTATIVA_CODIGO_INVALIDA: { rotulo: "Código recusado", grupo: "SEGURANCA", descrever: () => "Código recusado" },
   DADOS_ANONIMIZADOS: {
     rotulo: "Dados pessoais anonimizados",

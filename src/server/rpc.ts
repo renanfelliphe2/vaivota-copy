@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { COMANDOS_TELAO } from "@/dominio/telaoRemoto";
+import { INATIVIDADE_SESSAO_MAX, INATIVIDADE_SESSAO_MIN, type FunilTotem } from "@/dominio/sessaoTotem";
 import { SITUACOES_TOTEM } from "@/dominio/totem";
 import * as acesso from "./acesso";
 import * as apresentacao from "./apresentacao";
@@ -36,6 +37,8 @@ export type ContextoRpc = {
 
 const id = z.string().min(1).max(64);
 const texto = (max: number) => z.string().max(max);
+/** Uma contagem do funil do totem (logTotem.md). */
+const contagemFunil = z.number().int().min(0).max(1_000_000);
 const instanteOuNulo = z.string().max(40).nullable();
 
 const dadosCandidato = z.object({
@@ -140,13 +143,54 @@ const servicos = {
   // Totem (voto infantil), lado do aparelho. Sem login: a identidade é o token do cookie HttpOnly, nunca um campo enviado.
   parearTotem: definir(z.object({ eventoId: id, codigo: texto(40) }), (ctx, _u, a) => totem.parearTotem(ctx, a)),
   obterEstadoTotem: definir(semArgs, (ctx) => totem.obterEstadoTotem(ctx), { sessaoEmCache: true }),
-  sincronizarTotem: definir(z.object({ situacao: z.enum(SITUACOES_TOTEM), telaCheia: z.boolean() }).strict(), (ctx, _u, a) => totem.sincronizarTotem(ctx, a), {
-    sessaoEmCache: true,
-  }),
+  sincronizarTotem: definir(
+    z
+      .object({
+        situacao: z.enum(SITUACOES_TOTEM),
+        telaCheia: z.boolean(),
+        // Opcional: o totem com a página antiga (sem recarregar) manda o relatório sem o funil.
+        funil: z
+          .object({
+            sessaoId: id,
+            contagens: z
+              .object({
+                comecou: contagemFunil,
+                escolheu: contagemFunil,
+                voltou: contagemFunil,
+                desistiuEscolha: contagemFunil,
+                desistiuConfirmar: contagemFunil,
+                enviou: contagemFunil,
+                registrado: contagemFunil,
+                tentouDeNovo: contagemFunil,
+                erroDescartado: contagemFunil,
+                erros: z.record(z.string().regex(/^[A-Z_]{1,40}$/), contagemFunil).refine((r) => Object.keys(r).length <= 30),
+              })
+              .strict() satisfies z.ZodType<FunilTotem>,
+          })
+          .strict()
+          .optional(),
+      })
+      .strict(),
+    (ctx, _u, a) => totem.sincronizarTotem(ctx, a),
+    { sessaoEmCache: true },
+  ),
   votarInfantil: definir(z.object({ eventoId: id, candidatoId: id, idEnvio: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/).optional() }), (ctx, _u, a) => totem.votarInfantil(ctx, a), {
     sessaoEmCache: true,
   }),
   conferirPinTotem: definir(z.object({ pin: texto(20) }), (ctx, _u, a) => totem.conferirPinTotem(ctx, a), { sessaoEmCache: true }),
+  // Menu do PIN do totem (logTotem.md): cada chamada confere o PIN (com o bloqueio de 5 erros). Nunca devolve o item votado.
+  analisarTotem: definir(z.object({ pin: texto(20) }).strict(), (ctx, _u, a) => totem.analisarTotem(ctx, a), { sessaoEmCache: true }),
+  encerrarSessaoTotem: definir(z.object({ pin: texto(20) }).strict(), (ctx, _u, a) => totem.encerrarSessaoTotem(ctx, a), { sessaoEmCache: true }),
+  abrirSessaoTotem: definir(
+    z.object({ pin: texto(20), criancasEsperadas: z.number().int().min(1).max(100_000).nullable().optional() }).strict(),
+    (ctx, _u, a) => totem.abrirSessaoTotem(ctx, a),
+    { sessaoEmCache: true },
+  ),
+  configurarTotem: definir(
+    z.object({ pin: texto(20), inatividadeMin: z.number().int().min(INATIVIDADE_SESSAO_MIN).max(INATIVIDADE_SESSAO_MAX) }).strict(),
+    (ctx, _u, a) => totem.configurarTotem(ctx, a),
+    { sessaoEmCache: true },
+  ),
 
   // Totem: gestão pelo admin
   alternarModuloInfantil: definir(z.object({ eventoId: id, ligado: z.boolean() }), (ctx, u, a) =>

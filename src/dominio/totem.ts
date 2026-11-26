@@ -1,5 +1,6 @@
 import { hashMock } from "@/lib/hash";
 import type { Candidato, Categoria, Dispositivo, Evento, Instante } from "./tipos";
+import type { FunilTotem } from "./sessaoTotem";
 
 // Totem (rev. 4, A7; Base/VotoInfantil.md §6 e §9): regras puras do modo quiosque.
 
@@ -95,8 +96,8 @@ export function ehSituacaoTotem(valor: string | null): valor is SituacaoTotem {
   return valor !== null && (SITUACOES_TOTEM as readonly string[]).includes(valor);
 }
 
-/** O que o totem conta de si a cada sincronização. Nada da criança nem do voto. */
-export type RelatorioTotem = { situacao: SituacaoTotem; telaCheia: boolean };
+/** O que o totem conta de si a cada sincronização. Nada da criança nem do voto. `funil`: as contagens de toques da sessão atual. */
+export type RelatorioTotem = { situacao: SituacaoTotem; telaCheia: boolean; funil?: { sessaoId: string; contagens: FunilTotem } };
 
 export const SINCRONIZACAO_TOTEM = {
   /** O totem manda um relatório sozinho a cada hora (e ao abrir). */

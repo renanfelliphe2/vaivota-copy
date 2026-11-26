@@ -268,6 +268,7 @@ model Evento {
   convitesJurado     ConviteJurado[]
   convitesAdmin      ConviteAdmin[]
   dispositivos       Dispositivo[]
+  sessoesTotem       SessaoTotem[]
   codigosPareamento  CodigoPareamento[]
   teloesRemotos      TelaoRemoto[]
   resultados         ResultadoOficial[]
@@ -350,10 +351,10 @@ model ConfigApresentacao {
 // da categoria dele. A mesma chave em duas categorias é o "mesmo" campo: o valor fica quando o item muda entre elas. Excluir a
 // categoria leva os campos dela junto.
 model CampoCandidato {
-  id          String @id @default(uuid())
-  eventoId    String @map("evento_id")
-  categoriaId String @map("categoria_id")
-  chave       String @db.VarChar(40)
+  id          String    @id @default(uuid())
+  eventoId    String    @map("evento_id")
+  categoriaId String    @map("categoria_id")
+  chave       String    @db.VarChar(40)
   rotulo      String    @db.VarChar(80)
   tipo        TipoCampo @default(TEXTO)
   ordem       Int       @default(0)
@@ -371,23 +372,23 @@ model CampoCandidato {
 // CADA categoria. Evento sem categorias segue com a urna única de sempre. Categoria com item ou voto não é removida (o serviço
 // recusa; as FKs também). CHECKs na migração: nome com 2 caracteres ou mais e ordem >= 0.
 model Categoria {
-  id           String         @id @default(uuid())
-  eventoId     String         @map("evento_id")
-  slug         String         @db.VarChar(60)
-  nome         String         @db.VarChar(80)
+  id            String         @id @default(uuid())
+  eventoId      String         @map("evento_id")
+  slug          String         @db.VarChar(60)
+  nome          String         @db.VarChar(80)
   // Nome do prêmio, opcional (ex.: "Melhor filme Júri Popular").
-  premio       String?        @db.VarChar(80)
+  premio        String?        @db.VarChar(80)
   // Descrição opcional (23/11/2026): aparece no topo da página da categoria.
-  descricao    String?        @db.VarChar(600)
-  canal        CanalCategoria @default(ONLINE)
-  ordem        Int            @default(0)
+  descricao     String?        @db.VarChar(600)
+  canal         CanalCategoria @default(ONLINE)
+  ordem         Int            @default(0)
   // Telão (25/11/2026): quantas posições a revelação mostra (1 = só o vencedor; CHECK de 1 a 10), em quais delas aparecem os
   // votos e a porcentagem (índice 0 = 1º lugar; sem valor, só o 1º mostra) e, na categoria do totem, a frase no lugar do QR Code.
-  podioTamanho Int            @default(3) @map("podio_tamanho")
-  podioVotos   Boolean[]      @default([]) @map("podio_votos")
-  mensagemTelao String?       @map("mensagem_telao") @db.VarChar(60)
-  criadoEm     DateTime       @default(now()) @map("criado_em") @db.Timestamptz(3)
-  atualizadoEm DateTime       @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+  podioTamanho  Int            @default(3) @map("podio_tamanho")
+  podioVotos    Boolean[]      @default([]) @map("podio_votos")
+  mensagemTelao String?        @map("mensagem_telao") @db.VarChar(60)
+  criadoEm      DateTime       @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm  DateTime       @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
   evento Evento @relation(fields: [eventoId], references: [id], onDelete: Restrict)
 
@@ -695,9 +696,13 @@ model Dispositivo {
   // Pedido do admin ("Forçar sincronização"): o totem o vê na próxima consulta (a cada 10 s) e responde com um relatório.
   sincronizacaoPedidaEm DateTime? @map("sincronizacao_pedida_em") @db.Timestamptz(3)
 
+  // Sessões (logTotem.md, 26/11/2026): sem voto por este tempo, o próximo voto encerra a sessão aberta e abre outra.
+  inatividadeSessaoMin Int @default(60) @map("inatividade_sessao_min")
+
   evento Evento @relation(fields: [eventoId], references: [id], onDelete: Restrict)
 
   votosInfantis VotoInfantil[]
+  sessoes       SessaoTotem[]
   codigos       CodigoPareamento[]
   auditorias    Auditoria[]
   categorias    DispositivoCategoria[]
@@ -809,17 +814,54 @@ model VotoInfantil {
   // Chave aleatória da tentativa de voto no totem (nada a ver com a criança): o "tentar de novo" depois de uma falha de rede reenvia a
   // MESMA chave, e o servidor não conta o voto duas vezes. Opcional: tablets com a tela antiga votam sem ela.
   idEnvio       String?  @map("id_envio") @db.VarChar(64)
+  // Sessão do totem em que o voto entrou (logTotem.md). Null: voto de antes das sessões existirem.
+  sessaoId      String?  @map("sessao_id")
   criadoEm      DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
 
-  candidato   Candidato   @relation(fields: [candidatoId, eventoId], references: [id, eventoId], onDelete: Restrict)
-  dispositivo Dispositivo @relation(fields: [dispositivoId, eventoId], references: [id, eventoId], onDelete: Restrict)
+  candidato   Candidato    @relation(fields: [candidatoId, eventoId], references: [id, eventoId], onDelete: Restrict)
+  dispositivo Dispositivo  @relation(fields: [dispositivoId, eventoId], references: [id, eventoId], onDelete: Restrict)
+  sessao      SessaoTotem? @relation(fields: [sessaoId], references: [id], onDelete: Restrict)
 
   // NULL não conflita com NULL no PostgreSQL: só vale para quem manda a chave.
   @@unique([dispositivoId, idEnvio])
   @@index([eventoId, candidatoId])
   @@index([eventoId, criadoEm])
   @@index([dispositivoId, criadoEm])
+  @@index([sessaoId, criadoEm])
   @@map("voto_infantil")
+}
+
+enum MotivoEncerramentoSessao {
+  MANUAL
+  INATIVIDADE
+}
+
+// Sessão do totem (logTotem.md, 26/11/2026): só AGRUPA os votos para a análise (uma turma, uma escola). Não trava nada: sem
+// sessão aberta, o próximo voto abre uma. Encerra pelo menu do PIN (MANUAL) ou quando o voto chega depois de
+// `dispositivo.inatividadeSessaoMin` sem voto (INATIVIDADE). Nunca guarda nada da criança nem o item escolhido.
+// Na migração: uma sessão aberta por aparelho (índice único parcial) e `criancas_esperadas` > 0.
+model SessaoTotem {
+  id                 String                    @id @default(uuid())
+  eventoId           String                    @map("evento_id")
+  dispositivoId      String                    @map("dispositivo_id")
+  // Sequência por aparelho: 1, 2, 3...
+  numero             Int
+  abertaEm           DateTime                  @default(now()) @map("aberta_em") @db.Timestamptz(3)
+  encerradaEm        DateTime?                 @map("encerrada_em") @db.Timestamptz(3)
+  motivoEncerramento MotivoEncerramentoSessao? @map("motivo_encerramento")
+  // Opcional, digitado pelo mediador ao abrir: o resumo mostra "96 de 144 (67%)".
+  criancasEsperadas  Int?                      @map("criancas_esperadas")
+  // O último funil relatado pelo aparelho para esta sessão (toques, desistências, erros...). Só contagens.
+  funil              Json?
+  funilEm            DateTime?                 @map("funil_em") @db.Timestamptz(3)
+
+  evento      Evento         @relation(fields: [eventoId], references: [id], onDelete: Restrict)
+  dispositivo Dispositivo    @relation(fields: [dispositivoId, eventoId], references: [id, eventoId], onDelete: Restrict)
+  votos       VotoInfantil[]
+
+  @@unique([dispositivoId, numero])
+  @@index([eventoId, abertaEm])
+  @@map("sessao_totem")
 }
 
 // ─────────────────────────────────────────────

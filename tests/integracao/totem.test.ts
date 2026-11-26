@@ -249,7 +249,7 @@ describe("código de pareamento: geração", () => {
     const { eventoId, admin } = await eventoComTotens("teste-totem-codigo-urna-aberta", { urna: "ABERTA" });
     const [candidatoId] = await criarCandidatos(eventoId, 1);
     const totem = await criarTotem(admin, eventoId, { nome: "Totem do Dia" });
-    expect(await votarInfantil(totem.ctx, { eventoId, candidatoId, idEnvio: novoIdEnvio() })).toEqual({ ok: true, dados: { resultado: "REGISTRADO" } });
+    expect(await votarInfantil(totem.ctx, { eventoId, candidatoId, idEnvio: novoIdEnvio() })).toMatchObject({ ok: true, dados: { resultado: "REGISTRADO" } });
   });
 
   it("no máximo 20 códigos pendentes por evento; os antigos vencidos viram EXPIRADO e liberam vaga", async () => {
@@ -409,7 +409,7 @@ describe("voto infantil", () => {
     const t = await criarTotem(admin, eventoId);
     const antes = Date.now();
 
-    expect(await votarInfantil(t.ctx, { eventoId, candidatoId: a })).toEqual({ ok: true, dados: { resultado: "REGISTRADO" } });
+    expect(await votarInfantil(t.ctx, { eventoId, candidatoId: a })).toMatchObject({ ok: true, dados: { resultado: "REGISTRADO" } });
     expect(await votarInfantil(t.ctx, { eventoId, candidatoId: b })).toMatchObject({ ok: true });
     // Cada toque confirmado = um voto (sem edição, sem deduplicar).
     expect(await votarInfantil(t.ctx, { eventoId, candidatoId: a })).toMatchObject({ ok: true });
@@ -420,7 +420,8 @@ describe("voto infantil", () => {
       expect(v.dispositivoId).toBe(t.id);
       expect(v.criadoEm.getTime()).toBeGreaterThanOrEqual(antes - 1000);
       // Sem referência a usuário ou a qualquer dado da criança.
-      expect(Object.keys(v).sort()).toEqual(["candidatoId", "criadoEm", "dispositivoId", "eventoId", "id", "idEnvio"]);
+      // `sessaoId` (logTotem.md) só agrupa votos por turma: também não diz nada da criança.
+      expect(Object.keys(v).sort()).toEqual(["candidatoId", "criadoEm", "dispositivoId", "eventoId", "id", "idEnvio", "sessaoId"]);
       expect(v.idEnvio).toBeNull(); // sem chave de tentativa (tela antiga), o voto vale do mesmo jeito
     }
     const aparelho = await db().dispositivo.findUniqueOrThrow({ where: { id: t.id } });
@@ -428,7 +429,7 @@ describe("voto infantil", () => {
 
     // Nenhuma auditoria de voto, nem a escolha em lugar nenhum.
     const auditoria = await db().auditoria.findMany({ where: { eventoId } });
-    expect(auditoria.map((x) => x.acao).sort()).toEqual(["CODIGO_PAREAMENTO_GERADO", "DISPOSITIVO_PAREADO"]);
+    expect(auditoria.map((x) => x.acao).sort()).toEqual(["CODIGO_PAREAMENTO_GERADO", "DISPOSITIVO_PAREADO", "SESSAO_TOTEM_ABERTA"]);
     expect(JSON.stringify(auditoria)).not.toContain(a);
   });
 
@@ -438,9 +439,9 @@ describe("voto infantil", () => {
     const t = await criarTotem(admin, eventoId);
     const chave = novoIdEnvio();
 
-    expect(await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: chave })).toEqual({ ok: true, dados: { resultado: "REGISTRADO" } });
+    expect(await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: chave })).toMatchObject({ ok: true, dados: { resultado: "REGISTRADO" } });
     // A rede caiu na volta: o totem não sabe se o voto chegou e manda a mesma tentativa de novo (uma ou várias vezes).
-    expect(await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: chave })).toEqual({ ok: true, dados: { resultado: "REGISTRADO" } });
+    expect(await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: chave })).toMatchObject({ ok: true, dados: { resultado: "REGISTRADO" } });
     expect((await votarInfantil(t.ctx, { eventoId, candidatoId: a, idEnvio: chave })).ok).toBe(true);
     expect(await db().votoInfantil.count({ where: { dispositivoId: t.id } })).toBe(1);
 
@@ -453,7 +454,7 @@ describe("voto infantil", () => {
     expect(votos[2].idEnvio).toBeNull();
     // Nem a chave nem o reenvio deixam rastro na auditoria: só o pareamento está lá.
     const auditoria = await db().auditoria.findMany({ where: { eventoId } });
-    expect(auditoria.map((x) => x.acao).sort()).toEqual(["CODIGO_PAREAMENTO_GERADO", "DISPOSITIVO_PAREADO"]);
+    expect(auditoria.map((x) => x.acao).sort()).toEqual(["CODIGO_PAREAMENTO_GERADO", "DISPOSITIVO_PAREADO", "SESSAO_TOTEM_ABERTA"]);
     expect(JSON.stringify(auditoria)).not.toContain(chave);
   });
 
