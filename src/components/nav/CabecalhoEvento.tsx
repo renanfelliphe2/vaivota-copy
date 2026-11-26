@@ -40,7 +40,7 @@ export function CabecalhoEvento() {
   if (!ativo) return null;
   const { slug, evento, tema } = ativo;
   // 09/11/2026: some também no QR Code de tela cheia das categorias (telão).
-  if (pathname === `/e/${slug}/totem` || pathname.startsWith(`/e/${slug}/qr/`) || ui.palcoAtivo) return null;
+  if (pathname === `/e/${slug}/totem` || pathname === `/e/${slug}/telao` || pathname.startsWith(`/e/${slug}/qr/`) || ui.palcoAtivo) return null;
 
   // A apresentação (telão) é do MVP do Festival.
   const atalhos = sessao.logado

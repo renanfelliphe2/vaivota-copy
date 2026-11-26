@@ -16,6 +16,7 @@ import {
   Timer,
   TriangleAlert,
   Tv,
+  WifiOff,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -24,9 +25,11 @@ import { TemaEvento } from "@/components/evento/TemaEvento";
 import { classesBotao, type VarianteBotao } from "@/components/ui/Botao";
 import { Selo, type VarianteSelo } from "@/components/ui/Selo";
 import { cx } from "@/lib/classes";
-import { enviarComandoTelao, useEstadoTelao, type ComandoTelao, type EstadoTelao } from "@/store/canalTelao";
+import { enviarComandoTelao, useEstadoTelao, type ComandoTelao, type TelaoNoControle } from "@/store/canalTelao";
 import { useUi } from "@/store/seletores/dev";
+import { useEventoAtivo } from "@/store/seletores/evento";
 import { useSessao } from "@/store/seletores/sessao";
+import { useTelaoRemotoNoControle } from "@/store/telaoRemoto";
 
 // Controle remoto do telão (08/10/2026): flutua em todas as telas do admin enquanto o telão estiver aberto (como a
 // toolbar), para comandar a apresentação de qualquer página. Some na própria aba do telão.
@@ -39,19 +42,22 @@ import { useSessao } from "@/store/seletores/sessao";
 const CONFIRMAR_MS = 4000;
 type Confirmavel = Extract<ComandoTelao, "EMERGENCIA" | "REINICIAR" | "DESLIGAR">;
 
-function rotuloAndamento(telao: EstadoTelao): string {
+function rotuloAndamento(telao: TelaoNoControle): string {
+  if (telao.situacao === "SEM_SINAL") return "Sem sinal do outro aparelho";
   if (telao.situacao === "AGUARDANDO_CLIQUE") return "Aguardando o clique no telão";
   if (telao.situacao === "DESLIGADO") return "Desligado";
   return { APRESENTANDO: "Apresentando", PAUSADO: "Pausado", PARADO: "Ligado" }[telao.andamento];
 }
 
-function varianteSituacao(telao: EstadoTelao): VarianteSelo {
+function varianteSituacao(telao: TelaoNoControle): VarianteSelo {
+  if (telao.situacao === "SEM_SINAL") return "erro";
   if (telao.situacao === "DESLIGADO") return "neutro";
   if (telao.situacao === "AGUARDANDO_CLIQUE" || telao.andamento === "PAUSADO") return "aviso";
   return telao.andamento === "APRESENTANDO" ? "sucesso" : "info";
 }
 
-function iconeSituacao(telao: EstadoTelao): LucideIcon {
+function iconeSituacao(telao: TelaoNoControle): LucideIcon {
+  if (telao.situacao === "SEM_SINAL") return WifiOff;
   if (telao.situacao === "DESLIGADO") return PowerOff;
   if (telao.situacao === "AGUARDANDO_CLIQUE") return MousePointerClick;
   return { APRESENTANDO: CircleDot, PAUSADO: Pause, PARADO: Tv }[telao.andamento];
@@ -67,9 +73,13 @@ const COR_INDICADOR: Record<VarianteSelo, string> = {
 };
 
 export function ControleRemoto() {
-  const telao = useEstadoTelao();
+  const local = useEstadoTelao();
   const sessao = useSessao();
   const ui = useUi();
+  const eventoId = useEventoAtivo()?.evento.id ?? null;
+  // 25/11/2026: com um aparelho pareado pelo código do palco, é ele o telão (pelo servidor); senão, o palco de outra aba.
+  const remoto = useTelaoRemotoNoControle(eventoId, sessao.papel === "ADMIN" && !ui.palcoAtivo && !ui.totem.quiosqueAtivo);
+  const telao: TelaoNoControle | null = remoto.telao ?? (local ? { ...local, remoto: false } : null);
   const [recolhido, setRecolhido] = useState(false);
   const [armado, setArmado] = useState<Confirmavel | null>(null);
 
@@ -87,7 +97,8 @@ export function ControleRemoto() {
   const pode = (c: Exclude<ComandoTelao, "DESLIGAR" | "LIGAR">) => Boolean(ligado?.pode[c]);
   const enviar = (c: ComandoTelao) => {
     setArmado(null);
-    enviarComandoTelao(c);
+    if (telao.remoto) remoto.comandar(c);
+    else enviarComandoTelao(c);
   };
   const confirmando = (c: Confirmavel) => () => (armado === c ? enviar(c) : setArmado(c));
   const andamento = rotuloAndamento(telao);
@@ -122,6 +133,7 @@ export function ControleRemoto() {
           <span className="flex items-center gap-2 font-bold">
             <Tv aria-hidden className="size-5" /> Telão
             {telao.ensaio && <span className="rounded-full border border-current px-2 py-0.5 text-xs font-semibold">Ensaio</span>}
+            {telao.remoto && <span className="rounded-full border border-current px-2 py-0.5 text-xs font-semibold">Outro aparelho</span>}
           </span>
           <button
             type="button"
@@ -154,6 +166,9 @@ export function ControleRemoto() {
           </div>
 
           {ligado?.mensagem && <Aviso>{ligado.mensagem}</Aviso>}
+          {telao.situacao === "SEM_SINAL" && (
+            <Aviso>O aparelho do telão não responde. Confira a internet dele ou abra a página do telão de novo nele.</Aviso>
+          )}
           {telao.situacao === "AGUARDANDO_CLIQUE" && (
             <Aviso>Clique no telão para entrar em tela cheia ou apresentar em janela; ou ligue por aqui, sem tela cheia.</Aviso>
           )}
@@ -213,6 +228,7 @@ export function ControleRemoto() {
               rotulo={ligado ? (armado === "DESLIGAR" ? "Confirmar desligar" : "Desligar telão") : "Ligar telão"}
               variante={ligado ? "fantasma" : "primaria"}
               aoClicar={ligado ? confirmando("DESLIGAR") : () => enviar("LIGAR")}
+              disabled={telao.situacao === "SEM_SINAL"}
               className={cx("col-span-2", ligado && "text-tema-erro!", armado === "DESLIGAR" && "bg-tema-superficie motion-safe:animate-pulse")}
               icone={<Power aria-hidden className="size-4" />}
             />

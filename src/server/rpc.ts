@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { COMANDOS_TELAO } from "@/dominio/telaoRemoto";
 import { SITUACOES_TOTEM } from "@/dominio/totem";
 import * as acesso from "./acesso";
 import * as apresentacao from "./apresentacao";
@@ -17,6 +18,7 @@ import * as parceiros from "./parceiros";
 import { garantirParticipacao } from "./participacao";
 import { falha, falhaInterna, sucesso, type Resultado } from "./resultado";
 import { usuarioDaSessao, type UsuarioSessao } from "./sessao";
+import * as telaoRemoto from "./telaoRemoto";
 import * as totem from "./totem";
 import * as votacao from "./votacao";
 
@@ -58,6 +60,33 @@ function definir<S extends z.ZodType>(schema: S, executar: Definicao<S>["executa
 }
 
 const semArgs = z.object({}).strict().optional();
+
+// Telão em outro aparelho (25/11/2026)
+const modoPalco = z.discriminatedUnion("tipo", [z.object({ tipo: z.literal("REAL") }).strict(), z.object({ tipo: z.literal("ENSAIO"), cenarioId: z.string().min(1).max(64) }).strict()]);
+/** A cópia de `ui.apresentacao`: um objeto pequeno; o formato é conferido por quem a lê (lerApresentacao). */
+const copiaApresentacao = z
+  .record(z.string().max(40), z.unknown())
+  .refine((v) => JSON.stringify(v).length <= telaoRemoto.LIMITE_APRESENTACAO_BYTES, { message: "apresentação grande demais" });
+const sim = z.boolean();
+/** O que o telão pareado conta ao controle (EstadoTelao); `proximoAvancoEm` vai como os ms que faltavam no sinal. */
+const estadoTelao = z.discriminatedUnion("situacao", [
+  z.object({ situacao: z.literal("AGUARDANDO_CLIQUE"), ensaio: sim }).strict(),
+  z.object({ situacao: z.literal("DESLIGADO"), ensaio: sim }).strict(),
+  z
+    .object({
+      situacao: z.literal("LIGADO"),
+      ensaio: sim,
+      nomeCena: texto(300),
+      progresso: z.object({ cena: z.number().int().min(0).max(1000), total: z.number().int().min(0).max(1000) }).strict().nullable(),
+      andamento: z.enum(["APRESENTANDO", "PAUSADO", "PARADO"]),
+      modoAvanco: z.enum(["AUTOMATICO", "MANUAL"]).nullable(),
+      proximoAvancoEm: z.number().min(0).max(24 * 60 * 60_000).nullable(),
+      telaCheia: sim,
+      mensagem: texto(500).nullable(),
+      pode: z.object({ AVANCAR: sim, VOLTAR: sim, ALTERNAR_PAUSA: sim, ALTERNAR_MODO: sim, EMERGENCIA: sim, REINICIAR: sim }).strict(),
+    })
+    .strict(),
+]);
 
 const servicos = {
   // Estado público (leitura)
@@ -366,12 +395,12 @@ const servicos = {
     convites.registrarExportacaoConvites(u, a.eventoId, a.quantidade, { ip: ctx.ip }),
   ),
 
-  // Telão: sala de controle, palco, ensaio e revelação (admin)
-  obterStatusResultado: definir(z.object({ eventoId: id }), (_c, u, a) => apresentacao.obterStatusResultado(u, a.eventoId)),
-  obterEstadoAoVivo: definir(z.object({ eventoId: id }), (_c, u, a) => apresentacao.obterEstadoAoVivo(u, a.eventoId)),
-  carregarRevelacao: definir(z.object({ eventoId: id }), (_c, u, a) => apresentacao.carregarRevelacao(u, a.eventoId)),
-  obterDadosEnsaio: definir(z.object({ eventoId: id, cenarioId: z.string().min(1).max(64) }), (_c, u, a) =>
-    apresentacao.obterDadosEnsaio(u, a.eventoId, a.cenarioId),
+  // Telão: sala de controle, palco, ensaio e revelação (admin; o palco também do aparelho pareado, pelo cookie)
+  obterStatusResultado: definir(z.object({ eventoId: id }), (c, u, a) => apresentacao.obterStatusResultado(u, a.eventoId, c.headers)),
+  obterEstadoAoVivo: definir(z.object({ eventoId: id }), (c, u, a) => apresentacao.obterEstadoAoVivo(u, a.eventoId, c.headers)),
+  carregarRevelacao: definir(z.object({ eventoId: id }), (c, u, a) => apresentacao.carregarRevelacao(u, a.eventoId, c.headers)),
+  obterDadosEnsaio: definir(z.object({ eventoId: id, cenarioId: z.string().min(1).max(64) }), (c, u, a) =>
+    apresentacao.obterDadosEnsaio(u, a.eventoId, a.cenarioId, c.headers),
   ),
   registrarAcaoApresentacao: definir(
     z.object({
@@ -380,7 +409,39 @@ const servicos = {
       versao: z.number().int().min(1),
       cena: z.number().int().min(0).max(200).optional(),
     }),
-    (ctx, u, a) => apresentacao.registrarAcaoApresentacao(u, a.eventoId, a.acao, { versao: a.versao, cena: a.cena }, { ip: ctx.ip }),
+    (ctx, u, a) => apresentacao.registrarAcaoApresentacao(u, a.eventoId, a.acao, { versao: a.versao, cena: a.cena }, { ip: ctx.ip, headers: ctx.headers }),
+  ),
+
+  // Telão em outro aparelho (25/11/2026): lado do admin (o palco que mostra o código e o controle remoto)
+  prepararTelaoRemoto: definir(
+    z.object({ eventoId: id, id: id.nullable(), modo: modoPalco, apresentacao: copiaApresentacao.nullable(), criar: z.boolean() }),
+    (_c, u, a) => telaoRemoto.prepararTelaoRemoto(u, a),
+  ),
+  consultarTelaoRemoto: definir(
+    z.object({ eventoId: id, id, versaoApresentacao: z.number().int().min(0) }),
+    (_c, u, a) => telaoRemoto.consultarTelaoRemoto(u, a),
+    { sessaoEmCache: true },
+  ),
+  comandarTelaoRemoto: definir(z.object({ eventoId: id, id, comando: z.enum(COMANDOS_TELAO) }), (_c, u, a) => telaoRemoto.comandarTelaoRemoto(u, a), {
+    sessaoEmCache: true,
+  }),
+  espelharApresentacaoTelao: definir(z.object({ eventoId: id, id, apresentacao: copiaApresentacao }), (_c, u, a) =>
+    telaoRemoto.espelharApresentacaoTelao(u, a),
+  ),
+  desconectarTelaoRemoto: definir(z.object({ eventoId: id, id, soSeAguardando: z.boolean() }), (ctx, u, a) =>
+    telaoRemoto.desconectarTelaoRemoto(u, a, { ip: ctx.ip }),
+  ),
+
+  // Telão em outro aparelho: lado do aparelho. Sem login: a identidade é o token do cookie HttpOnly, nunca um campo enviado.
+  parearTelao: definir(z.object({ eventoId: id, codigo: texto(40) }), (ctx, _u, a) => telaoRemoto.parearTelao(ctx, a)),
+  sincronizarTelao: definir(
+    z.object({ instancia: id, desde: z.number().int().min(0).nullable(), estado: estadoTelao.nullable(), versaoApresentacao: z.number().int().min(0) }).strict(),
+    (ctx, _u, a) => telaoRemoto.sincronizarTelao(ctx, a),
+    { sessaoEmCache: true },
+  ),
+  espelharApresentacaoTelaoPareado: definir(z.object({ instancia: id, apresentacao: copiaApresentacao }).strict(), (ctx, _u, a) =>
+    telaoRemoto.espelharApresentacaoTelaoPareado(ctx, a),
+    { sessaoEmCache: true },
   ),
 
   // Painel

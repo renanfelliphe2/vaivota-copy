@@ -47,19 +47,26 @@ export async function pinConfere(hashPin: string | null, pin: string): Promise<b
   return alvo.length === obtido.length && timingSafeEqual(alvo, obtido);
 }
 
-/** `Set-Cookie` do totem: HttpOnly (o script da página nunca lê o token), mesmo site e `Secure` fora do desenvolvimento local. */
-export function cookieDoTotem(token: string): string {
+/**
+ * `Set-Cookie` de um aparelho sem login (totem; telão pareado, 25/11/2026): HttpOnly (o script da página nunca lê o token), mesmo
+ * site e `Secure` fora do desenvolvimento local. `maxAgeS` 0 apaga o cookie.
+ */
+export function cookieDeAparelho(nome: string, token: string, maxAgeS: number): string {
   const seguro = process.env.NODE_ENV === "production" || env.appUrl.startsWith("https://");
-  return `${COOKIE_TOTEM}=${token}; Path=/; Max-Age=${VALIDADE_COOKIE_S}; HttpOnly; SameSite=Lax${seguro ? "; Secure" : ""}`;
+  return `${nome}=${token}; Path=/; Max-Age=${maxAgeS}; HttpOnly; SameSite=Lax${seguro ? "; Secure" : ""}`;
 }
 
-/** Token do cookie do tablet, ou null se faltar ou não tiver a forma de um token (nem chega a consultar o banco). */
-export function tokenDoCookie(headers: Headers): string | null {
+export function cookieDoTotem(token: string): string {
+  return cookieDeAparelho(COOKIE_TOTEM, token, VALIDADE_COOKIE_S);
+}
+
+/** Token do cookie do aparelho (o do totem, se o nome não vier), ou null se faltar ou não tiver a forma de um token (nem chega a consultar o banco). */
+export function tokenDoCookie(headers: Headers, nomeCookie = COOKIE_TOTEM): string | null {
   const cookie = headers.get("cookie");
   if (!cookie) return null;
   for (const parte of cookie.split(";")) {
     const [nome, ...resto] = parte.trim().split("=");
-    if (nome !== COOKIE_TOTEM) continue;
+    if (nome !== nomeCookie) continue;
     const valor = resto.join("=");
     return RE_TOKEN.test(valor) ? valor : null;
   }

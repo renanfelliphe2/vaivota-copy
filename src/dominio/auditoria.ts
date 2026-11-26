@@ -194,6 +194,8 @@ export const CATALOGO_AUDITORIA: Record<AcaoAuditoria, ItemCatalogo> = {
     grupo: "APRESENTACAO",
     descrever: () => "Emergência acionada: final exibido direto",
   },
+  TELAO_REMOTO_PAREADO: { rotulo: "Telão em outro aparelho", grupo: "APRESENTACAO", descrever: () => "Telão aberto em outro aparelho, pelo código" },
+  TELAO_REMOTO_DESCONECTADO: { rotulo: "Telão desconectado", grupo: "APRESENTACAO", descrever: () => "Telão do outro aparelho desconectado" },
 };
 
 /** Ação desconhecida (de uma etapa futura): o código e "Ação registrada", no grupo OUTRAS. */

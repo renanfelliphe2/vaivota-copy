@@ -14,6 +14,7 @@ export function criarUiInicial(): EstadoUi {
   return {
     palcoAtivo: false,
     apresentacao: criarApresentacaoInicial(),
+    donoApresentacao: null,
     bloqueioCodigo: { falhas: 0, ateMs: null },
     bloqueioLoginCodigo: { falhas: 0, ateMs: null },
     bloqueioSenha: { falhas: 0, ateMs: null },

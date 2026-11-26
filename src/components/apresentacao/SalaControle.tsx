@@ -132,6 +132,11 @@ export function SalaControle({ aoApresentar }: { aoApresentar: () => void }) {
             tocar no telão. As abas do mesmo navegador ficam sincronizadas: a revelação continua de onde parou, mesmo se o telão for recarregado.
           </li>
           <li>
+            Sem duas telas? Na tela do telão, &ldquo;Abrir em outro aparelho&rdquo; mostra um código: digite-o em{" "}
+            <strong className="break-all">{origem.replace(/^https?:\/\//, "")}/e/{slug}/telao/parear</strong> no computador ligado ao telão. O
+            controle remoto continua neste navegador.
+          </li>
+          <li>
             O QR Code vai apontar para <strong className="break-all">{urlQr}</strong>.{local && " Celulares podem não alcançar este endereço."}
           </li>
         </ul>

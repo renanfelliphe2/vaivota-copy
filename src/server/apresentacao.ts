@@ -13,9 +13,11 @@ import { db } from "./db";
 import { hashDoIp } from "./ip";
 import { apresentacaoParaDominio, instante } from "./mapeadores";
 import { falha, falhaInterna, sucesso, type Resultado } from "./resultado";
-import { exigirAdmin, type UsuarioSessao } from "./sessao";
+import type { UsuarioSessao } from "./sessao";
+import { exigirAdminOuTelao } from "./telaoRemoto";
 
-// Telão (sala de controle, palco, ensaio e revelação). Tudo é do admin do evento. O resultado só sai por `carregarRevelacao` (com a
+// Telão (sala de controle, palco, ensaio e revelação). Tudo é do admin do evento (e, desde 25/11/2026, do aparelho pareado como
+// telão deste evento: `headers` leva o cookie dele). O resultado só sai por `carregarRevelacao` (com a
 // urna encerrada, da maior versão oficial: a leitura nunca recalcula) e por `obterDadosEnsaio` (um resultado inventado que não
 // lê voto nenhum). A sala só pergunta `obterStatusResultado` (existe? qual a assinatura?) e nunca vê o resultado.
 
@@ -62,8 +64,8 @@ function extrasDe(v: unknown): Record<string, string> | null {
 }
 
 /** Cerimônia (25/11/2026): uma revelação só para o evento inteiro; o status é do resultado do evento. */
-export async function obterStatusResultado(usuario: UsuarioSessao | null, eventoId: string): Promise<Resultado<StatusResultado>> {
-  const admin = await exigirAdmin(usuario, eventoId);
+export async function obterStatusResultado(usuario: UsuarioSessao | null, eventoId: string, headers: Headers | null = null): Promise<Resultado<StatusResultado>> {
+  const admin = await exigirAdminOuTelao(usuario, headers, eventoId);
   if (!admin.ok) return admin;
   const { evento } = admin.dados;
   try {
@@ -92,8 +94,8 @@ async function candidatosVotaveis(eventoId: string) {
  * Telão com a urna aberta: o total de votos de todos os grupos ligados (jurados contam uma vez, quando já registraram algo) e, só se o
  * admin liberou o parcial ao vivo, o público por item. Fora da urna aberta o parcial nunca sai.
  */
-export async function obterEstadoAoVivo(usuario: UsuarioSessao | null, eventoId: string): Promise<Resultado<EstadoAoVivo>> {
-  const admin = await exigirAdmin(usuario, eventoId);
+export async function obterEstadoAoVivo(usuario: UsuarioSessao | null, eventoId: string, headers: Headers | null = null): Promise<Resultado<EstadoAoVivo>> {
+  const admin = await exigirAdminOuTelao(usuario, headers, eventoId);
   if (!admin.ok) return admin;
   const { evento } = admin.dados;
   try {
@@ -116,8 +118,8 @@ export async function obterEstadoAoVivo(usuario: UsuarioSessao | null, eventoId:
  * Uma vez por cerimônia: o resultado oficial como o palco o lê (a versão mais recente, com os itens publicados no momento). Cerimônia
  * (25/11/2026): o evento inteiro de uma vez (a ordem da revelação atravessa as categorias), com a configuração de cada categoria.
  */
-export async function carregarRevelacao(usuario: UsuarioSessao | null, eventoId: string): Promise<Resultado<DadosRevelacao>> {
-  const admin = await exigirAdmin(usuario, eventoId);
+export async function carregarRevelacao(usuario: UsuarioSessao | null, eventoId: string, headers: Headers | null = null): Promise<Resultado<DadosRevelacao>> {
+  const admin = await exigirAdminOuTelao(usuario, headers, eventoId);
   if (!admin.ok) return admin;
   const { evento } = admin.dados;
   if (!faseComResultado(evento)) return falha("RESULTADO_INDISPONIVEL", { detalhe: "revelação fora da fase" });
@@ -154,8 +156,13 @@ export async function carregarRevelacao(usuario: UsuarioSessao | null, eventoId:
 }
 
 /** Ensaio: um resultado inventado em cima dos itens e dos módulos do evento. Não lê nem grava voto, resultado ou auditoria. */
-export async function obterDadosEnsaio(usuario: UsuarioSessao | null, eventoId: string, cenarioId: string): Promise<Resultado<DadosEnsaio>> {
-  const admin = await exigirAdmin(usuario, eventoId);
+export async function obterDadosEnsaio(
+  usuario: UsuarioSessao | null,
+  eventoId: string,
+  cenarioId: string,
+  headers: Headers | null = null,
+): Promise<Resultado<DadosEnsaio>> {
+  const admin = await exigirAdminOuTelao(usuario, headers, eventoId);
   if (!admin.ok) return admin;
   const { evento } = admin.dados;
   const modulos = { juri: evento.moduloJuri, infantil: evento.moduloInfantil };
@@ -195,9 +202,9 @@ export async function registrarAcaoApresentacao(
   eventoId: string,
   acao: AcaoApresentacao,
   info: { versao: number; cena?: number },
-  ctx: { ip: string },
+  ctx: { ip: string; headers?: Headers },
 ): Promise<Resultado<null>> {
-  const admin = await exigirAdmin(usuario, eventoId);
+  const admin = await exigirAdminOuTelao(usuario, ctx.headers ?? null, eventoId);
   if (!admin.ok) return admin;
   const { evento, usuarioId } = admin.dados;
   if (!faseComResultado(evento)) return falha("RESULTADO_INDISPONIVEL", { detalhe: "cerimônia fora da fase" });

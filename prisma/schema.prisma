@@ -77,6 +77,12 @@ enum EstadoCodigoPareamento {
   EXPIRADO
 }
 
+enum EstadoTelaoRemoto {
+  AGUARDANDO
+  PAREADO
+  ENCERRADO
+}
+
 enum RegraDesempate {
   JURI
   PUBLICO
@@ -143,6 +149,7 @@ model Usuario {
   resultadosCalculados    ResultadoOficial[] @relation("ResultadosCalculados")
   auditorias              Auditoria[]        @relation("AuditoriaAtor")
   convitesAdminResgatados ConviteAdmin[]     @relation("ConvitesAdminResgatados")
+  teloesRemotos           TelaoRemoto[]      @relation("TelaoRemotoCriador")
 
   @@map("usuario")
 }
@@ -262,6 +269,7 @@ model Evento {
   convitesAdmin      ConviteAdmin[]
   dispositivos       Dispositivo[]
   codigosPareamento  CodigoPareamento[]
+  teloesRemotos      TelaoRemoto[]
   resultados         ResultadoOficial[]
   auditorias         Auditoria[]
 
@@ -739,6 +747,57 @@ model CodigoPareamento {
   @@unique([eventoId, hashCodigo])
   @@index([eventoId, estado])
   @@map("codigo_pareamento")
+}
+
+// ─────────────────────────────────────────────
+// Telão em outro aparelho (25/11/2026)
+// ─────────────────────────────────────────────
+
+// O palco aberto no computador do admin mostra um código; outro aparelho o digita em /e/<slug>/telao/parear e vira o telão,
+// comandado pelo controle remoto de quem gerou o código. Como o totem, o aparelho não tem login: o token de longa duração fica
+// num cookie HttpOnly e aqui só o hash. O token só libera as leituras do telão deste evento, enquanto a sessão estiver PAREADO.
+// `apresentacao` é a cópia de `ui.apresentacao` (modo, avanço, progresso da revelação) trocada entre os dois lados; `estadoPalco`,
+// o que o telão conta ao controle (EstadoTelao), renovado a cada sinal.
+model TelaoRemoto {
+  id                 String            @id @default(uuid())
+  eventoId           String            @map("evento_id")
+  criadoPorId        String            @map("criado_por_id")
+  // HMAC do código, por evento (como o do totem). O legível só enquanto AGUARDANDO, para o palco mostrá-lo de novo.
+  hashCodigo         String            @map("hash_codigo") @db.VarChar(64)
+  codigo             String?           @db.VarChar(16)
+  estado             EstadoTelaoRemoto @default(AGUARDANDO)
+  hashToken          String?           @unique @map("hash_token") @db.VarChar(64)
+  // A aba do aparelho que está no ar: outra aba com o mesmo cookie assume e a anterior para (nunca dois palcos).
+  instancia          String?           @db.VarChar(64)
+  // { tipo: "REAL" } ou { tipo: "ENSAIO", cenarioId }: o palco de quem gerou o código decide.
+  modo               Json
+  apresentacao       Json?
+  versaoApresentacao Int               @default(0) @map("versao_apresentacao")
+  estadoPalco        Json?             @map("estado_palco")
+  ultimoSinalEm      DateTime?         @map("ultimo_sinal_em") @db.Timestamptz(3)
+  pareadoEm          DateTime?         @map("pareado_em") @db.Timestamptz(3)
+  criadoEm           DateTime          @default(now()) @map("criado_em") @db.Timestamptz(3)
+
+  evento    Evento         @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  criadoPor Usuario        @relation("TelaoRemotoCriador", fields: [criadoPorId], references: [id], onDelete: Cascade)
+  comandos  ComandoTelao[]
+
+  @@unique([eventoId, hashCodigo])
+  @@index([eventoId, estado])
+  @@map("telao_remoto")
+}
+
+// Botões do controle remoto a caminho do telão remoto. O telão lê os que vieram depois do último que executou; os já lidos saem.
+model ComandoTelao {
+  id       Int      @id @default(autoincrement())
+  telaoId  String   @map("telao_id")
+  comando  String   @db.VarChar(20)
+  criadoEm DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
+
+  telao TelaoRemoto @relation(fields: [telaoId], references: [id], onDelete: Cascade)
+
+  @@index([telaoId, id])
+  @@map("comando_telao")
 }
 
 // Voto infantil: candidato, horário e dispositivo. Nenhum dado da criança.

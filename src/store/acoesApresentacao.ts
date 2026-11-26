@@ -1,4 +1,4 @@
-import { chaveApresentacao, type Revelacao } from "@/dominio/apresentacao/revelacao";
+import { chaveApresentacao, donoDaApresentacao, type Revelacao } from "@/dominio/apresentacao/revelacao";
 import type { EstadoApp, EstadoUiApresentacao, ModoAvanco } from "@/dominio/tipos";
 import { paraInstante } from "@/lib/tempo";
 import { criarApresentacaoInicial } from "./estadoInicial";
@@ -8,7 +8,7 @@ import { obterAmbiente } from "./ambiente";
 // Toda escrita grava a chave `${usuarioId}:${eventoId}` e zera o que pertencia a outra chave.
 
 function comApresentacao(estado: EstadoApp, eventoId: string, mudar: (atual: EstadoUiApresentacao) => Partial<EstadoUiApresentacao>): EstadoApp {
-  const usuarioId = estado.sessao.usuarioId;
+  const usuarioId = donoDaApresentacao(estado);
   if (!usuarioId) return estado;
   const chave = chaveApresentacao(usuarioId, eventoId);
   const atual = estado.ui.apresentacao.chave === chave ? estado.ui.apresentacao : { ...criarApresentacaoInicial(), chave };
@@ -65,6 +65,11 @@ export function refazerRevelacao(eventoId: string): void {
 /** Toolbar "Resetar apresentação": zera ui.apresentacao, sem auditoria. */
 export function limparApresentacao(): void {
   obterAmbiente().store.atualizar((e) => ({ ...e, ui: { ...e.ui, apresentacao: criarApresentacaoInicial() } }));
+}
+
+/** Telão pareado (25/11/2026): a apresentação deste aparelho é a do admin que gerou o código. null ao sair. */
+export function definirDonoApresentacao(donoApresentacao: string | null): void {
+  obterAmbiente().store.atualizar((e) => (e.ui.donoApresentacao === donoApresentacao ? e : { ...e, ui: { ...e.ui, donoApresentacao } }));
 }
 
 export function definirPalcoAtivo(palcoAtivo: boolean): void {

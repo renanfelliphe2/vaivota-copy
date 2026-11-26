@@ -7,7 +7,7 @@ import { DialogoConfirmacao } from "@/components/ui/DialogoConfirmacao";
 import { DURACOES } from "@/dominio/apresentacao/duracoes";
 import { resolverFasePalco, ROTULO_FASE_PALCO } from "@/dominio/apresentacao/fasePalco";
 import { estadoInicialMotor, reduzirMotor } from "@/dominio/apresentacao/motor";
-import { lerRevelacao } from "@/dominio/apresentacao/revelacao";
+import { donoDaApresentacao, lerRevelacao } from "@/dominio/apresentacao/revelacao";
 import { MENSAGEM_TOTEM_PADRAO } from "@/dominio/apresentacao/cerimonia";
 import { montarFinal, montarRoteiro } from "@/dominio/apresentacao/roteiro";
 import type { AcaoMotor, DadosRevelacao, EstadoMotor, EstadoTrailer } from "@/dominio/apresentacao/tipos";
@@ -72,7 +72,7 @@ export function PalcoReal({
   const anunciar = useAnunciar();
   const dev = useDev();
   const lerEstado = useLerEstado();
-  const usuarioId = useStore((e) => e.sessao.usuarioId);
+  const usuarioId = useStore(donoDaApresentacao);
   const situacao = useSituacaoEvento({ ignorarRascunho: true });
   const { fase } = resolverFaseConfig(evento);
   const versao = useVersaoResultado(eventoId);
@@ -148,7 +148,7 @@ export function PalcoReal({
   /** Aplica o redutor sobre o progresso mais recente do store (handlers e timers podem se cruzar). */
   function despachar(acao: AcaoMotor) {
     const estado = lerEstado();
-    const atual = lerRevelacao(estado.ui, estado.sessao.usuarioId, eventoId, assinatura).revelacao;
+    const atual = lerRevelacao(estado.ui, donoDaApresentacao(estado), eventoId, assinatura).revelacao;
     if (!atual || roteiro.length === 0) return;
     const base: EstadoMotor = { ...estadoMotor, cena: atual.cena, passo: atual.passo, pausado: atual.pausado, situacao: atual.situacao, emergencia: atual.emergencia };
     const novo = reduzirMotor(base, acao, roteiro);

@@ -1,4 +1,4 @@
-import type { EstadoUi, EstadoUiApresentacao } from "../tipos";
+import type { EstadoApp, EstadoUi, EstadoUiApresentacao } from "../tipos";
 
 // Etapa 8 (D4, seção 5.2): leitura filtrada da revelação gravada em ui.apresentacao.
 
@@ -6,6 +6,11 @@ export type Revelacao = NonNullable<EstadoUiApresentacao["revelacao"]>;
 
 export function chaveApresentacao(usuarioId: string, eventoId: string): string {
   return `${usuarioId}:${eventoId}`;
+}
+
+/** De quem é a apresentação nesta aba: o usuário da sessão ou, no telão pareado (sem login, 25/11/2026), o admin que o pareou. */
+export function donoDaApresentacao(estado: Pick<EstadoApp, "ui" | "sessao">): string | null {
+  return estado.ui.donoApresentacao ?? estado.sessao.usuarioId;
 }
 
 export function lerRevelacao(

@@ -75,6 +75,9 @@ export type AcaoAuditoria =
   | "REVELACAO_CONCLUIDA"
   | "REVELACAO_REFEITA"
   | "EMERGENCIA_ACIONADA"
+  // Telão em outro aparelho (25/11/2026), pelo código do palco
+  | "TELAO_REMOTO_PAREADO"
+  | "TELAO_REMOTO_DESCONECTADO"
   // Retenção (03/11/2026): nome e e-mail dos participantes anonimizados depois do prazo do evento
   | "DADOS_ANONIMIZADOS";
 
@@ -580,6 +583,11 @@ export type EstadoUi = {
   /** Etapa 8 liga; a toolbar lê. */
   palcoAtivo: boolean;
   apresentacao: EstadoUiApresentacao;
+  /**
+   * Telão em outro aparelho (25/11/2026): o aparelho pareado não tem login, então a apresentação que ele mostra é a do admin que
+   * gerou o código (a chave de `apresentacao` é `${usuarioId}:${eventoId}`). null fora dele: vale o usuário da sessão.
+   */
+  donoApresentacao: string | null;
   // Etapa 3
   /** Código de convite (um só contador para registro e convite). */
   bloqueioCodigo: BloqueioTentativas;

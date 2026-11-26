@@ -139,8 +139,9 @@ export function Palco({
     },
   );
 
+  // 25/11/2026: sem cursor no telão (nada aqui é clicável; o mouse passando pela tela aparecia para o público).
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-tema-fundo text-tema-texto font-tema">
+    <div className="fixed inset-0 z-40 flex cursor-none flex-col bg-tema-fundo text-tema-texto font-tema">
       <div ref={area} className="relative flex flex-1 items-center justify-center overflow-hidden">
         <div
           className="relative flex shrink-0 flex-col overflow-hidden bg-tema-fundo"
