@@ -1,7 +1,7 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import * as acesso from "@/server/acesso";
 import { db, desconectarBanco } from "@/server/db";
-import { caixaDeSaida } from "@/server/email";
+import { caixaDeSaida, simularFalhaNoEnvio } from "@/server/email";
 import { garantirParticipacao } from "@/server/participacao";
 import { reiniciarManutencao } from "@/server/manutencao";
 import { promoverAdmin } from "@/server/semente";
@@ -30,9 +30,11 @@ describe("cadastro com código por e-mail", () => {
     expect(ctx.cookies).toHaveLength(0); // sem sessão antes de confirmar
     await esperarEmail(email, antes);
 
-    // e-mail curto, com o código, remetente configurado
+    // e-mail curto, com o código; o remetente e o assunto levam o nome do evento
     const mensagem = caixaDeSaida().filter((m) => m.para === email).at(-1)!;
-    expect(mensagem.assunto).toMatch(/^\d{6} é o código/);
+    expect(mensagem.assunto).toMatch(/^\d{6} é o código para confirmar seu e-mail \| Evento teste-acesso$/);
+    expect(mensagem.de).toMatch(/^"Evento teste-acesso" <[^<>\s]+@[^<>\s]+>$/);
+    expect(mensagem.texto).toMatch(/^Evento teste-acesso\n/);
     expect(await db().usuario.findUniqueOrThrow({ where: { email } })).toMatchObject({ emailVerificado: false });
 
     // Código errado: recusa genérica, e a conta segue sem verificar
@@ -131,6 +133,44 @@ describe("cadastro com código por e-mail", () => {
     expect(
       await acesso.registrar(novoContexto(), { eventoId: rascunho, nome: "Sem Convite", email: "sem.convite@teste.local", senha: "minha-senha-1", confirmacaoSenha: "minha-senha-1", aceite: true }),
     ).toMatchObject({ ok: false, erro: { codigo: "EVENTO_INDISPONIVEL" } });
+  });
+});
+
+describe("falha no envio do código (Resend recusando ou fora do ar)", () => {
+  afterEach(() => simularFalhaNoEnvio(false));
+
+  it("cadastro: a tela recebe o aviso, a conta é desfeita e dá para cadastrar de novo", async () => {
+    const email = "sem-envio@teste.local";
+    simularFalhaNoEnvio(true);
+    const r = await acesso.registrar(novoContexto(), { eventoId, nome: "Sem Envio", email, senha: "minha-senha-1", confirmacaoSenha: "minha-senha-1", aceite: true });
+    expect(r).toMatchObject({ ok: false, erro: { codigo: "ERRO_INTERNO", mensagem: expect.stringMatching(/Não conseguimos enviar o código.*Google/) } });
+    expect(await db().usuario.findUnique({ where: { email } })).toBeNull();
+    expect(await db().verification.count({ where: { identifier: `email-verification-otp-${email}` } })).toBe(0);
+
+    simularFalhaNoEnvio(false);
+    await db().rateLimit.deleteMany({ where: { key: { startsWith: "codigo:" } } });
+    const antes = caixaDeSaida().filter((m) => m.para === email).length;
+    const deNovo = await acesso.registrar(novoContexto(), { eventoId, nome: "Sem Envio", email, senha: "minha-senha-1", confirmacaoSenha: "minha-senha-1", aceite: true });
+    expect(deNovo).toEqual({ ok: true, dados: { email } });
+    // O envio é esperado antes da resposta: o e-mail já está na caixa, sem esperar.
+    expect(caixaDeSaida().filter((m) => m.para === email).length).toBe(antes + 1);
+  });
+
+  it("recuperação de senha e reenvio: avisam em vez de dizer que o código foi enviado", async () => {
+    const email = "sem-envio-recupera@teste.local";
+    await cadastrarPeloFluxo(eventoId, email, "senha-antiga-1");
+    await db().rateLimit.deleteMany({ where: { key: { startsWith: "codigo:" } } });
+
+    simularFalhaNoEnvio(true);
+    const pedido = await acesso.solicitarRecuperacao(novoContexto("203.0.113.80"), { eventoId, email });
+    expect(pedido).toMatchObject({ ok: false, erro: { codigo: "ERRO_INTERNO", mensagem: expect.stringMatching(/Não conseguimos enviar/) } });
+    await db().rateLimit.deleteMany({ where: { key: { startsWith: "codigo:" } } });
+    const reenvio = await acesso.reenviarCodigo(novoContexto("203.0.113.80"), { eventoId, email, tipo: "recuperacao" });
+    expect(reenvio).toMatchObject({ ok: false, erro: { mensagem: expect.stringMatching(/Não conseguimos enviar/) } });
+
+    // E-mail desconhecido continua com a resposta de sempre (nada é enviado, então nada falha).
+    const fantasma = await acesso.solicitarRecuperacao(novoContexto("203.0.113.81"), { eventoId, email: "ninguem@teste.local" });
+    expect(fantasma.ok).toBe(true);
   });
 });
 

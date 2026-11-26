@@ -5,7 +5,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { emailOTP } from "better-auth/plugins";
 import { after } from "next/server";
 import { db } from "./db";
-import { enviarEmail, montarEmailCodigo } from "./email";
+import { enviarEmail, envioEmAndamento, montarEmailCodigo } from "./email";
 import { env } from "./env";
 import { capturarErro } from "./observabilidade";
 
@@ -58,10 +58,13 @@ function criar() {
         overrideDefaultEmailVerification: true,
         storeOTP: "hashed",
         async sendVerificationOTP({ email, otp, type }) {
+          // Dentro de um fluxo de acesso (acesso.ts): o nome do evento vai no remetente e a falha volta para a tela.
+          const envio = envioEmAndamento();
           try {
-            await enviarEmail(montarEmailCodigo(type, email, otp, VALIDADE_CODIGO_SEGUNDOS / 60));
+            await enviarEmail(montarEmailCodigo(type, email, otp, VALIDADE_CODIGO_SEGUNDOS / 60, envio?.nomeEvento));
           } catch (erro) {
-            // Roda em segundo plano (o usuário já viu "código enviado"): sem isto a falha do Resend sumiria.
+            // O Better Auth engole o erro do envio em segundo plano: sem isto a falha do Resend sumiria.
+            if (envio) envio.falhou = true;
             capturarErro(erro, `envio de e-mail (${type})`);
             throw erro;
           }
@@ -92,9 +95,15 @@ function criar() {
 
     advanced: {
       database: { generateId: () => randomUUID() },
-      // Na Vercel o envio do e-mail pode terminar depois da resposta: `after` mantém a função viva até acabar.
+      // Dentro de um fluxo de acesso, o envio é esperado antes da resposta (comEnvioDoEvento, em email.ts). Fora dele,
+      // na Vercel o envio pode terminar depois da resposta: `after` mantém a função viva até acabar.
       backgroundTasks: {
         handler: (promessa) => {
+          const envio = envioEmAndamento();
+          if (envio) {
+            envio.pendentes.push(promessa);
+            return;
+          }
           try {
             after(promessa);
           } catch {

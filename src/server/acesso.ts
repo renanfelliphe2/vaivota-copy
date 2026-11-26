@@ -13,6 +13,7 @@ import {
 import { registrarAuditoria } from "./auditoria";
 import { auth } from "./auth";
 import { db } from "./db";
+import { comEnvioDoEvento } from "./email";
 import { hashDoIp } from "./ip";
 import { manutencaoSeNecessario } from "./manutencao";
 import {
@@ -60,7 +61,26 @@ function lerErro(e: unknown): ErroBetterAuth | null {
 }
 
 async function eventoDoAcesso(eventoId: string) {
-  return db().evento.findUnique({ where: { id: eventoId }, select: { id: true, slug: true, estado: true, metodoIdentificacao: true } });
+  return db().evento.findUnique({
+    where: { id: eventoId },
+    select: { id: true, slug: true, nome: true, estado: true, metodoIdentificacao: true },
+  });
+}
+
+type EventoDoAcesso = NonNullable<Awaited<ReturnType<typeof eventoDoAcesso>>>;
+
+/** O provedor de e-mail recusou ou não respondeu: a tela avisa, em vez de mandar a pessoa esperar um código que não vem. */
+function falhaNoEnvio(evento: EventoDoAcesso, contexto: string) {
+  const alternativa = evento.metodoIdentificacao === "GOOGLE_OU_EMAIL" ? " ou entre com o Google" : "";
+  return falha("ERRO_INTERNO", {
+    mensagem: `Não conseguimos enviar o código para o seu e-mail agora. Tente de novo em instantes${alternativa}.`,
+    detalhe: `e-mail não enviado (${contexto})`,
+  });
+}
+
+/** Apaga o código que não chegou: senão o cadastro de novo esbarraria no "cadastro em andamento" por 10 minutos. */
+async function descartarCodigo(email: string, tipo: "email-verification" | "forget-password") {
+  await db().verification.deleteMany({ where: { identifier: `${tipo}-otp-${email}` } });
 }
 
 function guardarCookies(ctx: ContextoAcesso, headers: Headers | undefined) {
@@ -138,7 +158,8 @@ export async function entrar(
     const erro = lerErro(e);
     if (erro?.status === 403) {
       // Senha certa, e-mail ainda não confirmado: manda um código novo (respeitando o limite) e leva à confirmação.
-      await enviarCodigoDeVerificacao(ctx, email);
+      const naoEnviado = await enviarCodigoDeVerificacao(ctx, evento, email);
+      if (naoEnviado) return naoEnviado;
       return falha("EMAIL_NAO_VERIFICADO", { detalhe: "login com e-mail não verificado" });
     }
     if (erro && erro.status < 500) {
@@ -238,7 +259,15 @@ export async function registrar(
   }
 
   try {
-    await auth().api.signUpEmail({ body: { name: entrada.nome.trim(), email, password: entrada.senha }, headers: ctx.headers });
+    const { enviado } = await comEnvioDoEvento(evento.nome, () =>
+      auth().api.signUpEmail({ body: { name: entrada.nome.trim(), email, password: entrada.senha }, headers: ctx.headers }),
+    );
+    if (!enviado) {
+      // Sem o código a conta não tem como ser confirmada: desfaz, para a pessoa poder tentar de novo do zero.
+      await descartarCodigo(email, "email-verification");
+      await db().usuario.deleteMany({ where: { email, emailVerificado: false } });
+      return falhaNoEnvio(evento, "registrar");
+    }
   } catch (e) {
     const erro = lerErro(e);
     if (erro && erro.status < 500) return falha("CADASTRO_NAO_CONCLUIDO", { detalhe: `cadastro recusado (${erro.codigo ?? erro.status})` });
@@ -251,12 +280,21 @@ export async function registrar(
 // Códigos por e-mail
 // ─────────────────────────────────────────────
 
-/** Envia o código de confirmação do e-mail, respeitando o cooldown. Falha de limite não aparece ao usuário. */
-async function enviarCodigoDeVerificacao(ctx: ContextoAcesso, email: string) {
+/**
+ * Envia o código de confirmação do e-mail, respeitando o cooldown. Falha de limite não aparece ao usuário (o código
+ * anterior ainda vale); falha no envio, sim. Devolve a falha a mostrar, ou null.
+ */
+async function enviarCodigoDeVerificacao(ctx: ContextoAcesso, evento: EventoDoAcesso, email: string) {
   const limite = await limitarEnvioDeCodigo(ctx, email, "verificacao");
-  if (limite) return limite;
+  if (limite) return null;
   try {
-    await auth().api.sendVerificationOTP({ body: { email, type: "email-verification" }, headers: ctx.headers });
+    const { enviado } = await comEnvioDoEvento(evento.nome, () =>
+      auth().api.sendVerificationOTP({ body: { email, type: "email-verification" }, headers: ctx.headers }),
+    );
+    if (!enviado) {
+      await descartarCodigo(email, "email-verification");
+      return falhaNoEnvio(evento, "login sem e-mail confirmado");
+    }
   } catch (e) {
     return falhaInterna(e, "enviarCodigoDeVerificacao");
   }
@@ -323,8 +361,15 @@ export async function reenviarCodigo(
   const limite = await limitarEnvioDeCodigo(ctx, email, entrada.tipo);
   if (limite) return limite;
   try {
-    if (entrada.tipo === "recuperacao") await auth().api.requestPasswordResetEmailOTP({ body: { email }, headers: ctx.headers });
-    else await auth().api.sendVerificationOTP({ body: { email, type: "email-verification" }, headers: ctx.headers });
+    const recuperacao = entrada.tipo === "recuperacao";
+    const { enviado } = await comEnvioDoEvento(evento.nome, async () => {
+      if (recuperacao) await auth().api.requestPasswordResetEmailOTP({ body: { email }, headers: ctx.headers });
+      else await auth().api.sendVerificationOTP({ body: { email, type: "email-verification" }, headers: ctx.headers });
+    });
+    if (!enviado) {
+      await descartarCodigo(email, recuperacao ? "forget-password" : "email-verification");
+      return falhaNoEnvio(evento, "reenviarCodigo");
+    }
   } catch (e) {
     return falhaInterna(e, "reenviarCodigo");
   }
@@ -352,7 +397,14 @@ export async function solicitarRecuperacao(
     return limite.erro.codigo === "CONFLITO" ? sucesso({ email, ateMs: Date.now() + COOLDOWN_REENVIO_MS }) : limite;
   }
   try {
-    await auth().api.requestPasswordResetEmailOTP({ body: { email }, headers: ctx.headers });
+    // E-mail desconhecido não dispara envio, então não tem como falhar: a resposta continua sem revelar se a conta existe.
+    const { enviado } = await comEnvioDoEvento(evento.nome, () =>
+      auth().api.requestPasswordResetEmailOTP({ body: { email }, headers: ctx.headers }),
+    );
+    if (!enviado) {
+      await descartarCodigo(email, "forget-password");
+      return falhaNoEnvio(evento, "solicitarRecuperacao");
+    }
   } catch (e) {
     return falhaInterna(e, "solicitarRecuperacao");
   }
