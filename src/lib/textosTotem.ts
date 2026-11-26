@@ -17,6 +17,8 @@ export const TEXTOS_TOTEM = {
   // Contador da sessão na tela de sucesso (logTotem.md).
   contadorUm: "voto nesta sessão",
   contadorVarios: "votos nesta sessão",
+  // Dica discreta na tela de sucesso: o toque pula a espera e abre a escolha do próximo voto.
+  toqueParaProximo: "Toque na tela para votar de novo",
   erroTitulo: "Ops!",
   erroCorpo: "Chame um adulto.",
   tentarDeNovo: "Tentar de novo",
@@ -30,6 +32,11 @@ export const TEXTOS_TOTEM = {
   menuSair: "Sair do modo totem",
   pinTitulo: "Menu do totem",
   pinDescricao: "Digite o PIN do totem para abrir o menu. Só a organização tem o PIN.",
+  // Teclado na tela (26/11/2026): o totem pode não ter teclado físico.
+  pinTecladoAbrir: "Teclado na tela",
+  pinTecladoFechar: "Esconder teclado",
+  pinApagar: "Apagar",
+  pinLimpar: "Limpar",
   pinCampo: "PIN",
   pinConfirmar: "Abrir menu",
   pinCancelar: "Cancelar",

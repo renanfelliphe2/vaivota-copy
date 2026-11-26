@@ -14,6 +14,7 @@ describe("arranjarGradeTotem", () => {
   it("tablet deitado com cinco filmes: uma linha só, limitada pela altura", () => {
     const r = arranjarGradeTotem({ ...base, largura: 1000, altura: 560, grupos: [5] });
     expect(r.colunas).toBe(5);
+    expect(r.cabe).toBe(true);
     expect(alturaOcupada([5], r.colunas, r.larguraCartao)).toBeLessThanOrEqual(560);
     expect(r.colunas * r.larguraCartao + (r.colunas - 1) * base.espaco).toBeLessThanOrEqual(1000);
   });
@@ -35,6 +36,7 @@ describe("arranjarGradeTotem", () => {
   it("área minúscula: não desce do mínimo (a área rola)", () => {
     const r = arranjarGradeTotem({ ...base, largura: 200, altura: 120, grupos: [12] });
     expect(r.larguraCartao).toBe(LARGURA_MINIMA_CARTAO_TOTEM);
+    expect(r.cabe).toBe(false);
   });
 
   it("sem itens não quebra", () => {

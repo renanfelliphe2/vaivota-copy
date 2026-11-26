@@ -183,10 +183,12 @@ export function novoIdEnvio(): string {
 
 /** §6 (pendência §12: tempos provisórios). */
 export const TEMPOS_TOTEM = {
-  /** Sucesso → tela inicial. */
+  /** Sucesso → escolha do próximo voto (26/11/2026: as crianças votam em fila; antes voltava à tela inicial). */
   retornoMs: 6_000,
   /** Sem toque na escolha ou na confirmação → tela inicial. */
   inatividadeMs: 30_000,
+  /** Escolha aberta depois de um voto, sem ninguém escolher um cartaz → tela inicial (26/11/2026, pedido do usuário). */
+  esperaProximoMs: 15_000,
   /** Erro → tela inicial. */
   erroMs: 8_000,
 } as const;

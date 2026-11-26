@@ -7,6 +7,15 @@ import { novoIdEnvio, TEMPOS_TOTEM } from "@/dominio/totem";
 import type { Candidato } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 import { arranjarGradeTotem } from "@/lib/gradeTotem";
+import {
+  depoisDoTempo,
+  limiteDoPasso,
+  logsDaEscolha,
+  PASSO_INICIO,
+  PASSO_PROXIMO,
+  toqueReiniciaContagem,
+  type PassoTotem,
+} from "@/lib/passosTotem";
 import { tocarSomTotem } from "@/lib/sonsTotem";
 import { TEXTOS_TOTEM } from "@/lib/textosTotem";
 import { registrarEventoTotem, registrarVotoNoLog, type TipoEventoLog } from "@/lib/logTotem";
@@ -14,7 +23,8 @@ import { votarInfantil } from "@/servicos/totem";
 import type { GrupoTotem } from "@/store/seletores/totem";
 import { AvisoTotem } from "./MolduraTotem";
 
-// Totem (§6): toque para votar → cartazes → "É esse? Sim / Voltar" → sucesso → volta ao início.
+// Totem (§6): toque para votar → cartazes → "É esse? Sim / Voltar" → sucesso → cartazes do próximo voto (26/11/2026: as crianças
+// votam em fila; os passos e os tempos estão em lib/passosTotem.ts). Sem ninguém escolher em 15 s, volta ao início.
 // Inatividade na escolha ou na confirmação também volta ao início. Um toque confirmado = um voto (trava síncrona).
 // Cada tentativa de voto leva uma chave aleatória (`idEnvio`). Se a rede falha, o totem não sabe se o voto chegou: o "tentar de novo"
 // reenvia a MESMA chave e o servidor não conta duas vezes. A chave só passa da tela de erro para a confirmação seguinte; qualquer outro
@@ -24,26 +34,6 @@ import { AvisoTotem } from "./MolduraTotem";
 // papel na escolha, letras de cartaz (Arvo). Tudo medido pelo tamanho do totem (cqh/cqw/cqmin) e a grade calcula o tamanho dos cartões
 // para caber inteira (lib/gradeTotem.ts): o aparelho fica parado, sem rolagem. Os cartazes aparecem inteiros, sem corte, e os textos
 // são poucos: a criança escolhe pela imagem.
-
-type Passo =
-  | { tipo: "INICIO" }
-  | { tipo: "ESCOLHA" }
-  /** `idEnvio` só existe na confirmação que veio de "tentar de novo". */
-  | { tipo: "CONFIRMAR"; candidatoId: string; idEnvio?: string }
-  | { tipo: "ENVIANDO"; candidatoId: string; idEnvio: string }
-  /** `votosSessao`: o contador que o servidor devolveu (logTotem.md). Sem ele (resposta antiga), a tela fica sem número. */
-  | { tipo: "SUCESSO"; votosSessao?: number }
-  | { tipo: "ERRO"; candidatoId: string; idEnvio: string };
-
-const INICIO: Passo = { tipo: "INICIO" };
-
-/** Quanto tempo cada passo espera antes de voltar ao início; null = não volta sozinho. */
-function limiteDoPasso(passo: Passo["tipo"]): number | null {
-  if (passo === "SUCESSO") return TEMPOS_TOTEM.retornoMs;
-  if (passo === "ERRO") return TEMPOS_TOTEM.erroMs;
-  if (passo === "ESCOLHA" || passo === "CONFIRMAR") return TEMPOS_TOTEM.inatividadeMs;
-  return null;
-}
 
 export type FluxoTotemProps = {
   eventoId: string;
@@ -65,13 +55,6 @@ export type FluxoTotemProps = {
   gravarLog?: boolean;
 };
 
-/** A volta automática por tempo, no log: em que passo a criança (ou o adulto) desistiu. */
-const DESISTENCIA_POR_TEMPO: Partial<Record<Passo["tipo"], TipoEventoLog>> = {
-  ESCOLHA: "DESISTIU_ESCOLHA",
-  CONFIRMAR: "DESISTIU_CONFIRMAR",
-  ERRO: "ERRO_DESCARTADO",
-};
-
 export function FluxoTotem({
   eventoId,
   candidatos,
@@ -83,39 +66,44 @@ export function FluxoTotem({
   registrar = votarInfantil,
   gravarLog = true,
 }: FluxoTotemProps) {
-  const [passo, setPasso] = useState<Passo>(INICIO);
+  const [passo, setPasso] = useState<PassoTotem>(PASSO_INICIO);
   const enviando = useRef(false);
   const raiz = useRef<HTMLDivElement>(null);
   const log = (tipo: TipoEventoLog, extra?: { codigo?: string }) => {
     if (gravarLog) registrarEventoTotem(tipo, extra);
   };
   const logRef = useRef(log);
+  const passoRef = useRef(passo);
   useEffect(() => {
     logRef.current = log;
+    passoRef.current = passo;
   });
 
-  // Retorno automático; na escolha e na confirmação, cada toque reinicia a contagem de inatividade.
+  // Passo seguinte por tempo (sucesso → próximo voto; escolha, confirmação e erro → início); na escolha e na confirmação, cada
+  // toque reinicia a contagem. A contagem recomeça quando o passo muda de tipo ou a escolha deixa de estar em espera.
+  const emEspera = passo.tipo === "ESCOLHA" && passo.emEspera === true;
   useEffect(() => {
-    const limite = limiteDoPasso(passo.tipo);
+    const atual = passoRef.current;
+    const limite = limiteDoPasso(atual);
     if (limite === null) return;
-    const desistencia = DESISTENCIA_POR_TEMPO[passo.tipo];
-    const voltarPorTempo = () => {
-      if (desistencia) logRef.current(desistencia);
-      setPasso(INICIO);
+    const seguirPorTempo = () => {
+      const { proximo, log: tipo } = depoisDoTempo(atual);
+      if (tipo) logRef.current(tipo);
+      setPasso(proximo);
     };
-    let timer = setTimeout(voltarPorTempo, limite);
+    let timer = setTimeout(seguirPorTempo, limite);
     const rearmar = () => {
       clearTimeout(timer);
-      timer = setTimeout(voltarPorTempo, limite);
+      timer = setTimeout(seguirPorTempo, limite);
     };
     const el = raiz.current;
-    const contaToque = passo.tipo === "ESCOLHA" || passo.tipo === "CONFIRMAR";
+    const contaToque = toqueReiniciaContagem(atual);
     if (contaToque) el?.addEventListener("pointerdown", rearmar);
     return () => {
       clearTimeout(timer);
       if (contaToque) el?.removeEventListener("pointerdown", rearmar);
     };
-  }, [passo.tipo]);
+  }, [passo.tipo, emEspera]);
 
   async function confirmar(candidatoId: string, idEnvioAnterior?: string) {
     if (enviando.current) return;
@@ -140,12 +128,18 @@ export function FluxoTotem({
   // Cada toque da criança tem o seu som (lib/sonsTotem.ts); as voltas automáticas por tempo são mudas.
   const escolher = (id: string) => {
     tocarSomTotem("escolher");
-    log("ESCOLHEU");
+    // Na escolha do próximo voto, este é o primeiro toque da criança: pede a tela cheia de novo, se ela tiver saído.
+    if (passo.tipo === "ESCOLHA" && passo.emEspera) aoComecar();
+    for (const tipo of logsDaEscolha(passo)) log(tipo);
     setPasso({ tipo: "CONFIRMAR", candidatoId: id });
   };
   const recomecar = () => {
     tocarSomTotem("voltar");
-    setPasso(INICIO);
+    setPasso(PASSO_INICIO);
+  };
+  const irParaProximo = () => {
+    tocarSomTotem("comecar");
+    setPasso(PASSO_PROXIMO);
   };
 
   const escolhido = "candidatoId" in passo ? candidatos.find((c) => c.id === passo.candidatoId) : undefined;
@@ -177,7 +171,7 @@ export function FluxoTotem({
           }}
         />
       )}
-      {passo.tipo === "SUCESSO" && <TelaSucesso votosSessao={passo.votosSessao} aoTocar={recomecar} />}
+      {passo.tipo === "SUCESSO" && <TelaSucesso votosSessao={passo.votosSessao} aoTocar={irParaProximo} />}
       {passo.tipo === "ERRO" && (
         <TelaErro
           aoTentar={
@@ -290,9 +284,11 @@ function GradeEscolha({ grupos, aoEscolher }: { grupos: GrupoTotem[]; aoEscolher
   const espaco = Math.round(Math.min(28, Math.max(8, lado * 0.03)));
   const alturaTitulo = Math.round(Math.min(44, Math.max(22, lado * 0.06)));
   // A flutuação sobe e desce os cartões FLUTUACAO_PX: a conta reserva essa folga em cima e embaixo, para nada encostar na borda.
+  // Dos lados, FOLGA_LATERAL_PX: os cartões ficam levemente girados e passavam da área, o que abria uma barra de rolagem
+  // horizontal (2ª sessão, 26/11/2026).
   const arranjo = medida
     ? arranjarGradeTotem({
-        largura: medida.largura,
+        largura: medida.largura - 2 * FOLGA_LATERAL_PX,
         altura: medida.altura - 2 * FLUTUACAO_PX,
         grupos: grupos.map((g) => g.itens.length),
         espaco,
@@ -306,7 +302,9 @@ function GradeEscolha({ grupos, aoEscolher }: { grupos: GrupoTotem[]; aoEscolher
   return (
     <div ref={area} className="relative min-h-0 flex-1">
       {arranjo && (
-        <div className="absolute inset-0 flex overflow-y-auto overscroll-none">
+        // Cabendo (o normal), a área não rola em direção nenhuma: a entrada em cascata e a flutuação não abrem barra de rolagem.
+        // Só com cartões no tamanho mínimo ela rola, e só na vertical.
+        <div className={cx("absolute inset-0 flex overscroll-none", arranjo.cabe ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden")}>
           <div className="m-auto flex flex-col items-center" style={{ gap: espaco }}>
             {grupos.map(({ categoria, itens }, g) => (
               <section key={categoria.id} aria-label={varias ? categoria.nome : undefined} className="flex flex-col items-center" style={{ gap: espaco }}>
@@ -338,6 +336,9 @@ function GradeEscolha({ grupos, aoEscolher }: { grupos: GrupoTotem[]; aoEscolher
 
 /** Quanto os cartões da escolha sobem e descem (px), a mesma flutuação dos cartazes da abertura. */
 const FLUTUACAO_PX = 6;
+
+/** Folga de cada lado da grade (px), para a inclinação de 1° dos cartões não passar da área. */
+const FOLGA_LATERAL_PX = 12;
 
 /**
  * Cartaz solto (sem moldura nem contorno), de cantos arredondados, com o título em letras de cartaz embaixo. Tudo em cqw do próprio
@@ -529,6 +530,15 @@ function TelaSucesso({ votosSessao, aoTocar }: { votosSessao?: number; aoTocar: 
         <p className="text-[clamp(1.2rem,4.5cqmin,2.5rem)] font-semibold text-tema-texto-suave">{TEXTOS_TOTEM.votoGuardado}</p>
       </div>
       {comContador && <ContadorSessao votos={votosSessao} />}
+      {/* Discreto: o toque pula a espera. aria-hidden porque o leitor de tela já tem o status e a tela segue sozinha. */}
+      <p
+        aria-hidden
+        className="marca-subir flex items-center gap-[0.4em] text-[clamp(0.95rem,2.8cqmin,1.5rem)] font-semibold text-tema-texto-suave opacity-80"
+        style={{ "--atraso": "900ms" } as CSSProperties}
+      >
+        <Hand aria-hidden className="size-[1.1em] shrink-0" />
+        {TEXTOS_TOTEM.toqueParaProximo}
+      </p>
       <div aria-hidden className="absolute inset-x-0 bottom-0 h-2 bg-tema-fundo/70">
         <div className="totem-barra h-full bg-tema-primaria" style={{ animationDuration: `${TEMPOS_TOTEM.retornoMs}ms` }} />
       </div>

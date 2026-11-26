@@ -20,14 +20,15 @@ export type EntradaGradeTotem = {
   alturaTitulo: number;
 };
 
-export type ArranjoGradeTotem = { colunas: number; larguraCartao: number };
+/** `cabe`: a grade inteira cabe na área com cartões de pelo menos o mínimo. Sem isso, a área rola na vertical. */
+export type ArranjoGradeTotem = { colunas: number; larguraCartao: number; cabe: boolean };
 
 export function arranjarGradeTotem({ largura, altura, grupos, espaco, alturaTitulo }: EntradaGradeTotem): ArranjoGradeTotem {
   const cheios = grupos.filter((n) => n > 0);
   const maior = Math.max(1, ...cheios);
   // Cada categoria: nome + espaço + linhas; entre categorias, o espaço. Somado: títulos + L linhas + (L - 1) espaços.
   const titulos = cheios.length > 1 ? cheios.length * (alturaTitulo + espaco) : 0;
-  let melhor: ArranjoGradeTotem = { colunas: 1, larguraCartao: 0 };
+  let melhor = { colunas: 1, larguraCartao: 0 };
   for (let colunas = 1; colunas <= maior; colunas++) {
     const linhas = Math.max(1, cheios.reduce((soma, n) => soma + Math.ceil(n / colunas), 0));
     const pelaLargura = (largura - (colunas - 1) * espaco) / colunas;
@@ -35,5 +36,9 @@ export function arranjarGradeTotem({ largura, altura, grupos, espaco, alturaTitu
     const larguraCartao = Math.floor(Math.min(pelaLargura, pelaAltura));
     if (larguraCartao > melhor.larguraCartao) melhor = { colunas, larguraCartao };
   }
-  return { colunas: melhor.colunas, larguraCartao: Math.max(melhor.larguraCartao, LARGURA_MINIMA_CARTAO_TOTEM) };
+  return {
+    colunas: melhor.colunas,
+    larguraCartao: Math.max(melhor.larguraCartao, LARGURA_MINIMA_CARTAO_TOTEM),
+    cabe: melhor.larguraCartao >= LARGURA_MINIMA_CARTAO_TOTEM,
+  };
 }

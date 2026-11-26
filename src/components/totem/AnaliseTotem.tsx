@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, LoaderCircle, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
@@ -50,26 +50,34 @@ function Secao({ titulo, children }: { titulo: string; children: React.ReactNode
   );
 }
 
-/** Votos a cada 10 min: colunas finas, uma série só; o valor aparece na dica e embaixo das colunas que têm voto. */
+/** A partir de quantas faixas os horários embaixo das colunas passam a aparecer só de tanto em tanto (senão se sobrepõem). */
+const HORARIOS_VISIVEIS = 8;
+
+/**
+ * Votos a cada 10 min: colunas, uma série só; o valor aparece em cima das colunas que têm voto e na dica. Coluna e horário ficam na
+ * mesma pilha (sempre alinhados); com muitas faixas, os horários aparecem de tanto em tanto e a área rola na horizontal.
+ */
 function VotosPorFaixa({ faixas }: { faixas: Analise["faixasAtual"] }) {
   if (faixas.length === 0) return <p className="text-sm text-tema-texto-suave">Sem votos ainda.</p>;
   const maximo = Math.max(...faixas.map((f) => f.votos), 1);
+  const cadaQuantas = Math.max(1, Math.ceil(faixas.length / HORARIOS_VISIVEIS));
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex h-36 items-end gap-0.5 border-b border-tema-borda" role="img" aria-label="Votos a cada 10 minutos">
-        {faixas.map((f) => (
-          <div key={f.inicioMs} className="flex h-full min-w-6 flex-1 flex-col items-center justify-end" title={`${hora(new Date(f.inicioMs).toISOString())}: ${f.votos} votos`}>
-            <span className="text-xs font-semibold tabular-nums text-tema-texto">{f.votos > 0 ? f.votos : ""}</span>
-            <span className="w-full max-w-10 rounded-t bg-tema-primaria" style={{ height: `${(f.votos / maximo) * 85}%` }} />
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-0.5">
-        {faixas.map((f) => (
-          <span key={f.inicioMs} className="min-w-6 flex-1 text-center text-[0.65rem] text-tema-texto-suave">
-            {hora(new Date(f.inicioMs).toISOString())}
-          </span>
-        ))}
+    <div className="-mx-1 overflow-x-auto px-1 pb-1">
+      <div className="flex min-w-full gap-1" role="img" aria-label="Votos a cada 10 minutos">
+        {faixas.map((f, i) => {
+          const horario = hora(new Date(f.inicioMs).toISOString());
+          return (
+            <div key={f.inicioMs} className="flex min-w-7 flex-1 flex-col items-center gap-1" title={`${horario}: ${f.votos} votos`}>
+              <div className="flex h-36 w-full flex-col items-center justify-end border-b border-tema-borda">
+                <span className="text-xs font-semibold tabular-nums text-tema-texto">{f.votos > 0 ? f.votos : ""}</span>
+                <span className="w-full max-w-10 rounded-t bg-tema-primaria" style={{ height: `${(f.votos / maximo) * 85}%` }} />
+              </div>
+              <span className="h-4 whitespace-nowrap text-[0.65rem] tabular-nums text-tema-texto-suave">
+                {i % cadaQuantas === 0 ? horario : ""}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -122,26 +130,36 @@ export function AnaliseTotem({ pin, aoVoltar }: { pin: string; aoVoltar: () => v
   const aberta = atual && atual.encerradaEm === null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-tema-superficie text-tema-texto">
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 p-4 sm:p-6">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold">Análise do totem</h1>
+    // 26/11/2026 (2ª sessão): passada a limpo. Cabeçalho fixo no alto (o "Voltar ao totem" sempre à mão), ícones fora do texto dos
+    // botões, horários do gráfico sem se sobrepor e um aviso enquanto a primeira leitura não chega.
+    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-tema-superficie text-tema-texto">
+      <header className="sticky top-0 z-10 border-b border-tema-borda bg-tema-superficie/95 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-3 sm:px-6">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold sm:text-2xl">Análise do totem</h1>
             <p className="text-sm text-tema-texto-suave">
               {analise?.nome ?? "…"} · atualizado às {analise ? hora(analise.geradoEm) : "—"} · não mostra em quem se votou
             </p>
           </div>
-          <div className="flex gap-2">
-            <Botao variante="contorno" onClick={() => void carregar()} carregando={carregando}>
-              <RefreshCw aria-hidden className="size-4" /> Atualizar
+          <div className="flex flex-wrap gap-2">
+            <Botao variante="contorno" onClick={() => void carregar()} carregando={carregando} icone={<RefreshCw aria-hidden className="size-4" />}>
+              Atualizar
             </Botao>
-            <Botao onClick={aoVoltar}>
-              <ArrowLeft aria-hidden className="size-4" /> Voltar ao totem
+            <Botao onClick={aoVoltar} icone={<ArrowLeft aria-hidden className="size-4" />}>
+              Voltar ao totem
             </Botao>
           </div>
-        </header>
+        </div>
+      </header>
 
+      <div className="mx-auto flex max-w-5xl flex-col gap-4 p-4 sm:p-6">
         {erro && <Alerta variante="erro">{erro}</Alerta>}
+
+        {!analise && !erro && (
+          <p role="status" className="flex items-center justify-center gap-2 py-16 text-tema-texto-suave">
+            <LoaderCircle aria-hidden className="size-5 animate-spin" /> Carregando a análise…
+          </p>
+        )}
 
         {analise && (
           <>
@@ -249,6 +267,7 @@ export function AnaliseTotem({ pin, aoVoltar }: { pin: string; aoVoltar: () => v
                 <Botao
                   variante="fantasma"
                   tamanho="pequeno"
+                  className="self-start"
                   onClick={() => {
                     if (!window.confirm("Apagar o log deste aparelho? O funil já enviado continua no servidor.")) return;
                     limparLogTotem();
@@ -261,15 +280,20 @@ export function AnaliseTotem({ pin, aoVoltar }: { pin: string; aoVoltar: () => v
 
               <Secao titulo="Encerramento automático">
                 <form onSubmit={(e) => void salvarConfiguracao(e)} className="flex flex-col gap-3">
-                  <Campo id="totem-inatividade" rotulo="Encerrar a sessão sozinho depois de quantos minutos sem voto?">
-                    <Input inputMode="numeric" value={minutos} onChange={(e) => setMinutos(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+                  <Campo
+                    id="totem-inatividade"
+                    rotulo="Encerrar a sessão sozinho depois de quantos minutos sem voto?"
+                    dica={`O voto que chegar depois desse tempo parado abre a sessão seguinte. Padrão: 60 min. De ${INATIVIDADE_SESSAO_MIN} a ${INATIVIDADE_SESSAO_MAX} min.`}
+                  >
+                    <Input
+                      inputMode="numeric"
+                      value={minutos}
+                      onChange={(e) => setMinutos(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      className="sm:max-w-40"
+                    />
                   </Campo>
-                  <p className="text-sm text-tema-texto-suave">
-                    O voto que chegar depois desse tempo parado abre a sessão seguinte. Padrão: 60 min. De {INATIVIDADE_SESSAO_MIN} a{" "}
-                    {INATIVIDADE_SESSAO_MAX} min.
-                  </p>
                   {aviso && <Alerta variante="informacao">{aviso}</Alerta>}
-                  <Botao type="submit" carregando={salvando}>
+                  <Botao type="submit" carregando={salvando} className="self-start">
                     Salvar
                   </Botao>
                 </form>

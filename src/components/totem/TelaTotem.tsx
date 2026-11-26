@@ -88,7 +88,8 @@ export function TelaTotem() {
         <Menu aria-hidden className="size-5" />
       </button>
 
-      <main id="conteudo" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      {/* Nunca rola de lado (2ª sessão, 26/11/2026: aparecia uma barra horizontal na escolha). */}
+      <main id="conteudo" className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
         {aparelho.carregando ? (
           <p role="status" className="m-auto font-cine text-[clamp(1.25rem,4cqmin,2.25rem)] font-bold text-tema-texto-suave">
             {TEXTOS_TOTEM.carregando}
