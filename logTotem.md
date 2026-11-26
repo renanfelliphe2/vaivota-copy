@@ -25,8 +25,8 @@ se a conversa acabar no meio, uma nova sessão lê este arquivo, vê a última f
 - [x] Fase 4: contador animado na tela de sucesso (fases 3+4 no commit seguinte a b6611c8)
 - [x] Fase 5: menu do PIN (Analisar votos, Encerrar sessão, Sair)
 - [x] Fase 6: tela de análise no aparelho (fases 5+6 commitadas; 597 testes de unidade verdes)
-- [ ] Fase 7: testes, migração no Supabase, envio — testes e build OK às 11:02 (597 unidade, 281 integração, lint, typecheck, `pnpm build`); FALTA: autorização do usuário para migrar e enviar. ORDEM OBRIGATÓRIA: migrar o Supabase ANTES de enviar (o voto novo grava em `sessao_totem`; sem a tabela, o voto do totem falha)
-- [ ] Fase 8: conferência com o backup e limpeza
+- [x] Fase 7: testes, migração no Supabase, envio — Supabase migrado (23 migrações) e `4eb0a7d` enviado aos dois remotos; no ar às 11:07 de 26/11
+- [x] Fase 8: conferência com o backup e limpeza — todas as tabelas iguais ao backup (96 votos, 133 auditorias, nada faltando ou alterado); rotas 200; backup JSON e tag apagados
 
 ---
 
