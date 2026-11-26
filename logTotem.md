@@ -19,13 +19,13 @@ se a conversa acabar no meio, uma nova sessão lê este arquivo, vê a última f
 - [x] Fase 0: backup e linha de base (26/11 10:36: tag `backup/antes-log-totem` em `74677ff`;
       `backups/antes-log-totem-2026-11-26T13-36-37-674Z.json` com evento 1, categoria 3, candidato 13, dispositivo 1,
       dispositivo_categoria 1, voto_infantil 96, voto 0, auditoria 133; 22 migrações em dia; 582 + 269 testes; rotas 200)
-- [ ] Fase 1: banco (migração aditiva `sessao_totem`)
-- [ ] Fase 2: servidor (sessões no voto, RPCs do menu, funil no relatório)
-- [ ] Fase 3: funil e log no aparelho
-- [ ] Fase 4: contador animado na tela de sucesso
-- [ ] Fase 5: menu do PIN (Analisar votos, Encerrar sessão, Sair)
-- [ ] Fase 6: tela de análise no aparelho
-- [ ] Fase 7: testes, migração no Supabase, envio
+- [x] Fase 1: banco (migração aditiva `sessao_totem`) — b6611c8; aplicada só nos testes (banco local de dev desligado)
+- [x] Fase 2: servidor (sessões no voto, RPCs do menu, funil no relatório) — b6611c8; 592 unidade + 281 integração verdes
+- [x] Fase 3: funil e log no aparelho
+- [x] Fase 4: contador animado na tela de sucesso (fases 3+4 no commit seguinte a b6611c8)
+- [x] Fase 5: menu do PIN (Analisar votos, Encerrar sessão, Sair)
+- [x] Fase 6: tela de análise no aparelho (fases 5+6 commitadas; 597 testes de unidade verdes)
+- [ ] Fase 7: testes, migração no Supabase, envio — testes e build OK às 11:02 (597 unidade, 281 integração, lint, typecheck, `pnpm build`); FALTA: autorização do usuário para migrar e enviar. ORDEM OBRIGATÓRIA: migrar o Supabase ANTES de enviar (o voto novo grava em `sessao_totem`; sem a tabela, o voto do totem falha)
 - [ ] Fase 8: conferência com o backup e limpeza
 
 ---
