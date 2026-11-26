@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, WifiOff } from "lucide-react";
+import { Menu, WifiOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -9,15 +9,18 @@ import { definirQuiosqueAtivo } from "@/store/acoesTotem";
 import { useEventoAtivo } from "@/store/seletores/evento";
 import { useVisaoTotem } from "@/store/seletores/totem";
 import { recarregarEstado } from "@/store/servidor";
+import { AnaliseTotem } from "./AnaliseTotem";
 import { DialogoPinTotem } from "./DialogoPinTotem";
 import { FluxoTotem } from "./FluxoTotem";
+import { MenuTotem } from "./MenuTotem";
 import { AvisoTotem, LogoTotem, MolduraTotem } from "./MolduraTotem";
 import { TotemBloqueado } from "./TotemBloqueado";
 import { useDispositivoDoTotem } from "./useDispositivoDoTotem";
 import { useSinalTotem } from "./useSinalTotem";
 
 // Totem (Base/VotoInfantil.md §6): modo quiosque. Sem login: a identidade é o aparelho pareado (token no cookie do tablet).
-// Tela cheia no primeiro toque, sem seleção de texto, sem menu de contexto; sair só com o PIN.
+// Tela cheia no primeiro toque, sem seleção de texto, sem menu de contexto; o menu (Analisar votos, Encerrar sessão, Sair) só
+// com o PIN (logTotem.md).
 // Fora de VOTANDO mostra uma tela neutra; o fluxo desmonta e volta ao início quando a situação muda.
 // O estado do aparelho (ativo, pausado, revogado) vem do servidor a cada poucos segundos e a cada voto recusado.
 // 26/11/2026: refeito no estilo cinema do Festival, claro (MolduraTotem), e tudo cabe na tela sem rolagem.
@@ -29,6 +32,9 @@ export function TelaTotem() {
   const router = useRouter();
   const raiz = useRef<HTMLDivElement>(null);
   const [pinAberto, setPinAberto] = useState(false);
+  // Menu do PIN (logTotem.md): o PIN conferido abre o menu; a análise usa o mesmo PIN enquanto está aberta.
+  const [pinDoMenu, setPinDoMenu] = useState<string | null>(null);
+  const [pinDaAnalise, setPinDaAnalise] = useState<string | null>(null);
 
   // Relatório para a página Totens do admin (ao abrir, a cada hora e quando o admin pede). Só com o aparelho pareado e respondendo.
   useSinalTotem({
@@ -75,11 +81,11 @@ export function TelaTotem() {
       <button
         type="button"
         onClick={() => (dispositivo ? setPinAberto(true) : sair())}
-        aria-label={TEXTOS_TOTEM.sair}
-        title={TEXTOS_TOTEM.sair}
+        aria-label={TEXTOS_TOTEM.menu}
+        title={TEXTOS_TOTEM.menu}
         className="absolute right-2 top-2 z-10 inline-flex size-11 items-center justify-center rounded-full text-tema-texto-suave opacity-40 hover:bg-tema-fundo hover:opacity-100 focus-visible:opacity-100"
       >
-        <LogOut aria-hidden className="size-5" />
+        <Menu aria-hidden className="size-5" />
       </button>
 
       <main id="conteudo" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -125,7 +131,24 @@ export function TelaTotem() {
         </p>
       )}
 
-      <DialogoPinTotem aberto={pinAberto} pareado={dispositivo !== null} aoFechar={() => setPinAberto(false)} aoSair={sair} />
+      <DialogoPinTotem
+        aberto={pinAberto}
+        pareado={dispositivo !== null}
+        aoFechar={() => setPinAberto(false)}
+        aoConfirmar={(pin) => {
+          setPinAberto(false);
+          if (dispositivo === null) return sair();
+          setPinDoMenu(pin);
+        }}
+      />
+      <MenuTotem
+        pin={pinDoMenu}
+        aoFechar={() => setPinDoMenu(null)}
+        aoAnalisar={() => setPinDaAnalise(pinDoMenu)}
+        aoSair={sair}
+      />
+      {/* Dentro da moldura: em tela cheia, só o que está dentro dela aparece. */}
+      {pinDaAnalise !== null && <AnaliseTotem pin={pinDaAnalise} aoVoltar={() => setPinDaAnalise(null)} />}
     </MolduraTotem>
   );
 }

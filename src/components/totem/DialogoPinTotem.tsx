@@ -7,19 +7,20 @@ import { Dialogo } from "@/components/ui/Dialogo";
 import { TEXTOS_TOTEM } from "@/lib/textosTotem";
 import { conferirPinTotem } from "@/servicos/totem";
 
-// Totem (§6): sair do modo quiosque só com o PIN do totem, conferido no servidor (cinco erros bloqueiam por 60 s).
-// Sem aparelho pareado, sai direto.
+// Totem (§6): o menu do totem (Analisar votos, Encerrar sessão, Sair; logTotem.md) só abre com o PIN do totem, conferido no
+// servidor (cinco erros bloqueiam por 60 s). O PIN conferido segue para o menu, que o usa nas chamadas dele.
+// Sem aparelho pareado não há PIN: confirma direto.
 
 export function DialogoPinTotem({
   aberto,
   pareado,
   aoFechar,
-  aoSair,
+  aoConfirmar,
 }: {
   aberto: boolean;
   pareado: boolean;
   aoFechar: () => void;
-  aoSair: () => void;
+  aoConfirmar: (pin: string) => void;
 }) {
   const [pin, setPin] = useState("");
   const [erro, setErro] = useState<string | null>(null);
@@ -34,7 +35,7 @@ export function DialogoPinTotem({
   async function enviar(e: FormEvent) {
     e.preventDefault();
     if (conferindo) return;
-    if (!pareado) return aoSair();
+    if (!pareado) return aoConfirmar("");
     setConferindo(true);
     const r = await conferirPinTotem({ pin });
     setConferindo(false);
@@ -42,9 +43,10 @@ export function DialogoPinTotem({
       setPin("");
       return setErro(r.erro.mensagem);
     }
+    const conferido = pin;
     setPin("");
     setErro(null);
-    aoSair();
+    aoConfirmar(conferido);
   }
 
   return (
