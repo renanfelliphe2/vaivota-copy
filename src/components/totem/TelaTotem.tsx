@@ -4,7 +4,6 @@ import { LogOut, WifiOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { LogoEvento } from "@/components/evento/LogoEvento";
 import { TEXTOS_TOTEM } from "@/lib/textosTotem";
 import { definirQuiosqueAtivo } from "@/store/acoesTotem";
 import { useEventoAtivo } from "@/store/seletores/evento";
@@ -12,6 +11,7 @@ import { useVisaoTotem } from "@/store/seletores/totem";
 import { recarregarEstado } from "@/store/servidor";
 import { DialogoPinTotem } from "./DialogoPinTotem";
 import { FluxoTotem } from "./FluxoTotem";
+import { AvisoTotem, LogoTotem, MolduraTotem } from "./MolduraTotem";
 import { TotemBloqueado } from "./TotemBloqueado";
 import { useDispositivoDoTotem } from "./useDispositivoDoTotem";
 import { useSinalTotem } from "./useSinalTotem";
@@ -20,6 +20,7 @@ import { useSinalTotem } from "./useSinalTotem";
 // Tela cheia no primeiro toque, sem seleção de texto, sem menu de contexto; sair só com o PIN.
 // Fora de VOTANDO mostra uma tela neutra; o fluxo desmonta e volta ao início quando a situação muda.
 // O estado do aparelho (ativo, pausado, revogado) vem do servidor a cada poucos segundos e a cada voto recusado.
+// 26/11/2026: refeito no estilo cinema do Festival, claro (MolduraTotem), e tudo cabe na tela sem rolagem.
 
 export function TelaTotem() {
   const ativoDoEvento = useEventoAtivo();
@@ -45,7 +46,7 @@ export function TelaTotem() {
 
   if (!visao) return null;
   const { ativo, dispositivo, candidatos, grupos, situacao } = visao;
-  const { tema, evento, configApresentacao } = ativo;
+  const { tema, evento } = ativo;
   const nome = tema.nomeExibicao ?? evento.nome;
 
   function pedirTelaCheia() {
@@ -67,76 +68,64 @@ export function TelaTotem() {
     void recarregarEstado();
   }
 
-  const logo = <LogoEvento nome={nome} logoUrl={tema.logoUrl} className="h-12 sm:h-16" prioridade />;
+  const logo = <LogoTotem nome={nome} logoUrl={tema.logoUrl} prioridade />;
 
   return (
-    <div
-      ref={raiz}
-      onContextMenu={(e) => e.preventDefault()}
-      className="fixed inset-0 z-40 flex touch-manipulation select-none flex-col overflow-y-auto overscroll-none bg-tema-fundo text-tema-texto font-tema"
-    >
+    <MolduraTotem ref={raiz} onContextMenu={(e) => e.preventDefault()} className="fixed inset-0 z-40">
       <button
         type="button"
         onClick={() => (dispositivo ? setPinAberto(true) : sair())}
         aria-label={TEXTOS_TOTEM.sair}
         title={TEXTOS_TOTEM.sair}
-        className="absolute right-3 top-3 z-10 inline-flex size-11 items-center justify-center rounded-full text-tema-texto-suave opacity-40 hover:bg-tema-superficie hover:opacity-100 focus-visible:opacity-100"
+        className="absolute right-2 top-2 z-10 inline-flex size-11 items-center justify-center rounded-full text-tema-texto-suave opacity-40 hover:bg-tema-fundo hover:opacity-100 focus-visible:opacity-100"
       >
         <LogOut aria-hidden className="size-5" />
       </button>
 
-      <main id="conteudo" className="flex flex-1 flex-col">
+      <main id="conteudo" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         {aparelho.carregando ? (
-          <p role="status" className="m-auto text-2xl text-tema-texto-suave">
+          <p role="status" className="m-auto font-cine text-[clamp(1.25rem,4cqmin,2.25rem)] font-bold text-tema-texto-suave">
             {TEXTOS_TOTEM.carregando}
           </p>
         ) : aparelho.semConexao ? (
-          <>
-            <div className="flex justify-center px-6 pt-8">{logo}</div>
-            <div role="alert" className="palco-entrada flex flex-1 flex-col items-center justify-center gap-6 px-8 text-center">
-              <span className="flex size-28 items-center justify-center rounded-full bg-tema-superficie text-tema-primaria-texto">
-                <WifiOff aria-hidden className="size-14" strokeWidth={1.75} />
-              </span>
-              <h1 className="max-w-3xl text-4xl font-bold leading-tight sm:text-5xl">{TEXTOS_TOTEM.semConexaoTitulo}</h1>
-              <p className="max-w-2xl text-xl text-tema-texto-suave sm:text-2xl">{TEXTOS_TOTEM.semConexaoCorpo}</p>
-            </div>
-          </>
+          <AvisoTotem
+            logo={logo}
+            papel="alert"
+            icone={<WifiOff aria-hidden strokeWidth={1.75} />}
+            titulo={TEXTOS_TOTEM.semConexaoTitulo}
+            corpo={TEXTOS_TOTEM.semConexaoCorpo}
+          />
         ) : situacao === "VOTANDO" ? (
           <FluxoTotem
             eventoId={evento.id}
             candidatos={candidatos}
             grupos={grupos}
-            rotuloCategoria={configApresentacao.rotuloCategoriaInfantil}
             logo={logo}
-            logoPequeno={<LogoEvento nome={nome} logoUrl={tema.logoUrl} className="h-9 sm:h-10" />}
+            logoPequeno={<LogoTotem nome={nome} logoUrl={tema.logoUrl} pequeno />}
             aoComecar={pedirTelaCheia}
             aoFalhar={atualizar}
           />
         ) : (
-          <>
-            <div className="flex justify-center px-6 pt-8">{logo}</div>
-            <TotemBloqueado situacao={situacao} rotuloCandidatos={tema.rotuloCandidatos} />
+          <TotemBloqueado situacao={situacao} rotuloCandidatos={tema.rotuloCandidatos} logo={logo}>
             {situacao === "NAO_PAREADO" && (
-              <div className="flex justify-center px-6 pb-12">
-                <Link
-                  href={`/e/${ativo.slug}/totem/parear`}
-                  className="inline-flex min-h-14 items-center rounded-full border-4 border-tema-texto-suave px-8 text-xl font-bold"
-                >
-                  {TEXTOS_TOTEM.parearAparelho}
-                </Link>
-              </div>
+              <Link
+                href={`/e/${ativo.slug}/totem/parear`}
+                className="mt-[2cqh] inline-flex min-h-14 items-center rounded-full border-4 border-tema-texto-suave bg-tema-fundo px-8 text-[clamp(1.1rem,3cqmin,1.5rem)] font-bold"
+              >
+                {TEXTOS_TOTEM.parearAparelho}
+              </Link>
             )}
-          </>
+          </TotemBloqueado>
         )}
       </main>
 
       {dispositivo && (
-        <p aria-hidden className="pointer-events-none absolute bottom-2 left-3 text-xs text-tema-texto-suave opacity-60">
+        <p aria-hidden className="pointer-events-none absolute bottom-1 left-3 text-xs text-tema-texto-suave opacity-60">
           {dispositivo.nome}
         </p>
       )}
 
       <DialogoPinTotem aberto={pinAberto} pareado={dispositivo !== null} aoFechar={() => setPinAberto(false)} aoSair={sair} />
-    </div>
+    </MolduraTotem>
   );
 }

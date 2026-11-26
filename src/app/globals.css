@@ -877,6 +877,28 @@ dialog::backdrop {
   color: transparent;
 }
 
+/*
+ * Totem no estilo cinema, claro (26/11/2026): a matinê. O papel do cinema (5% da primária no fundo) com a luz do projetor no
+ * alto e as cores do tema brilhando baixinho nos cantos; nada escuro, é para crianças. É um contêiner de tamanho ("totem"):
+ * as medidas de dentro usam cqh/cqw/cqmin, então tudo escala junto e cabe sem rolagem tanto no tablet quanto no preview do
+ * admin (que é uma moldura menor, não a janela).
+ */
+.totem-palco {
+  container: totem / size;
+  background:
+    radial-gradient(60% 50% at 50% -14%, color-mix(in srgb, var(--cine-luz) 95%, transparent), transparent 72%),
+    radial-gradient(45% 55% at -4% 104%, color-mix(in srgb, var(--tema-primaria) 16%, transparent), transparent 70%),
+    radial-gradient(40% 50% at 104% 100%, color-mix(in srgb, var(--tema-secundaria) 20%, transparent), transparent 70%),
+    var(--cine-papel);
+}
+
+/* Telas do totem que trocam de arranjo quando o aparelho está deitado (a medida é do contêiner, não da janela). */
+@custom-variant totem-deitado {
+  @container totem (orientation: landscape) {
+    @slot;
+  }
+}
+
 /* Totem (rev. 4, A7): feedback imediato para crianças (desligado por prefers-reduced-motion acima). */
 @keyframes totem-pulso {
   0%,
@@ -912,7 +934,7 @@ dialog::backdrop {
   }
   100% {
     opacity: 0;
-    transform: translateY(-46vh) scale(1) rotate(320deg);
+    transform: translateY(-62cqh) scale(1) rotate(320deg);
   }
 }
 

@@ -2,8 +2,8 @@
 
 import { Eye, X } from "lucide-react";
 import { useEffect, useMemo } from "react";
-import { LogoEvento } from "@/components/evento/LogoEvento";
 import { FluxoTotem } from "@/components/totem/FluxoTotem";
+import { LogoTotem, MolduraTotem } from "@/components/totem/MolduraTotem";
 import { TotemBloqueado } from "@/components/totem/TotemBloqueado";
 import { Botao } from "@/components/ui/Botao";
 import { situacaoTotem, type DispositivoListado } from "@/dominio/totem";
@@ -13,7 +13,7 @@ import type { votarInfantil } from "@/servicos/totem";
 import type { EventoAtivo } from "@/store/seletores/evento";
 import { montarVisaoTotem } from "@/store/seletores/totem";
 
-/** O "voto" do preview: nenhum servidor é chamado e nada é contado. A pausa imita o envio, para a tela "Guardando seu voto…" aparecer. */
+/** O "voto" do preview: nenhum servidor é chamado e nada é contado. A pausa imita o envio, para a tela "Guardando…" aparecer. */
 const registrarNoPreview: typeof votarInfantil = async () => {
   await new Promise((r) => setTimeout(r, 700));
   return sucesso({ resultado: "REGISTRADO" as const });
@@ -31,7 +31,7 @@ export function PreviewTotem({ ativo, totem, aoFechar }: { ativo: EventoAtivo; t
   );
   // O que o aparelho de verdade mostra (com o estado real do totem: pausado, revogado...).
   const real = situacaoTotem(ativo.evento, { eventoId: ativo.evento.id, estado: totem.estado }, visao.candidatos.length);
-  const { tema, evento, configApresentacao } = ativo;
+  const { tema, evento } = ativo;
   const nome = tema.nomeExibicao ?? evento.nome;
   const textoReal = real === "VOTANDO" ? "a votação aberta" : `"${textoBloqueioTotem(real, tema.rotuloCandidatos).titulo}"`;
 
@@ -48,7 +48,7 @@ export function PreviewTotem({ ativo, totem, aoFechar }: { ativo: EventoAtivo; t
     };
   }, [aoFechar]);
 
-  const logo = <LogoEvento nome={nome} logoUrl={tema.logoUrl} className="h-12 sm:h-16" />;
+  const logo = <LogoTotem nome={nome} logoUrl={tema.logoUrl} />;
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="titulo-preview-totem" className="fixed inset-0 z-50 flex flex-col bg-black/80">
@@ -67,32 +67,28 @@ export function PreviewTotem({ ativo, totem, aoFechar }: { ativo: EventoAtivo; t
         </Botao>
       </div>
 
-      {/* A moldura imita o tablet deitado; o conteúdo é o mesmo do quiosque. */}
+      {/* A moldura imita o tablet deitado; o conteúdo é o mesmo do quiosque (MolduraTotem mede tudo pelo próprio tamanho). */}
       <div className="flex min-h-0 flex-1 items-center justify-center p-3 sm:p-6">
         <div className="relative flex aspect-[4/3] max-h-full w-full max-w-5xl overflow-hidden rounded-[2rem] border-[10px] border-neutral-900 shadow-2xl">
-          <div className="flex flex-1 touch-manipulation select-none flex-col overflow-y-auto overscroll-none bg-tema-fundo text-tema-texto font-tema">
+          <MolduraTotem className="relative flex-1">
             {visao.candidatos.length > 0 ? (
               <FluxoTotem
                 eventoId={evento.id}
                 candidatos={visao.candidatos}
                 grupos={visao.grupos}
-                rotuloCategoria={configApresentacao.rotuloCategoriaInfantil}
                 logo={logo}
-                logoPequeno={<LogoEvento nome={nome} logoUrl={tema.logoUrl} className="h-9 sm:h-10" />}
+                logoPequeno={<LogoTotem nome={nome} logoUrl={tema.logoUrl} pequeno />}
                 aoComecar={() => {}}
                 aoFalhar={() => {}}
                 registrar={registrarNoPreview}
               />
             ) : (
-              <>
-                <div className="flex justify-center px-6 pt-8">{logo}</div>
-                <TotemBloqueado situacao="SEM_CANDIDATOS" rotuloCandidatos={tema.rotuloCandidatos} />
-              </>
+              <TotemBloqueado situacao="SEM_CANDIDATOS" rotuloCandidatos={tema.rotuloCandidatos} logo={logo} />
             )}
-            <p aria-hidden className="pointer-events-none absolute bottom-2 left-3 text-xs text-tema-texto-suave opacity-60">
+            <p aria-hidden className="pointer-events-none absolute bottom-1 left-3 text-xs text-tema-texto-suave opacity-60">
               {totem.nome} · preview
             </p>
-          </div>
+          </MolduraTotem>
         </div>
       </div>
     </div>

@@ -10,6 +10,11 @@ export type ImagemCandidatoProps = {
   className?: string;
   /** Repassado ao next/image. */
   sizes?: string;
+  /**
+   * "cobrir" (padrão) preenche o quadro e corta as sobras. "conter" (totem, 26/11/2026) mostra a imagem inteira, sem corte, e a
+   * própria imagem desfocada preenche o que sobra do quadro: a criança reconhece o filme pelo cartaz completo.
+   */
+  ajuste?: "cobrir" | "conter";
 };
 
 const PROPORCOES = { "4/3": "aspect-[4/3]", "16/9": "aspect-video", "1/1": "aspect-square", "5/7": "aspect-[5/7]" };
@@ -64,7 +69,8 @@ function Cartaz({ n, titulo }: { n: number; titulo: string }) {
  * Storage está liberado em next.config.ts), `placeholder:<n>` (cartaz do tema, só nos dados de exemplo do protótipo),
  * `blob:` (prévia local) ou null (bloco de cor + inicial; só em rascunho).
  */
-export function ImagemCandidato({ titulo, imagemUrl, proporcao = "4/3", className, sizes }: ImagemCandidatoProps) {
+export function ImagemCandidato({ titulo, imagemUrl, proporcao = "4/3", className, sizes, ajuste = "cobrir" }: ImagemCandidatoProps) {
+  const conter = ajuste === "conter";
   const moldura = cx("relative overflow-hidden bg-tema-superficie", PROPORCOES[proporcao], className);
 
   if (imagemUrl?.startsWith("placeholder:")) {
@@ -79,8 +85,12 @@ export function ImagemCandidato({ titulo, imagemUrl, proporcao = "4/3", classNam
   if (imagemUrl?.startsWith("blob:")) {
     return (
       <div className={moldura}>
+        {conter && (
+          // eslint-disable-next-line @next/next/no-img-element -- blob: não passa pelo next/image
+          <img src={imagemUrl} alt="" aria-hidden className="absolute inset-0 size-full scale-110 object-cover opacity-60 blur-xl" />
+        )}
         {/* eslint-disable-next-line @next/next/no-img-element -- blob: não passa pelo next/image */}
-        <img src={imagemUrl} alt={titulo} className="size-full object-cover" />
+        <img src={imagemUrl} alt={titulo} className={cx("relative size-full", conter ? "object-contain" : "object-cover")} />
       </div>
     );
   }
@@ -88,7 +98,10 @@ export function ImagemCandidato({ titulo, imagemUrl, proporcao = "4/3", classNam
   if (imagemUrl?.startsWith("/") || imagemUrl?.startsWith("https://")) {
     return (
       <div className={moldura}>
-        <Image src={imagemUrl} alt={titulo} fill sizes={sizes ?? "(min-width: 768px) 33vw, 50vw"} className="object-cover" />
+        {conter && (
+          <Image src={imagemUrl} alt="" aria-hidden fill sizes={sizes ?? "(min-width: 768px) 33vw, 50vw"} className="scale-110 object-cover opacity-60 blur-xl" />
+        )}
+        <Image src={imagemUrl} alt={titulo} fill sizes={sizes ?? "(min-width: 768px) 33vw, 50vw"} className={conter ? "object-contain" : "object-cover"} />
       </div>
     );
   }

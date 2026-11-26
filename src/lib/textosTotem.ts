@@ -4,18 +4,18 @@ import type { TextoEstado } from "@/dominio/tipos";
 // Totem (rev. 4, A7; Base/VotoInfantil.md §6): textos curtos para crianças, neutros (nada concorda com o
 // rótulo do tema). Provisórios: dependem da revisão única de textos (E30) e da pendência §12.
 
+// 26/11/2026: ainda mais curtos nas telas da criança (pedido do usuário: crianças são visuais; poucas palavras, diretas).
 export const TEXTOS_TOTEM = {
   toqueParaVotar: "Toque para votar",
-  convite: "Escolha das Crianças",
   pergunta: "De qual você mais gostou?",
-  confirmar: "Você escolheu",
+  confirmar: "É esse?",
   sim: "Sim!",
-  nao: "Não, voltar",
-  enviando: "Guardando seu voto…",
+  nao: "Voltar",
+  enviando: "Guardando…",
   obrigado: "Obrigado!",
-  votoGuardado: "Seu voto foi guardado.",
-  erroTitulo: "Ops! Não deu certo.",
-  erroCorpo: "Chame um adulto para ajudar.",
+  votoGuardado: "Voto guardado!",
+  erroTitulo: "Ops!",
+  erroCorpo: "Chame um adulto.",
   tentarDeNovo: "Tentar de novo",
   voltarInicio: "Começar de novo",
   sair: "Sair do modo totem",
