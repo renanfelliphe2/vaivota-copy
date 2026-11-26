@@ -906,7 +906,7 @@ dialog::backdrop {
     transform: scale(1);
   }
   50% {
-    transform: scale(1.06);
+    transform: scale(1.035);
   }
 }
 
@@ -947,8 +947,117 @@ dialog::backdrop {
   }
 }
 
+/* 26/11/2026: mais lento e mais discreto (a 1,8 s e 6% chamava atenção demais). */
 .totem-pulso {
-  animation: totem-pulso 1.8s ease-in-out infinite;
+  animation: totem-pulso 3.4s ease-in-out infinite;
+}
+
+/*
+ * 26/11/2026: o totem fica parado, então a tela nunca fica estática. Tudo lento e suave, só transform/opacity/background-position
+ * (leve para o tablet); com prefers-reduced-motion, a regra geral para tudo.
+ */
+
+/* Rosáceas da moldura girando bem devagar. */
+@keyframes totem-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.totem-girar {
+  animation: totem-girar var(--dur, 140s) linear infinite var(--sentido, normal);
+}
+
+/* Os furos das bordas de película correm, como o filme passando no projetor (22px = um furo, ver .cine-furos-h). */
+@keyframes totem-furos-correm {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: 22px;
+  }
+}
+
+.totem-furos-correm {
+  animation: totem-furos-correm 1.8s linear infinite;
+}
+
+.totem-furos-correm-inverso {
+  animation: totem-furos-correm 1.8s linear infinite reverse;
+}
+
+/* Manchas de luz colorida passeando pelo fundo. */
+@keyframes totem-bolha {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(var(--dx, 4cqw), var(--dy, -4cqh)) scale(1.18);
+  }
+}
+
+.totem-bolha {
+  animation: totem-bolha var(--dur, 18s) ease-in-out infinite;
+  animation-delay: var(--atraso, 0ms);
+}
+
+/* A mão do "Toque para votar" acena de tempos em tempos. */
+@keyframes totem-mao {
+  0%,
+  64%,
+  100% {
+    transform: rotate(0);
+  }
+  72% {
+    transform: rotate(-16deg);
+  }
+  80% {
+    transform: rotate(12deg);
+  }
+  88% {
+    transform: rotate(-6deg);
+  }
+}
+
+.totem-mao {
+  transform-origin: 65% 90%;
+  animation: totem-mao 3.4s ease-in-out infinite;
+}
+
+/* Confirmação: o cartaz escolhido chega girando e quica no lugar. */
+@keyframes totem-cartaz-entra {
+  from {
+    opacity: 0;
+    transform: translateY(8cqh) scale(0.6) rotate(-12deg);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-1cqh) scale(1.04) rotate(3deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.totem-cartaz-entra {
+  animation: totem-cartaz-entra 800ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+/* Confirmação: o "É esse?" balança, como quem pergunta. */
+@keyframes totem-balanco {
+  0%,
+  100% {
+    transform: rotate(-2.5deg);
+  }
+  50% {
+    transform: rotate(2.5deg);
+  }
+}
+
+.totem-balanco {
+  transform-origin: 50% 80%;
+  animation: totem-balanco 2.8s ease-in-out infinite;
 }
 
 .totem-pop {

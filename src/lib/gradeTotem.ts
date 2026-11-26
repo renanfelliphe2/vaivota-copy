@@ -2,8 +2,8 @@
 // tamanho. Para cada número de colunas possível calcula a largura que o cartão teria (limitada pela largura e pela altura
 // disponíveis) e fica com a maior. Com mais de uma categoria, cada uma começa numa linha nova e tem o nome em cima.
 
-/** Altura do cartão do totem dividida pela largura (moldura, cartaz 5:7 e duas linhas de título; ver CartaoTotem). */
-export const RAZAO_CARTAO_TOTEM = 1.64;
+/** Altura do cartão do totem dividida pela largura (cartaz 5:7 e duas linhas de título; ver CartaoTotem), com folga. */
+export const RAZAO_CARTAO_TOTEM = 1.7;
 
 /** Abaixo disso o cartão fica pequeno demais para o dedo e o olho: a área passa a rolar. */
 export const LARGURA_MINIMA_CARTAO_TOTEM = 96;

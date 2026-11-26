@@ -71,7 +71,8 @@ function Cartaz({ n, titulo }: { n: number; titulo: string }) {
  */
 export function ImagemCandidato({ titulo, imagemUrl, proporcao = "4/3", className, sizes, ajuste = "cobrir" }: ImagemCandidatoProps) {
   const conter = ajuste === "conter";
-  const moldura = cx("relative overflow-hidden bg-tema-superficie", PROPORCOES[proporcao], className);
+  // No "conter", sem o fundo cinza: a sobra do quadro é a imagem desfocada, que passa das bordas (sem halo nos cantos).
+  const moldura = cx("relative overflow-hidden", conter ? "isolate" : "bg-tema-superficie", PROPORCOES[proporcao], className);
 
   if (imagemUrl?.startsWith("placeholder:")) {
     const n = Number(imagemUrl.slice("placeholder:".length)) || 1;
@@ -87,7 +88,7 @@ export function ImagemCandidato({ titulo, imagemUrl, proporcao = "4/3", classNam
       <div className={moldura}>
         {conter && (
           // eslint-disable-next-line @next/next/no-img-element -- blob: não passa pelo next/image
-          <img src={imagemUrl} alt="" aria-hidden className="absolute inset-0 size-full scale-110 object-cover opacity-60 blur-xl" />
+          <img src={imagemUrl} alt="" aria-hidden className="absolute -inset-[15%] size-[130%] max-w-none object-cover blur-xl" />
         )}
         {/* eslint-disable-next-line @next/next/no-img-element -- blob: não passa pelo next/image */}
         <img src={imagemUrl} alt={titulo} className={cx("relative size-full", conter ? "object-contain" : "object-cover")} />
@@ -99,7 +100,9 @@ export function ImagemCandidato({ titulo, imagemUrl, proporcao = "4/3", classNam
     return (
       <div className={moldura}>
         {conter && (
-          <Image src={imagemUrl} alt="" aria-hidden fill sizes={sizes ?? "(min-width: 768px) 33vw, 50vw"} className="scale-110 object-cover opacity-60 blur-xl" />
+          <span aria-hidden className="absolute -inset-[15%]">
+            <Image src={imagemUrl} alt="" fill sizes={sizes ?? "(min-width: 768px) 33vw, 50vw"} className="object-cover blur-xl" />
+          </span>
         )}
         <Image src={imagemUrl} alt={titulo} fill sizes={sizes ?? "(min-width: 768px) 33vw, 50vw"} className={conter ? "object-contain" : "object-cover"} />
       </div>

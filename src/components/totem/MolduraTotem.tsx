@@ -1,4 +1,4 @@
-import type { MouseEventHandler, ReactNode, Ref } from "react";
+import type { CSSProperties, MouseEventHandler, ReactNode, Ref } from "react";
 import { LogoEvento } from "@/components/evento/LogoEvento";
 import { Rosacea } from "@/components/landing/cinema/DecoracoesCinema";
 import { cx } from "@/lib/classes";
@@ -28,15 +28,47 @@ export function MolduraTotem({
         className,
       )}
     >
-      <div aria-hidden className="cine-grao pointer-events-none absolute inset-0 -z-10" />
-      <Rosacea className="absolute -left-[14cqmin] -top-[12cqmin] -z-10 size-[50cqmin] text-tema-primaria opacity-10" />
-      <Rosacea className="absolute -bottom-[16cqmin] -right-[12cqmin] -z-10 size-[56cqmin] text-tema-secundaria opacity-15" />
-      <span aria-hidden className="cine-furos-h block h-[1.125rem] shrink-0 bg-tema-primaria" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        {BOLHAS.map((b, i) => (
+          <span
+            key={i}
+            className="totem-bolha absolute rounded-full"
+            style={
+              {
+                left: `${b.x}%`,
+                top: `${b.y}%`,
+                width: `${b.tam}cqmin`,
+                height: `${b.tam}cqmin`,
+                background: `radial-gradient(circle, color-mix(in srgb, var(--tema-${b.cor}) 22%, transparent), transparent 68%)`,
+                "--dx": b.dx,
+                "--dy": b.dy,
+                "--dur": `${b.dur}s`,
+                "--atraso": `${b.atraso}s`,
+              } as CSSProperties
+            }
+          />
+        ))}
+        <div className="cine-grao absolute inset-0" />
+        <Rosacea className="totem-girar absolute -left-[14cqmin] -top-[12cqmin] size-[50cqmin] text-tema-primaria opacity-10" />
+        <Rosacea
+          className="totem-girar absolute -bottom-[16cqmin] -right-[12cqmin] size-[56cqmin] text-tema-secundaria opacity-15 [--dur:180s] [--sentido:reverse]"
+        />
+      </div>
+      <span aria-hidden className="cine-furos-h totem-furos-correm block h-[1.125rem] shrink-0 bg-tema-primaria" />
       <div className="relative flex min-h-0 flex-1 flex-col">{children}</div>
-      <span aria-hidden className="cine-furos-h block h-[1.125rem] shrink-0 bg-tema-secundaria" />
+      <span aria-hidden className="cine-furos-h totem-furos-correm-inverso block h-[1.125rem] shrink-0 bg-tema-secundaria" />
     </div>
   );
 }
+
+/** Manchas de luz do fundo: posição (%), tamanho (cqmin), cor do tema e o passeio de cada uma, em tempos diferentes. */
+const BOLHAS = [
+  { x: 4, y: 52, tam: 46, cor: "primaria", dx: "8cqw", dy: "-6cqh", dur: 19, atraso: 0 },
+  { x: 62, y: 4, tam: 40, cor: "secundaria", dx: "-7cqw", dy: "7cqh", dur: 23, atraso: -6 },
+  { x: 72, y: 58, tam: 50, cor: "primaria", dx: "-6cqw", dy: "-8cqh", dur: 27, atraso: -12 },
+  { x: 24, y: 6, tam: 34, cor: "secundaria", dx: "6cqw", dy: "6cqh", dur: 21, atraso: -3 },
+  { x: 38, y: 66, tam: 36, cor: "secundaria", dx: "5cqw", dy: "-5cqh", dur: 25, atraso: -9 },
+] as const;
 
 /** Logo do evento no totem: grande na abertura e nas telas de aviso, pequeno no cabeçalho da escolha. */
 export function LogoTotem({ nome, logoUrl, pequeno, prioridade }: { nome: string; logoUrl: string | null; pequeno?: boolean; prioridade?: boolean }) {

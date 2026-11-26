@@ -7,6 +7,7 @@ import { novoIdEnvio, TEMPOS_TOTEM } from "@/dominio/totem";
 import type { Candidato } from "@/dominio/tipos";
 import { cx } from "@/lib/classes";
 import { arranjarGradeTotem } from "@/lib/gradeTotem";
+import { tocarSomTotem } from "@/lib/sonsTotem";
 import { TEXTOS_TOTEM } from "@/lib/textosTotem";
 import { votarInfantil } from "@/servicos/totem";
 import type { GrupoTotem } from "@/store/seletores/totem";
@@ -86,13 +87,25 @@ export function FluxoTotem({ eventoId, candidatos, grupos, logo, logoPequeno, ao
   async function confirmar(candidatoId: string, idEnvioAnterior?: string) {
     if (enviando.current) return;
     enviando.current = true;
+    tocarSomTotem("confirmar");
     const idEnvio = idEnvioAnterior ?? novoIdEnvio();
     setPasso({ tipo: "ENVIANDO", candidatoId, idEnvio });
     const r = await registrar({ eventoId, candidatoId, idEnvio });
     enviando.current = false;
     if (!r.ok) aoFalhar();
+    tocarSomTotem(r.ok ? "sucesso" : "erro");
     setPasso(r.ok ? { tipo: "SUCESSO" } : { tipo: "ERRO", candidatoId, idEnvio });
   }
+
+  // Cada toque da criança tem o seu som (lib/sonsTotem.ts); as voltas automáticas por tempo são mudas.
+  const escolher = (id: string) => {
+    tocarSomTotem("escolher");
+    setPasso({ tipo: "CONFIRMAR", candidatoId: id });
+  };
+  const recomecar = () => {
+    tocarSomTotem("voltar");
+    setPasso(INICIO);
+  };
 
   const escolhido = "candidatoId" in passo ? candidatos.find((c) => c.id === passo.candidatoId) : undefined;
 
@@ -103,32 +116,41 @@ export function FluxoTotem({ eventoId, candidatos, grupos, logo, logoPequeno, ao
           logo={logo}
           candidatos={candidatos}
           aoTocar={() => {
+            tocarSomTotem("comecar");
             aoComecar();
             setPasso({ tipo: "ESCOLHA" });
           }}
         />
       )}
-      {passo.tipo === "ESCOLHA" && (
-        <TelaEscolha logo={logoPequeno} grupos={grupos} aoEscolher={(id) => setPasso({ tipo: "CONFIRMAR", candidatoId: id })} />
-      )}
+      {passo.tipo === "ESCOLHA" && <TelaEscolha logo={logoPequeno} grupos={grupos} aoEscolher={escolher} />}
       {(passo.tipo === "CONFIRMAR" || passo.tipo === "ENVIANDO") && escolhido && (
         <TelaConfirmar
           candidato={escolhido}
           enviando={passo.tipo === "ENVIANDO"}
           aoConfirmar={() => void confirmar(escolhido.id, passo.tipo === "CONFIRMAR" ? passo.idEnvio : undefined)}
-          aoVoltar={() => setPasso({ tipo: "ESCOLHA" })}
+          aoVoltar={() => {
+            tocarSomTotem("voltar");
+            setPasso({ tipo: "ESCOLHA" });
+          }}
         />
       )}
-      {passo.tipo === "SUCESSO" && <TelaSucesso aoTocar={() => setPasso(INICIO)} />}
+      {passo.tipo === "SUCESSO" && <TelaSucesso aoTocar={recomecar} />}
       {passo.tipo === "ERRO" && (
         <TelaErro
-          aoTentar={escolhido ? () => setPasso({ tipo: "CONFIRMAR", candidatoId: escolhido.id, idEnvio: passo.idEnvio }) : undefined}
-          aoRecomecar={() => setPasso(INICIO)}
+          aoTentar={
+            escolhido
+              ? () => {
+                  tocarSomTotem("escolher");
+                  setPasso({ tipo: "CONFIRMAR", candidatoId: escolhido.id, idEnvio: passo.idEnvio });
+                }
+              : undefined
+          }
+          aoRecomecar={recomecar}
         />
       )}
       {/* Candidato sumiu no meio (desqualificado ou despublicado): volta para a escolha. */}
       {(passo.tipo === "CONFIRMAR" || passo.tipo === "ENVIANDO") && !escolhido && (
-        <TelaEscolha logo={logoPequeno} grupos={grupos} aoEscolher={(id) => setPasso({ tipo: "CONFIRMAR", candidatoId: id })} />
+        <TelaEscolha logo={logoPequeno} grupos={grupos} aoEscolher={escolher} />
       )}
     </div>
   );
@@ -144,8 +166,8 @@ const CARTAZES_DA_ABERTURA = 5;
 function TelaInicio({ logo, candidatos, aoTocar }: { logo: ReactNode; candidatos: Candidato[]; aoTocar: () => void }) {
   const vitrine = candidatos.slice(0, CARTAZES_DA_ABERTURA);
   const n = Math.max(1, vitrine.length);
-  // Cada cartaz: o maior que couber na altura reservada (32cqh) e na largura da fita (até 86cqw para todos).
-  const larguraCartaz = `min(calc(32cqh * 5 / 7), calc((86cqw - ${n - 1} * 1.6cqmin) / ${n}))`;
+  // Cada cartaz: o maior que couber na altura reservada (34cqh) e na largura da fita (até 86cqw para todos).
+  const larguraCartaz = `min(calc(34cqh * 5 / 7), calc((86cqw - ${n - 1} * 1.6cqmin) / ${n}))`;
   return (
     // O toque em qualquer ponto começa; o botão é o alvo do teclado e do leitor de tela.
     <div onClick={aoTocar} className="flex flex-1 cursor-pointer flex-col items-center justify-center gap-[4cqh] px-[4cqw] py-[3cqh] text-center">
@@ -158,7 +180,7 @@ function TelaInicio({ logo, candidatos, aoTocar }: { logo: ReactNode; candidatos
           {vitrine.map((c, i) => (
             <li
               key={c.id}
-              className="marca-flutuar overflow-hidden rounded-[0.6cqmin] bg-tema-fundo"
+              className="marca-flutuar overflow-hidden rounded-[1.4cqmin]"
               style={{ width: larguraCartaz, "--dur": `${6 + i}s`, "--atraso": `${-i * 900}ms`, "--amplitude": i % 2 === 0 ? "-6px" : "6px" } as CSSProperties}
             >
               <ImagemCandidato titulo={c.titulo} imagemUrl={c.imagemUrl} proporcao="5/7" ajuste="conter" sizes="16rem" />
@@ -172,9 +194,9 @@ function TelaInicio({ logo, candidatos, aoTocar }: { logo: ReactNode; candidatos
           e.stopPropagation();
           aoTocar();
         }}
-        className="totem-pulso inline-flex min-h-[clamp(3.5rem,13cqh,7rem)] max-w-full shrink-0 items-center justify-center gap-[0.4em] rounded-full bg-tema-primaria px-[1.3em] font-cine text-[clamp(1.4rem,5.5cqmin,3.25rem)] font-bold text-tema-sobre-primaria shadow-xl shadow-black/15"
+        className="totem-pulso inline-flex min-h-[clamp(3rem,10cqh,5rem)] max-w-full shrink-0 items-center justify-center gap-[0.4em] rounded-full bg-tema-primaria px-[1.2em] font-cine text-[clamp(1.1rem,4cqmin,2.25rem)] font-bold text-tema-sobre-primaria shadow-lg shadow-black/15"
       >
-        <Hand aria-hidden className="size-[1.15em] shrink-0" />
+        <Hand aria-hidden className="totem-mao size-[1.15em] shrink-0" />
         {TEXTOS_TOTEM.toqueParaVotar}
       </button>
     </div>
@@ -220,9 +242,18 @@ function GradeEscolha({ grupos, aoEscolher }: { grupos: GrupoTotem[]; aoEscolher
   const lado = medida ? Math.min(medida.largura, medida.altura) : 0;
   const espaco = Math.round(Math.min(28, Math.max(8, lado * 0.03)));
   const alturaTitulo = Math.round(Math.min(44, Math.max(22, lado * 0.06)));
+  // A flutuação sobe e desce os cartões FLUTUACAO_PX: a conta reserva essa folga em cima e embaixo, para nada encostar na borda.
   const arranjo = medida
-    ? arranjarGradeTotem({ largura: medida.largura, altura: medida.altura, grupos: grupos.map((g) => g.itens.length), espaco, alturaTitulo })
+    ? arranjarGradeTotem({
+        largura: medida.largura,
+        altura: medida.altura - 2 * FLUTUACAO_PX,
+        grupos: grupos.map((g) => g.itens.length),
+        espaco,
+        alturaTitulo,
+      })
     : null;
+  // Posição de cada cartão na tela toda (para a cascata de entrada e os tempos da flutuação não repetirem entre categorias).
+  const inicioDoGrupo = grupos.map((_, g) => grupos.slice(0, g).reduce((s, grupo) => s + grupo.itens.length, 0));
   const larguraLinha = arranjo ? arranjo.colunas * arranjo.larguraCartao + (arranjo.colunas - 1) * espaco : 0;
 
   return (
@@ -230,7 +261,7 @@ function GradeEscolha({ grupos, aoEscolher }: { grupos: GrupoTotem[]; aoEscolher
       {arranjo && (
         <div className="absolute inset-0 flex overflow-y-auto overscroll-none">
           <div className="m-auto flex flex-col items-center" style={{ gap: espaco }}>
-            {grupos.map(({ categoria, itens }) => (
+            {grupos.map(({ categoria, itens }, g) => (
               <section key={categoria.id} aria-label={varias ? categoria.nome : undefined} className="flex flex-col items-center" style={{ gap: espaco }}>
                 {varias && (
                   <h2
@@ -246,7 +277,7 @@ function GradeEscolha({ grupos, aoEscolher }: { grupos: GrupoTotem[]; aoEscolher
                 )}
                 <ul className="flex flex-wrap justify-center" style={{ gap: espaco, width: larguraLinha }}>
                   {itens.map((c, i) => (
-                    <CartaoTotem key={c.id} candidato={c} largura={arranjo.larguraCartao} inclinado={i % 2 === 1} aoEscolher={aoEscolher} />
+                    <CartaoTotem key={c.id} candidato={c} largura={arranjo.larguraCartao} ordem={inicioDoGrupo[g] + i} aoEscolher={aoEscolher} />
                   ))}
                 </ul>
               </section>
@@ -258,30 +289,40 @@ function GradeEscolha({ grupos, aoEscolher }: { grupos: GrupoTotem[]; aoEscolher
   );
 }
 
+/** Quanto os cartões da escolha sobem e descem (px), a mesma flutuação dos cartazes da abertura. */
+const FLUTUACAO_PX = 6;
+
 /**
- * Cartaz em moldura de papel, com o título em letras de cartaz embaixo. Tudo em cqw do próprio cartão, para a altura ser sempre
- * RAZAO_CARTAO_TOTEM × largura: moldura 4 + cartaz 92 × 7/5 + 3 + título 22 + 4 = 161,8 (de 164). A imagem aparece inteira.
+ * Cartaz solto (sem moldura nem contorno), de cantos arredondados, com o título em letras de cartaz embaixo. Tudo em cqw do próprio
+ * cartão, para a altura ser sempre RAZAO_CARTAO_TOTEM × largura: cartaz 100 × 7/5 + 4 + título 22 = 166 (de 170). A imagem aparece
+ * inteira. Entra em cascata e flutua como os cartazes da abertura, cada um no seu tempo.
  */
 function CartaoTotem({
   candidato,
   largura,
-  inclinado,
+  ordem,
   aoEscolher,
 }: {
   candidato: Candidato;
   largura: number;
-  inclinado: boolean;
+  /** Posição na tela (0, 1, 2...): o atraso da entrada, o sentido da inclinação e o tempo da flutuação. */
+  ordem: number;
   aoEscolher: (id: string) => void;
 }) {
+  const par = ordem % 2 === 0;
   return (
-    <li className="@container flex" style={{ width: largura }}>
+    <li className="@container marca-subir flex" style={{ width: largura, "--atraso": `${Math.min(ordem, 10) * 70}ms` } as CSSProperties}>
       <button
         type="button"
         onClick={() => aoEscolher(candidato.id)}
-        className={cx(
-          "flex w-full flex-col rounded-[6cqw] bg-tema-fundo p-[4cqw] shadow-lg shadow-black/10 ring-1 ring-black/5 transition duration-150 active:scale-95 active:shadow-xl active:ring-[3cqw] active:ring-tema-primaria",
-          inclinado ? "rotate-1" : "-rotate-1",
-        )}
+        className={cx("marca-flutuar group flex w-full flex-col transition-[scale] duration-150 active:scale-95", par ? "-rotate-1" : "rotate-1")}
+        style={
+          {
+            "--dur": `${6 + (ordem % 4)}s`,
+            "--atraso": `${-ordem * 900}ms`,
+            "--amplitude": `${par ? -FLUTUACAO_PX : FLUTUACAO_PX}px`,
+          } as CSSProperties
+        }
       >
         <ImagemCandidato
           titulo={candidato.titulo}
@@ -289,9 +330,9 @@ function CartaoTotem({
           proporcao="5/7"
           ajuste="conter"
           sizes={`${largura}px`}
-          className="w-full rounded-[3cqw]"
+          className="w-full rounded-[8cqw] shadow-lg shadow-black/20 transition-shadow group-active:shadow-xl group-active:ring-[3cqw] group-active:ring-tema-primaria"
         />
-        <span className="mt-[3cqw] flex h-[22cqw] items-center justify-center text-center font-cine text-[9.5cqw] font-bold leading-[1.15]">
+        <span className="mt-[4cqw] flex h-[22cqw] items-center justify-center text-center font-cine text-[9.5cqw] font-bold leading-[1.15]">
           <span className="line-clamp-2 wrap-anywhere">{candidato.titulo}</span>
         </span>
       </button>
@@ -312,24 +353,41 @@ function TelaConfirmar({
   aoVoltar: () => void;
 }) {
   return (
-    <div className="palco-entrada flex min-h-0 flex-1 flex-col items-center justify-center gap-[3cqh] px-[6cqw] py-[3cqh] totem-deitado:flex-row totem-deitado:gap-[6cqw]">
-      <div className="w-[min(calc(42cqh*5/7),76cqw)] shrink-0 -rotate-2 rounded-[2.5cqmin] bg-tema-fundo p-[1.5cqmin] shadow-2xl shadow-black/15 ring-[0.8cqmin] ring-tema-primaria totem-deitado:w-[min(calc(66cqh*5/7),40cqw)]">
-        <ImagemCandidato titulo={candidato.titulo} imagemUrl={candidato.imagemUrl} proporcao="5/7" ajuste="conter" sizes="32rem" className="w-full rounded-[1.5cqmin]" />
+    // 26/11/2026: animada. O cartaz chega girando e quica, depois flutua com um brilho atrás; o "É esse?" balança; os botões sobem
+    // em seguida e o "Sim!" pulsa devagar, como o "Toque para votar".
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[3cqh] px-[6cqw] py-[3cqh] totem-deitado:flex-row totem-deitado:gap-[6cqw]">
+      <div className="totem-cartaz-entra relative w-[min(calc(42cqh*5/7),76cqw)] shrink-0 totem-deitado:w-[min(calc(64cqh*5/7),40cqw)]">
+        <div aria-hidden className="totem-pulso absolute -inset-[12%] -z-10 rounded-full bg-tema-primaria/25 blur-3xl" />
+        <div className="marca-flutuar -rotate-2" style={{ "--dur": "5s", "--amplitude": "-8px" } as CSSProperties}>
+          <ImagemCandidato
+            titulo={candidato.titulo}
+            imagemUrl={candidato.imagemUrl}
+            proporcao="5/7"
+            ajuste="conter"
+            sizes="32rem"
+            className="w-full rounded-[3cqmin] shadow-2xl shadow-black/25 ring-[0.8cqmin] ring-tema-primaria"
+          />
+        </div>
       </div>
       <div className="flex w-full max-w-[min(34rem,86cqw)] flex-col items-center gap-[3cqh] text-center totem-deitado:max-w-[44cqw] totem-deitado:items-start totem-deitado:text-left">
-        <h1 className="flex max-w-full flex-col gap-[1cqh]">
-          <span className="font-cine text-[clamp(1.75rem,8cqmin,4.5rem)] font-bold leading-none text-tema-primaria-texto">{TEXTOS_TOTEM.confirmar}</span>
+        <h1 className="marca-subir flex max-w-full flex-col gap-[1cqh] totem-deitado:items-start" style={{ "--atraso": "250ms" } as CSSProperties}>
+          <span className="totem-balanco font-cine text-[clamp(1.75rem,8cqmin,4.5rem)] font-bold leading-none text-tema-primaria-texto">
+            {TEXTOS_TOTEM.confirmar}
+          </span>
           <span className="line-clamp-2 text-[clamp(1.1rem,3.6cqmin,2.1rem)] font-semibold leading-tight text-tema-texto-suave wrap-anywhere">
             {candidato.titulo}
           </span>
         </h1>
-        <div className="flex w-full flex-col gap-[2cqh]">
+        <div className="marca-subir flex w-full flex-col gap-[2cqh]" style={{ "--atraso": "400ms" } as CSSProperties}>
           <button
             type="button"
             onClick={aoConfirmar}
             disabled={enviando}
             aria-busy={enviando || undefined}
-            className="inline-flex min-h-[clamp(3.75rem,14cqmin,7.5rem)] w-full items-center justify-center gap-[0.35em] rounded-full bg-tema-primaria px-6 font-cine text-[clamp(1.6rem,6cqmin,3.5rem)] font-bold text-tema-sobre-primaria shadow-xl shadow-black/15 transition active:scale-[0.97] disabled:opacity-80"
+            className={cx(
+              "inline-flex min-h-[clamp(3.75rem,14cqmin,7.5rem)] w-full items-center justify-center gap-[0.35em] rounded-full bg-tema-primaria px-6 font-cine text-[clamp(1.6rem,6cqmin,3.5rem)] font-bold text-tema-sobre-primaria shadow-xl shadow-black/15 transition active:scale-[0.97] disabled:opacity-80",
+              !enviando && "totem-pulso",
+            )}
           >
             {enviando ? <LoaderCircle aria-hidden className="size-[1em] animate-spin" /> : <Check aria-hidden className="size-[1.1em]" strokeWidth={3} />}
             {enviando ? TEXTOS_TOTEM.enviando : TEXTOS_TOTEM.sim}
