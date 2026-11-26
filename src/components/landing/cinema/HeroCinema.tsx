@@ -1,10 +1,11 @@
 "use client";
 
-import { CalendarDays, Clapperboard, Film, MapPin, type LucideIcon } from "lucide-react";
+import { CalendarDays, Clapperboard, Film } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
 import { useIdentidadePagina } from "@/components/evento/identidadePagina";
 import { LogoOrganizador } from "@/components/evento/MarcaOrganizador";
+import { PilulasInformacao, pilulaDoLocal, type InformacaoPilula } from "@/components/evento/PilulasInformacao";
 import { idDetalhes } from "@/components/categorias/DetalhesItem";
 import { rotaCategoria } from "@/dominio/categorias";
 import { cx } from "@/lib/classes";
@@ -58,9 +59,9 @@ export function HeroCinema() {
       : null;
   const informacoes = [
     periodo && { icone: CalendarDays, texto: `Votação: ${periodo}` },
-    evento.local && { icone: MapPin, texto: evento.local },
+    pilulaDoLocal(evento.local),
     n > 0 && { icone: Film, texto: textoContador(n, tema) },
-  ].filter((i): i is { icone: LucideIcon; texto: string } => Boolean(i));
+  ].filter((i): i is InformacaoPilula => Boolean(i));
 
   return (
     // Foco branco: a cor de foco do tema some sobre a sala escura. As cores claras do texto vêm calculadas para o tema.
@@ -112,19 +113,7 @@ export function HeroCinema() {
             </p>
           )}
 
-          {informacoes.length > 0 && (
-            <ul className="marca-subir mt-6 flex flex-wrap gap-2" style={atraso(260)}>
-              {informacoes.map(({ icone: Icone, texto }) => (
-                <li
-                  key={texto}
-                  className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3.5 py-1.5 text-sm font-semibold text-white/90 ring-1 ring-white/15"
-                >
-                  <Icone aria-hidden className="size-4 shrink-0 text-cine-secundaria-clara" />
-                  {texto}
-                </li>
-              ))}
-            </ul>
-          )}
+          <PilulasInformacao itens={informacoes} className="marca-subir mt-6" style={atraso(260)} />
 
           <AcoesDoHero />
         </div>

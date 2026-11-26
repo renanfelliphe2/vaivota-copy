@@ -245,6 +245,13 @@ describe("código de pareamento: geração", () => {
     expect((await gerarCodigoPareamento(admin, eventoId, { nome: "Totem Cedo", pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).ok).toBe(true);
   });
 
+  it("com a urna aberta, gera e pareia, e o totem novo já vota (26/11/2026: pareado no dia, depois da abertura)", async () => {
+    const { eventoId, admin } = await eventoComTotens("teste-totem-codigo-urna-aberta", { urna: "ABERTA" });
+    const [candidatoId] = await criarCandidatos(eventoId, 1);
+    const totem = await criarTotem(admin, eventoId, { nome: "Totem do Dia" });
+    expect(await votarInfantil(totem.ctx, { eventoId, candidatoId, idEnvio: novoIdEnvio() })).toEqual({ ok: true, dados: { resultado: "REGISTRADO" } });
+  });
+
   it("no máximo 20 códigos pendentes por evento; os antigos vencidos viram EXPIRADO e liberam vaga", async () => {
     const { eventoId, admin } = await eventoComTotens("teste-totem-codigo-limite");
     for (let i = 1; i <= 20; i++) expect((await gerarCodigoPareamento(admin, eventoId, { nome: `Totem ${i}`, pin: PIN, categoriaIds: await categoriasTotem(eventoId) }, ctx)).ok).toBe(true);

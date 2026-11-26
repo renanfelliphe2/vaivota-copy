@@ -1,6 +1,9 @@
 "use client";
 
+import { MapPin, Navigation } from "lucide-react";
 import { ImagemCandidato } from "@/components/candidato/ImagemCandidato";
+import { classesBotao } from "@/components/ui/Botao";
+import { partesDoLocal, type PartesDoLocal } from "@/dominio/localEvento";
 import { paragrafosDoSobre, temSobre } from "@/dominio/sobreEvento";
 import { cx } from "@/lib/classes";
 import { useEventoAtivo } from "@/store/seletores/evento";
@@ -20,6 +23,7 @@ export function SobreEvento({ cinema = false }: { cinema?: boolean }) {
   const paragrafos = paragrafosDoSobre(sobreTexto);
   const titulo = sobreTitulo?.trim() || null;
   const comImagem = Boolean(sobreImagemUrl);
+  const local = partesDoLocal(ativo.evento.local);
 
   return (
     <section aria-labelledby="titulo-sobre-evento" className={cx("w-full", cinema ? "bg-cine-papel" : "bg-tema-fundo")}>
@@ -117,9 +121,41 @@ export function SobreEvento({ cinema = false }: { cinema?: boolean }) {
               </div>
             </div>
           </div>
+
+          {local && <RodapeLocal local={local} cinema={cinema} />}
         </article>
       </div>
     </section>
+  );
+}
+
+/**
+ * 26/11/2026: o endereço por extenso, no pé do cartão (a pílula do topo mostra só o lugar). "Como chegar" abre o mapa numa aba nova.
+ */
+function RodapeLocal({ local, cinema }: { local: PartesDoLocal; cinema: boolean }) {
+  return (
+    <div className="flex flex-col gap-4 border-t border-tema-borda px-6 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-10 lg:px-14">
+      <div className="flex items-start gap-4">
+        <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-full bg-tema-primaria/10 text-tema-primaria-texto">
+          <MapPin className="size-5" />
+        </span>
+        <p className="flex flex-col gap-0.5">
+          <span className={cx("text-xs font-bold uppercase text-tema-primaria-texto", cinema ? "font-cine tracking-[0.3em]" : "tracking-[0.22em]")}>Onde</span>
+          <span className="text-lg font-bold leading-snug text-tema-texto">{local.lugar}</span>
+          {local.endereco && <span className="text-base leading-snug text-tema-texto-suave">{local.endereco}</span>}
+        </p>
+      </div>
+      <a
+        href={local.mapaUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Como chegar a ${local.lugar} (abre o mapa em nova aba)`}
+        className={classesBotao({ variante: "contorno", className: "shrink-0 self-start sm:self-auto" })}
+      >
+        <Navigation aria-hidden className="size-4" />
+        Como chegar
+      </a>
+    </div>
   );
 }
 

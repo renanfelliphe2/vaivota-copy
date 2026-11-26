@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { classesBotao } from "@/components/ui/Botao";
 import { Selo, type VarianteSelo } from "@/components/ui/Selo";
+import { partesDoLocal } from "@/dominio/localEvento";
 import type { Evento, Tema } from "@/dominio/tipos";
 import { statusNaVitrine, type StatusVitrine } from "@/dominio/vitrineEventos";
 import { useEventos, useTemas } from "@/store/seletores/evento";
@@ -115,6 +116,7 @@ export function EventosAgora() {
 function CartaoEventoNoAr({ item }: { item: EventoNoAr }) {
   const { evento, tema, nome, status } = item;
   const selo = SELO_DO_STATUS[status.tom];
+  const lugar = partesDoLocal(evento.local)?.lugar ?? null;
   return (
     <Link
       href={`/e/${evento.slug}`}
@@ -126,10 +128,11 @@ function CartaoEventoNoAr({ item }: { item: EventoNoAr }) {
           {status.rotulo}
         </Selo>
         <span className="text-lg font-bold leading-tight">{nome}</span>
-        {evento.local && (
+        {/* 26/11/2026: só o lugar (o cartão já é um link; o endereço fica na página do evento). */}
+        {lugar && (
           <span className="flex items-center gap-1.5 text-sm text-tema-texto-suave">
             <MapPin aria-hidden className="size-4 shrink-0" />
-            {evento.local}
+            {lugar}
           </span>
         )}
       </span>

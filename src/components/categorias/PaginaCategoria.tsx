@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, CalendarDays, CircleCheck, Film, Info, MapPin, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, CircleCheck, Film, Info } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type CSSProperties } from "react";
 import { useAnunciar } from "@/components/a11y/LiveRegion";
 import { UrnaStatusCard } from "@/components/evento/UrnaStatusCard";
 import { useIdentidadePagina } from "@/components/evento/identidadePagina";
+import { PilulasInformacao, pilulaDoLocal, type InformacaoPilula } from "@/components/evento/PilulasInformacao";
 import { Alerta } from "@/components/ui/Alerta";
 import { AvisoVotacao } from "@/components/votacao/AvisoVotacao";
 import { DialogoRevisao } from "@/components/votacao/DialogoRevisao";
@@ -312,9 +313,9 @@ function CabecaCategoria({ dados }: { dados: CategoriaComItens }) {
       : null;
   const informacoes = [
     periodo && { icone: CalendarDays, texto: `Votação: ${periodo}` },
-    evento.local && { icone: MapPin, texto: evento.local },
+    pilulaDoLocal(evento.local),
     { icone: Film, texto: textoContador(itens.length, tema) },
-  ].filter((i): i is { icone: LucideIcon; texto: string } => Boolean(i));
+  ].filter((i): i is InformacaoPilula => Boolean(i));
 
   return (
     <section
@@ -354,14 +355,7 @@ function CabecaCategoria({ dados }: { dados: CategoriaComItens }) {
           <span className="flex-1 bg-tema-primaria" />
           <span className="flex-1 bg-tema-secundaria" />
         </span>
-        <ul className="marca-subir flex flex-wrap gap-2" style={atraso(220)}>
-          {informacoes.map(({ icone: Icone, texto }) => (
-            <li key={texto} className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3.5 py-1.5 text-sm font-semibold text-white/90 ring-1 ring-white/15">
-              <Icone aria-hidden className="size-4 shrink-0 text-cine-secundaria-clara" />
-              {texto}
-            </li>
-          ))}
-        </ul>
+        <PilulasInformacao itens={informacoes} className="marca-subir" style={atraso(220)} />
       </div>
       <span aria-hidden className="cine-furos-h block h-[1.125rem] w-full bg-cine-pelicula" />
     </section>
