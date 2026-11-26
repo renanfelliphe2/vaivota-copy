@@ -35,6 +35,10 @@ describe("cadastro com código por e-mail", () => {
     expect(mensagem.assunto).toMatch(/^\d{6} é o código para confirmar seu e-mail \| Evento teste-acesso$/);
     expect(mensagem.de).toMatch(/^"Evento teste-acesso" <[^<>\s]+@[^<>\s]+>$/);
     expect(mensagem.texto).toMatch(/^Evento teste-acesso\n/);
+    // Por que a pessoa recebeu, e o link da página do evento (ajuda com os filtros de spam)
+    expect(mensagem.texto).toMatch(/Você recebeu este e-mail porque pediu um código em .+ para participar do evento Evento teste-acesso\./);
+    expect(mensagem.texto).toMatch(/Página do evento: https?:\/\/\S+\/e\/teste-acesso$/);
+    expect(mensagem.html).toMatch(/<a href="https?:\/\/[^"]+\/e\/teste-acesso"/);
     expect(await db().usuario.findUniqueOrThrow({ where: { email } })).toMatchObject({ emailVerificado: false });
 
     // Código errado: recusa genérica, e a conta segue sem verificar

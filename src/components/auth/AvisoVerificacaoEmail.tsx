@@ -4,6 +4,7 @@ import { CircleCheck, MailCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { useAnunciar } from "@/components/a11y/LiveRegion";
+import { AvisoCaixaDeSpam } from "@/components/auth/AvisoCaixaDeSpam";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
 import { Campo, Input } from "@/components/ui/Campo";
@@ -125,6 +126,7 @@ export function AvisoVerificacaoEmail({ de }: { de?: string }) {
           Digite o código enviado para <strong className="break-all text-tema-texto">{email}</strong>.
         </p>
       </div>
+      <AvisoCaixaDeSpam nomeEvento={ativo.evento.nome} />
       {erroGeral && <Alerta variante="erro">{erroGeral}</Alerta>}
       <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
         <Campo

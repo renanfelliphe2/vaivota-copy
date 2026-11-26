@@ -80,7 +80,10 @@ export async function enviarEmail(m: MensagemEmail): Promise<void> {
 // falha volta para quem chamou. O contexto também leva o nome do evento até o remetente.
 // Fica no globalThis: a instância do Better Auth é única por processo e sobrevive ao recarregamento do módulo em dev.
 
-export type EnvioDoEvento = { nomeEvento: string | null; pendentes: Promise<unknown>[]; falhou: boolean };
+/** O evento de onde a pessoa veio: o nome vai no remetente e no texto, a página vira o link do e-mail. */
+export type EventoDoEmail = { nome: string; url: string };
+
+export type EnvioDoEvento = { evento: EventoDoEmail | null; pendentes: Promise<unknown>[]; falhou: boolean };
 
 function armazenamento(): AsyncLocalStorage<EnvioDoEvento> {
   global.__vaivotaEnvioDoEvento ??= new AsyncLocalStorage<EnvioDoEvento>();
@@ -92,9 +95,9 @@ export function envioEmAndamento(): EnvioDoEvento | null {
   return armazenamento().getStore() ?? null;
 }
 
-/** Roda `fn` com o nome do evento no remetente e espera os e-mails que ela disparou. `enviado` é false se algum falhou. */
-export async function comEnvioDoEvento<T>(nomeEvento: string | null, fn: () => Promise<T>): Promise<{ valor: T; enviado: boolean }> {
-  const envio: EnvioDoEvento = { nomeEvento, pendentes: [], falhou: false };
+/** Roda `fn` com o evento no e-mail e espera os e-mails que ela disparou. `enviado` é false se algum falhou. */
+export async function comEnvioDoEvento<T>(evento: EventoDoEmail | null, fn: () => Promise<T>): Promise<{ valor: T; enviado: boolean }> {
+  const envio: EnvioDoEvento = { evento, pendentes: [], falhou: false };
   const valor = await armazenamento().run(envio, fn);
   // Um envio pode disparar outro (o cadastro chama a verificação, que chama o envio): espera até não sobrar nenhum.
   while (envio.pendentes.length > 0) await Promise.allSettled(envio.pendentes.splice(0));
@@ -116,23 +119,38 @@ export function montarEmailCodigo(
   para: string,
   codigo: string,
   minutosValidade: number,
-  nomeEvento: string | null = null,
+  eventoDoEmail: EventoDoEmail | null = null,
 ): MensagemEmail {
   const recuperacao = tipo === "forget-password";
-  const evento = nomeEvento?.trim() || null;
+  const evento = eventoDoEmail?.nome.trim() || null;
+  const url = eventoDoEmail?.url ?? null;
   const assunto =
     (recuperacao ? `${codigo} é o código para criar sua senha nova` : `${codigo} é o código para confirmar seu e-mail`) +
     (evento ? ` | ${evento}` : "");
   // O nome do evento vai numa linha própria, no topo ("no"/"na" dependeria do nome).
   const abertura = recuperacao ? "Use este código para criar uma senha nova:" : "Use este código para confirmar seu e-mail:";
-  const rodape = `O código vale por ${minutosValidade} minutos. Se você não pediu, ignore esta mensagem.`;
-  const texto = `${evento ? `${evento}\n\n` : ""}${abertura}\n\n${codigo}\n\n${rodape}`;
+  const validade = `O código vale por ${minutosValidade} minutos.`;
+  // Por que a pessoa recebeu, e o link do evento no mesmo domínio do remetente: os filtros de spam olham as duas coisas.
+  const motivo = url
+    ? `Você recebeu este e-mail porque pediu um código em ${hostDe(url)}${evento ? ` para participar do evento ${evento}` : ""}. Se não foi você, ignore esta mensagem: nada acontece sem o código.`
+    : "Se você não pediu este código, ignore esta mensagem: nada acontece sem ele.";
+  const texto = [evento, abertura, codigo, validade, motivo, url ? `Página do evento: ${url}` : null].filter(Boolean).join("\n\n");
   const html =
     `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:420px;margin:0 auto;padding:24px;color:#111827">` +
     (evento ? `<p style="font-size:14px;font-weight:600;color:#4b5563;margin:0 0 12px">${escapar(evento)}</p>` : "") +
     `<p style="font-size:16px;margin:0 0 16px">${escapar(abertura)}</p>` +
     `<p style="font-size:34px;font-weight:700;letter-spacing:8px;margin:0 0 16px">${escapar(codigo)}</p>` +
-    `<p style="font-size:14px;color:#4b5563;margin:0">${escapar(rodape)}</p>` +
+    `<p style="font-size:14px;color:#4b5563;margin:0 0 16px">${escapar(validade)}</p>` +
+    `<p style="font-size:13px;color:#6b7280;margin:0 0 8px;border-top:1px solid #e5e7eb;padding-top:16px">${escapar(motivo)}</p>` +
+    (url ? `<p style="font-size:13px;margin:0"><a href="${escapar(url)}" style="color:#4b5563">Abrir a página do evento</a></p>` : "") +
     `</div>`;
   return { para, assunto, texto, html, nomeRemetente: evento };
+}
+
+function hostDe(url: string): string {
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }

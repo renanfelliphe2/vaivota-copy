@@ -1,6 +1,7 @@
 "use client";
 
 import { KeyRound, MailCheck } from "lucide-react";
+import { AvisoCaixaDeSpam } from "@/components/auth/AvisoCaixaDeSpam";
 import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 import { useAnunciar } from "@/components/a11y/LiveRegion";
@@ -151,6 +152,7 @@ function PassoCodigo({ email, de }: { email: string; de?: string }) {
           Digite o código enviado para <strong className="break-all text-tema-texto">{email}</strong> e escolha a senha nova.
         </p>
       </div>
+      <AvisoCaixaDeSpam nomeEvento={ativo.evento.nome} />
       {erroGeral && <Alerta variante="erro">{erroGeral}</Alerta>}
       <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
         <Campo

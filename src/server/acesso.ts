@@ -13,7 +13,8 @@ import {
 import { registrarAuditoria } from "./auditoria";
 import { auth } from "./auth";
 import { db } from "./db";
-import { comEnvioDoEvento } from "./email";
+import { comEnvioDoEvento, type EventoDoEmail } from "./email";
+import { env } from "./env";
 import { hashDoIp } from "./ip";
 import { manutencaoSeNecessario } from "./manutencao";
 import {
@@ -68,6 +69,11 @@ async function eventoDoAcesso(eventoId: string) {
 }
 
 type EventoDoAcesso = NonNullable<Awaited<ReturnType<typeof eventoDoAcesso>>>;
+
+/** O que o e-mail do código leva do evento: o nome (remetente, assunto, texto) e o link da página. */
+function eventoDoEmail(evento: EventoDoAcesso): EventoDoEmail {
+  return { nome: evento.nome, url: `${env.appUrl}/e/${evento.slug}` };
+}
 
 /** O provedor de e-mail recusou ou não respondeu: a tela avisa, em vez de mandar a pessoa esperar um código que não vem. */
 function falhaNoEnvio(evento: EventoDoAcesso, contexto: string) {
@@ -259,7 +265,7 @@ export async function registrar(
   }
 
   try {
-    const { enviado } = await comEnvioDoEvento(evento.nome, () =>
+    const { enviado } = await comEnvioDoEvento(eventoDoEmail(evento), () =>
       auth().api.signUpEmail({ body: { name: entrada.nome.trim(), email, password: entrada.senha }, headers: ctx.headers }),
     );
     if (!enviado) {
@@ -288,7 +294,7 @@ async function enviarCodigoDeVerificacao(ctx: ContextoAcesso, evento: EventoDoAc
   const limite = await limitarEnvioDeCodigo(ctx, email, "verificacao");
   if (limite) return null;
   try {
-    const { enviado } = await comEnvioDoEvento(evento.nome, () =>
+    const { enviado } = await comEnvioDoEvento(eventoDoEmail(evento), () =>
       auth().api.sendVerificationOTP({ body: { email, type: "email-verification" }, headers: ctx.headers }),
     );
     if (!enviado) {
@@ -362,7 +368,7 @@ export async function reenviarCodigo(
   if (limite) return limite;
   try {
     const recuperacao = entrada.tipo === "recuperacao";
-    const { enviado } = await comEnvioDoEvento(evento.nome, async () => {
+    const { enviado } = await comEnvioDoEvento(eventoDoEmail(evento), async () => {
       if (recuperacao) await auth().api.requestPasswordResetEmailOTP({ body: { email }, headers: ctx.headers });
       else await auth().api.sendVerificationOTP({ body: { email, type: "email-verification" }, headers: ctx.headers });
     });
@@ -398,7 +404,7 @@ export async function solicitarRecuperacao(
   }
   try {
     // E-mail desconhecido não dispara envio, então não tem como falhar: a resposta continua sem revelar se a conta existe.
-    const { enviado } = await comEnvioDoEvento(evento.nome, () =>
+    const { enviado } = await comEnvioDoEvento(eventoDoEmail(evento), () =>
       auth().api.requestPasswordResetEmailOTP({ body: { email }, headers: ctx.headers }),
     );
     if (!enviado) {

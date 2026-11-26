@@ -61,7 +61,7 @@ function criar() {
           // Dentro de um fluxo de acesso (acesso.ts): o nome do evento vai no remetente e a falha volta para a tela.
           const envio = envioEmAndamento();
           try {
-            await enviarEmail(montarEmailCodigo(type, email, otp, VALIDADE_CODIGO_SEGUNDOS / 60, envio?.nomeEvento));
+            await enviarEmail(montarEmailCodigo(type, email, otp, VALIDADE_CODIGO_SEGUNDOS / 60, envio?.evento));
           } catch (erro) {
             // O Better Auth engole o erro do envio em segundo plano: sem isto a falha do Resend sumiria.
             if (envio) envio.falhou = true;
