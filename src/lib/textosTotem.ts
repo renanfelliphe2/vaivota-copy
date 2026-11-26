@@ -14,6 +14,9 @@ export const TEXTOS_TOTEM = {
   enviando: "Guardando…",
   obrigado: "Obrigado!",
   votoGuardado: "Voto guardado!",
+  // Contador da sessão na tela de sucesso (logTotem.md).
+  contadorUm: "voto nesta sessão",
+  contadorVarios: "votos nesta sessão",
   erroTitulo: "Ops!",
   erroCorpo: "Chame um adulto.",
   tentarDeNovo: "Tentar de novo",

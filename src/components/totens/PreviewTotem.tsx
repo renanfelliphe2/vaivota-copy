@@ -13,10 +13,15 @@ import type { votarInfantil } from "@/servicos/totem";
 import type { EventoAtivo } from "@/store/seletores/evento";
 import { montarVisaoTotem } from "@/store/seletores/totem";
 
-/** O "voto" do preview: nenhum servidor é chamado e nada é contado. A pausa imita o envio, para a tela "Guardando…" aparecer. */
+/**
+ * O "voto" do preview: nenhum servidor é chamado e nada é contado. A pausa imita o envio, para a tela "Guardando…" aparecer. O
+ * contador (logTotem.md) é de mentira, só para o admin ver a animação: sobe a cada voto de teste, nesta aba.
+ */
+let votosDoPreview = 0;
 const registrarNoPreview: typeof votarInfantil = async () => {
   await new Promise((r) => setTimeout(r, 700));
-  return sucesso({ resultado: "REGISTRADO" as const });
+  votosDoPreview += 1;
+  return sucesso({ resultado: "REGISTRADO" as const, sessaoId: "preview", numeroSessao: 1, votosSessao: votosDoPreview, votosTotal: votosDoPreview });
 };
 
 /**
@@ -81,6 +86,7 @@ export function PreviewTotem({ ativo, totem, aoFechar }: { ativo: EventoAtivo; t
                 aoComecar={() => {}}
                 aoFalhar={() => {}}
                 registrar={registrarNoPreview}
+                gravarLog={false}
               />
             ) : (
               <TotemBloqueado situacao="SEM_CANDIDATOS" rotuloCandidatos={tema.rotuloCandidatos} logo={logo} />

@@ -9,6 +9,7 @@ import { cx } from "@/lib/classes";
 import { arranjarGradeTotem } from "@/lib/gradeTotem";
 import { tocarSomTotem } from "@/lib/sonsTotem";
 import { TEXTOS_TOTEM } from "@/lib/textosTotem";
+import { registrarEventoTotem, registrarVotoNoLog, type TipoEventoLog } from "@/lib/logTotem";
 import { votarInfantil } from "@/servicos/totem";
 import type { GrupoTotem } from "@/store/seletores/totem";
 import { AvisoTotem } from "./MolduraTotem";
@@ -30,7 +31,8 @@ type Passo =
   /** `idEnvio` só existe na confirmação que veio de "tentar de novo". */
   | { tipo: "CONFIRMAR"; candidatoId: string; idEnvio?: string }
   | { tipo: "ENVIANDO"; candidatoId: string; idEnvio: string }
-  | { tipo: "SUCESSO" }
+  /** `votosSessao`: o contador que o servidor devolveu (logTotem.md). Sem ele (resposta antiga), a tela fica sem número. */
+  | { tipo: "SUCESSO"; votosSessao?: number }
   | { tipo: "ERRO"; candidatoId: string; idEnvio: string };
 
 const INICIO: Passo = { tipo: "INICIO" };
@@ -59,21 +61,52 @@ export type FluxoTotemProps = {
    * não chama servidor nenhum: lá nada é contado.
    */
   registrar?: typeof votarInfantil;
+  /** Grava o log/funil deste aparelho (logTotem.md). O preview do admin passa false: lá nada é contado. */
+  gravarLog?: boolean;
 };
 
-export function FluxoTotem({ eventoId, candidatos, grupos, logo, logoPequeno, aoComecar, aoFalhar, registrar = votarInfantil }: FluxoTotemProps) {
+/** A volta automática por tempo, no log: em que passo a criança (ou o adulto) desistiu. */
+const DESISTENCIA_POR_TEMPO: Partial<Record<Passo["tipo"], TipoEventoLog>> = {
+  ESCOLHA: "DESISTIU_ESCOLHA",
+  CONFIRMAR: "DESISTIU_CONFIRMAR",
+  ERRO: "ERRO_DESCARTADO",
+};
+
+export function FluxoTotem({
+  eventoId,
+  candidatos,
+  grupos,
+  logo,
+  logoPequeno,
+  aoComecar,
+  aoFalhar,
+  registrar = votarInfantil,
+  gravarLog = true,
+}: FluxoTotemProps) {
   const [passo, setPasso] = useState<Passo>(INICIO);
   const enviando = useRef(false);
   const raiz = useRef<HTMLDivElement>(null);
+  const log = (tipo: TipoEventoLog, extra?: { codigo?: string }) => {
+    if (gravarLog) registrarEventoTotem(tipo, extra);
+  };
+  const logRef = useRef(log);
+  useEffect(() => {
+    logRef.current = log;
+  });
 
   // Retorno automático; na escolha e na confirmação, cada toque reinicia a contagem de inatividade.
   useEffect(() => {
     const limite = limiteDoPasso(passo.tipo);
     if (limite === null) return;
-    let timer = setTimeout(() => setPasso(INICIO), limite);
+    const desistencia = DESISTENCIA_POR_TEMPO[passo.tipo];
+    const voltarPorTempo = () => {
+      if (desistencia) logRef.current(desistencia);
+      setPasso(INICIO);
+    };
+    let timer = setTimeout(voltarPorTempo, limite);
     const rearmar = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => setPasso(INICIO), limite);
+      timer = setTimeout(voltarPorTempo, limite);
     };
     const el = raiz.current;
     const contaToque = passo.tipo === "ESCOLHA" || passo.tipo === "CONFIRMAR";
@@ -90,16 +123,24 @@ export function FluxoTotem({ eventoId, candidatos, grupos, logo, logoPequeno, ao
     tocarSomTotem("confirmar");
     const idEnvio = idEnvioAnterior ?? novoIdEnvio();
     setPasso({ tipo: "ENVIANDO", candidatoId, idEnvio });
+    log("ENVIOU");
     const r = await registrar({ eventoId, candidatoId, idEnvio });
     enviando.current = false;
     if (!r.ok) aoFalhar();
     tocarSomTotem(r.ok ? "sucesso" : "erro");
-    setPasso(r.ok ? { tipo: "SUCESSO" } : { tipo: "ERRO", candidatoId, idEnvio });
+    if (r.ok) {
+      if (gravarLog) registrarVotoNoLog(r.dados);
+      setPasso({ tipo: "SUCESSO", votosSessao: r.dados.votosSessao });
+    } else {
+      log("ERRO", { codigo: r.erro.codigo });
+      setPasso({ tipo: "ERRO", candidatoId, idEnvio });
+    }
   }
 
   // Cada toque da criança tem o seu som (lib/sonsTotem.ts); as voltas automáticas por tempo são mudas.
   const escolher = (id: string) => {
     tocarSomTotem("escolher");
+    log("ESCOLHEU");
     setPasso({ tipo: "CONFIRMAR", candidatoId: id });
   };
   const recomecar = () => {
@@ -117,6 +158,7 @@ export function FluxoTotem({ eventoId, candidatos, grupos, logo, logoPequeno, ao
           candidatos={candidatos}
           aoTocar={() => {
             tocarSomTotem("comecar");
+            log("COMECOU");
             aoComecar();
             setPasso({ tipo: "ESCOLHA" });
           }}
@@ -130,22 +172,27 @@ export function FluxoTotem({ eventoId, candidatos, grupos, logo, logoPequeno, ao
           aoConfirmar={() => void confirmar(escolhido.id, passo.tipo === "CONFIRMAR" ? passo.idEnvio : undefined)}
           aoVoltar={() => {
             tocarSomTotem("voltar");
+            log("VOLTOU");
             setPasso({ tipo: "ESCOLHA" });
           }}
         />
       )}
-      {passo.tipo === "SUCESSO" && <TelaSucesso aoTocar={recomecar} />}
+      {passo.tipo === "SUCESSO" && <TelaSucesso votosSessao={passo.votosSessao} aoTocar={recomecar} />}
       {passo.tipo === "ERRO" && (
         <TelaErro
           aoTentar={
             escolhido
               ? () => {
                   tocarSomTotem("escolher");
+                  log("TENTOU_DE_NOVO");
                   setPasso({ tipo: "CONFIRMAR", candidatoId: escolhido.id, idEnvio: passo.idEnvio });
                 }
               : undefined
           }
-          aoRecomecar={recomecar}
+          aoRecomecar={() => {
+            log("ERRO_DESCARTADO");
+            recomecar();
+          }}
         />
       )}
       {/* Candidato sumiu no meio (desqualificado ou despublicado): volta para a escolha. */}
@@ -421,9 +468,43 @@ const CONFETES = [
   { x: 95, atraso: 330, tam: 3.4 },
 ];
 
-function TelaSucesso({ aoTocar }: { aoTocar: () => void }) {
+/**
+ * Contador da sessão (logTotem.md): um ingresso de cinema com o número que o SERVIDOR devolveu. O anterior sobe e sai, o novo entra
+ * com um salto, um "+1" flutua e um brilho abre atrás. Para o mediador conferir com as crianças da sala, e para a criança ver o
+ * voto dela "entrar na conta". Nunca diz em quem.
+ */
+function ContadorSessao({ votos }: { votos: number }) {
+  const anterior = Math.max(0, votos - 1);
   return (
-    <div onClick={aoTocar} className="relative flex flex-1 cursor-pointer flex-col items-center justify-center gap-[4cqh] overflow-hidden px-[6cqw] text-center">
+    <div
+      aria-hidden
+      className="totem-ingresso relative flex items-center gap-[2.5cqmin] rounded-[2cqmin] border-[0.6cqmin] border-dashed border-tema-primaria/60 bg-tema-superficie px-[4cqmin] py-[1.5cqmin] shadow-xl shadow-black/10"
+    >
+      <span className="relative inline-flex h-[clamp(2.75rem,12cqmin,6.5rem)] min-w-[2ch] items-center justify-center overflow-hidden font-cine text-[clamp(2.5rem,11cqmin,6rem)] font-bold leading-none tabular-nums text-tema-primaria-texto">
+        <span className="totem-brilho absolute inset-0 m-auto size-full rounded-full bg-tema-primaria/30" />
+        <span className="totem-contador-sai absolute inset-0 flex items-center justify-center">{anterior}</span>
+        <span className="totem-contador-entra relative">{votos}</span>
+      </span>
+      <span className="max-w-[14ch] text-left text-[clamp(1rem,3.4cqmin,1.75rem)] font-semibold leading-tight text-tema-texto-suave">
+        {votos === 1 ? TEXTOS_TOTEM.contadorUm : TEXTOS_TOTEM.contadorVarios}
+      </span>
+      <span className="totem-mais-um pointer-events-none absolute left-1/2 top-0 font-cine text-[clamp(1.5rem,6cqmin,3rem)] font-bold text-tema-primaria">
+        +1
+      </span>
+    </div>
+  );
+}
+
+function TelaSucesso({ votosSessao, aoTocar }: { votosSessao?: number; aoTocar: () => void }) {
+  const comContador = typeof votosSessao === "number" && votosSessao > 0;
+  return (
+    <div
+      onClick={aoTocar}
+      className={cx(
+        "relative flex flex-1 cursor-pointer flex-col items-center justify-center overflow-hidden px-[6cqw] text-center",
+        comContador ? "gap-[3cqh]" : "gap-[4cqh]",
+      )}
+    >
       <div aria-hidden className="pointer-events-none absolute inset-0">
         {CONFETES.map((c, i) => (
           <Star
@@ -434,13 +515,20 @@ function TelaSucesso({ aoTocar }: { aoTocar: () => void }) {
           />
         ))}
       </div>
-      <span className="totem-pop flex size-[clamp(6rem,30cqmin,14rem)] items-center justify-center rounded-full bg-tema-primaria text-tema-sobre-primaria shadow-2xl shadow-black/20 ring-[1.5cqmin] ring-tema-fundo">
+      <span
+        className={cx(
+          "totem-pop flex items-center justify-center rounded-full bg-tema-primaria text-tema-sobre-primaria shadow-2xl shadow-black/20 ring-[1.5cqmin] ring-tema-fundo",
+          // Com o contador, o selo encolhe um pouco para tudo caber sem rolagem.
+          comContador ? "size-[clamp(5rem,22cqmin,11rem)]" : "size-[clamp(6rem,30cqmin,14rem)]",
+        )}
+      >
         <Check aria-hidden className="size-3/5" strokeWidth={3} />
       </span>
       <div role="status" className="flex flex-col gap-[1.5cqh]">
         <h1 className="font-cine text-[clamp(2.5rem,12cqmin,7rem)] font-bold leading-none">{TEXTOS_TOTEM.obrigado}</h1>
         <p className="text-[clamp(1.2rem,4.5cqmin,2.5rem)] font-semibold text-tema-texto-suave">{TEXTOS_TOTEM.votoGuardado}</p>
       </div>
+      {comContador && <ContadorSessao votos={votosSessao} />}
       <div aria-hidden className="absolute inset-x-0 bottom-0 h-2 bg-tema-fundo/70">
         <div className="totem-barra h-full bg-tema-primaria" style={{ animationDuration: `${TEMPOS_TOTEM.retornoMs}ms` }} />
       </div>
