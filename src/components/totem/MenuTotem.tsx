@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, LogOut, Square } from "lucide-react";
+import { BarChart3, LogOut, Play, Square } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Alerta } from "@/components/ui/Alerta";
 import { Botao } from "@/components/ui/Botao";
@@ -15,7 +15,7 @@ import { ResumoSessaoTotem } from "./ResumoSessaoTotem";
 // Menu do totem (logTotem.md, 26/11/2026), aberto depois do PIN: Analisar votos, Encerrar sessão e Sair. O PIN fica só na memória
 // enquanto o menu está aberto (as chamadas o levam); fechar o menu o esquece. Encerrar a sessão não pausa nada: só separa as turmas.
 
-type Vista = { tipo: "MENU" } | { tipo: "CONFIRMAR" } | { tipo: "RESUMO"; resumo: ResumoSessao };
+type Vista = { tipo: "MENU" } | { tipo: "ABRIR" } | { tipo: "CONFIRMAR" } | { tipo: "RESUMO"; resumo: ResumoSessao };
 
 export function MenuTotem({
   pin,
@@ -33,7 +33,7 @@ export function MenuTotem({
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [esperadas, setEsperadas] = useState("");
-  const [aberta, setAberta] = useState<number | null>(null);
+  const [aberta, setAberta] = useState<{ numero: number; jaAberta: boolean } | null>(null);
 
   function fechar() {
     setVista({ tipo: "MENU" });
@@ -67,10 +67,55 @@ export function MenuTotem({
     setOcupado(false);
     if (!r.ok) return setErro(r.erro.mensagem);
     registrarAberturaNoLog({ id: r.dados.sessaoId, numero: r.dados.numero });
-    setAberta(r.dados.numero);
+    setAberta({ numero: r.dados.numero, jaAberta: r.dados.jaAberta });
   }
 
-  const titulo = vista.tipo === "RESUMO" ? `Sessão ${vista.resumo.numero} encerrada` : vista.tipo === "CONFIRMAR" ? TEXTOS_TOTEM.menuEncerrar : TEXTOS_TOTEM.menu;
+  const titulo =
+    vista.tipo === "RESUMO"
+      ? `Sessão ${vista.resumo.numero} encerrada`
+      : vista.tipo === "CONFIRMAR"
+        ? TEXTOS_TOTEM.menuEncerrar
+        : vista.tipo === "ABRIR"
+          ? TEXTOS_TOTEM.menuAbrir
+          : TEXTOS_TOTEM.menu;
+
+  /** Campo das crianças esperadas + botão de abrir (no "Abrir sessão" do menu e no resumo depois de encerrar). */
+  const formularioAbrir = (comFechar: boolean) =>
+    aberta === null ? (
+      <form onSubmit={(e) => void abrirProxima(e)} className="flex flex-col gap-3">
+        <Campo id="totem-esperadas" rotulo="Crianças esperadas nesta turma (opcional)">
+          <Input
+            inputMode="numeric"
+            autoComplete="off"
+            value={esperadas}
+            onChange={(e) => setEsperadas(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            placeholder="Ex.: 144"
+          />
+        </Campo>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Botao type="button" variante="contorno" onClick={comFechar ? fechar : () => setVista({ tipo: "MENU" })}>
+            {comFechar ? "Fechar" : "Voltar"}
+          </Botao>
+          <Botao type="submit" carregando={ocupado}>
+            {comFechar ? "Abrir próxima sessão" : TEXTOS_TOTEM.menuAbrir}
+          </Botao>
+        </div>
+        <p className="text-sm text-tema-texto-suave">
+          Se já houver uma sessão aberta, ela continua e só recebe o número de crianças. Sem abrir aqui, o próximo voto abre a sessão
+          sozinho.
+        </p>
+      </form>
+    ) : (
+      <div className="flex flex-col gap-3">
+        <Alerta variante="sucesso">
+          {aberta.jaAberta
+            ? `A sessão ${aberta.numero} já estava aberta${esperadas ? ` e agora espera ${esperadas} crianças` : ""}.`
+            : `Sessão ${aberta.numero} aberta${esperadas ? ` para ${esperadas} crianças` : ""}.`}{" "}
+          O totem segue votando normalmente.
+        </Alerta>
+        <Botao onClick={fechar}>Voltar ao totem</Botao>
+      </div>
+    );
 
   return (
     <Dialogo aberto={pin !== null} aoFechar={fechar} titulo={titulo} className="max-w-xl">
@@ -89,6 +134,9 @@ export function MenuTotem({
               }}
             >
               <BarChart3 aria-hidden className="size-5" /> {TEXTOS_TOTEM.menuAnalisar}
+            </Botao>
+            <Botao variante="contorno" larguraTotal onClick={() => setVista({ tipo: "ABRIR" })}>
+              <Play aria-hidden className="size-5" /> {TEXTOS_TOTEM.menuAbrir}
             </Botao>
             <Botao variante="contorno" larguraTotal onClick={() => setVista({ tipo: "CONFIRMAR" })}>
               <Square aria-hidden className="size-5" /> {TEXTOS_TOTEM.menuEncerrar}
@@ -126,35 +174,11 @@ export function MenuTotem({
         {vista.tipo === "RESUMO" && (
           <>
             <ResumoSessaoTotem resumo={vista.resumo} />
-            {aberta === null ? (
-              <form onSubmit={(e) => void abrirProxima(e)} className="flex flex-col gap-3 border-t border-tema-borda pt-4">
-                <Campo id="totem-esperadas" rotulo="Crianças esperadas na próxima sessão (opcional)">
-                  <Input
-                    inputMode="numeric"
-                    autoComplete="off"
-                    value={esperadas}
-                    onChange={(e) => setEsperadas(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="Ex.: 144"
-                  />
-                </Campo>
-                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                  <Botao type="button" variante="contorno" onClick={fechar}>
-                    Fechar
-                  </Botao>
-                  <Botao type="submit" carregando={ocupado}>
-                    Abrir próxima sessão
-                  </Botao>
-                </div>
-                <p className="text-sm text-tema-texto-suave">Se fechar sem abrir, o próximo voto abre a sessão sozinho.</p>
-              </form>
-            ) : (
-              <div className="flex flex-col gap-3 border-t border-tema-borda pt-4">
-                <Alerta variante="sucesso">Sessão {aberta} aberta. O totem segue votando normalmente.</Alerta>
-                <Botao onClick={fechar}>Voltar ao totem</Botao>
-              </div>
-            )}
+            <div className="border-t border-tema-borda pt-4">{formularioAbrir(true)}</div>
           </>
         )}
+
+        {vista.tipo === "ABRIR" && formularioAbrir(false)}
       </div>
     </Dialogo>
   );

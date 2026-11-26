@@ -25,6 +25,7 @@ export const TEXTOS_TOTEM = {
   // Menu do PIN (logTotem.md): o botão do canto abre o menu, depois do PIN.
   menu: "Menu do totem",
   menuAnalisar: "Analisar votos",
+  menuAbrir: "Abrir sessão",
   menuEncerrar: "Encerrar sessão",
   menuSair: "Sair do modo totem",
   pinTitulo: "Menu do totem",

@@ -53,8 +53,8 @@ export function encerrarSessaoTotem(pin: string): Promise<Resultado<{ resumo: Re
   return chamar<{ resumo: ResumoSessao }>("encerrarSessaoTotem", { pin }, { tempoMs: 15_000 });
 }
 
-export function abrirSessaoTotem(pin: string, criancasEsperadas: number | null): Promise<Resultado<{ sessaoId: string; numero: number }>> {
-  return chamar<{ sessaoId: string; numero: number }>("abrirSessaoTotem", { pin, criancasEsperadas }, { tempoMs: 15_000 });
+export function abrirSessaoTotem(pin: string, criancasEsperadas: number | null): Promise<Resultado<{ sessaoId: string; numero: number; jaAberta: boolean }>> {
+  return chamar<{ sessaoId: string; numero: number; jaAberta: boolean }>("abrirSessaoTotem", { pin, criancasEsperadas }, { tempoMs: 15_000 });
 }
 
 export function configurarTotem(pin: string, inatividadeMin: number): Promise<Resultado<{ inatividadeMin: number }>> {

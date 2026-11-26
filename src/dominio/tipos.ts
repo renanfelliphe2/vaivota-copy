@@ -71,6 +71,8 @@ export type AcaoAuditoria =
   | "SESSAO_TOTEM_ABERTA"
   | "SESSAO_TOTEM_ENCERRADA"
   | "TOTEM_CONFIGURADO"
+  // Correção de dados do totem feita pela organização (ex.: votos de teste removidos). Nunca o item.
+  | "VOTOS_TOTEM_CORRIGIDOS"
   // Etapa 7 (exportação)
   | "EXPORTACAO_CSV"
   | "RELATORIO_GERADO"

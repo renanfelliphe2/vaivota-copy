@@ -159,6 +159,14 @@ export const CATALOGO_AUDITORIA: Record<AcaoAuditoria, ItemCatalogo> = {
       return `${n === null ? "Sessão do totem" : `Sessão ${n} do totem`} encerrada${como}`;
     },
   },
+  VOTOS_TOTEM_CORRIGIDOS: {
+    rotulo: "Votos do totem corrigidos",
+    grupo: "TOTEM",
+    descrever: (d) => {
+      const n = numero(d?.removidos);
+      return n === null ? "Votos do totem corrigidos pela organização" : `${n} voto(s) de teste do totem removido(s) pela organização`;
+    },
+  },
   TOTEM_CONFIGURADO: {
     rotulo: "Totem configurado",
     grupo: "TOTEM",

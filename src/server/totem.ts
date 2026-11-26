@@ -556,7 +556,7 @@ export async function encerrarSessaoTotem(ctx: ContextoTotem, entrada: { pin: st
 export async function abrirSessaoTotem(
   ctx: ContextoTotem,
   entrada: { pin: string; criancasEsperadas?: number | null },
-): Promise<Resultado<{ sessaoId: string; numero: number }>> {
+): Promise<Resultado<{ sessaoId: string; numero: number; jaAberta: boolean }>> {
   try {
     const r = await aparelhoComPin(ctx, entrada.pin);
     if (!r.ok) return r.falha;
@@ -565,12 +565,13 @@ export async function abrirSessaoTotem(
       const aparelho = await travarAparelho(tx, r.aparelho.id);
       const aberta = await sessaoAberta(tx, aparelho.id);
       if (aberta) {
-        await tx.sessaoTotem.update({ where: { id: aberta.id }, data: { criancasEsperadas: esperadas } });
-        return { id: aberta.id, numero: aberta.numero };
+        // Campo em branco não apaga o número já informado.
+        if (esperadas !== null) await tx.sessaoTotem.update({ where: { id: aberta.id }, data: { criancasEsperadas: esperadas } });
+        return { id: aberta.id, numero: aberta.numero, jaAberta: true };
       }
-      return abrirSessao(tx, aparelho, new Date(), esperadas);
+      return { ...(await abrirSessao(tx, aparelho, new Date(), esperadas)), jaAberta: false };
     });
-    return sucesso({ sessaoId: sessao.id, numero: sessao.numero });
+    return sucesso({ sessaoId: sessao.id, numero: sessao.numero, jaAberta: sessao.jaAberta });
   } catch (e) {
     if (e instanceof VotoRecusado) return falha(e.codigo);
     return falhaInterna(e, "abrirSessaoTotem");

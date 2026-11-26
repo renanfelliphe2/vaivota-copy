@@ -139,8 +139,10 @@ describe("menu do PIN", () => {
     const [a] = idsDe(candidatos);
     const totem = await novoTotem();
     const aberta = await abrirSessaoTotem(totem.ctx, { pin: PIN, criancasEsperadas: 4 });
-    expect(aberta).toMatchObject({ ok: true, dados: { numero: 1 } });
-    expect(await abrirSessaoTotem(totem.ctx, { pin: PIN, criancasEsperadas: 5 })).toMatchObject({ ok: true, dados: { numero: 1 } });
+    expect(aberta).toMatchObject({ ok: true, dados: { numero: 1, jaAberta: false } });
+    expect(await abrirSessaoTotem(totem.ctx, { pin: PIN, criancasEsperadas: 5 })).toMatchObject({ ok: true, dados: { numero: 1, jaAberta: true } });
+    // Campo em branco com a sessão aberta não apaga o número já informado.
+    expect(await abrirSessaoTotem(totem.ctx, { pin: PIN, criancasEsperadas: null })).toMatchObject({ ok: true, dados: { jaAberta: true } });
     await votar(totem.ctx, eventoId, a!);
     await votar(totem.ctx, eventoId, a!);
     const r = await encerrarSessaoTotem(totem.ctx, { pin: PIN });
